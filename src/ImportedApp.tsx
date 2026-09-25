@@ -919,6 +919,7 @@ export default function ImportedApp() {
       return;
     }
     setMatchingHint(false);
+    playSuccessSound();
     if (matchingRound === MATCH_ROUNDS.length - 1) {
       setAttentionGameState('gameover');
       if (!unlockedAchievements.includes('Parejas Visuales')) awardStars(5, 'Parejas Visuales');
@@ -1860,14 +1861,15 @@ export default function ImportedApp() {
 
             {attentionGameState === 'playing' && attentionActivity === 'matching' && (
               <div className="space-y-4">
-                <div className="bg-blue-900/10 border border-blue-500/20 p-5 rounded-2xl text-center">
-                  <span className="text-sm text-blue-400 font-bold">¿Cuál es {MATCH_ROUNDS[matchingRound].word}?</span>
+                <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-2xl text-center">
+                  <p className="text-sm text-blue-400 font-bold">Buscá el dibujo igual</p>
+                  <span className="block text-5xl mt-2" role="img" aria-label={MATCH_ROUNDS[matchingRound].word}>{MATCH_ROUNDS[matchingRound].answer}</span>
                 </div>
                 {matchingHint && <p role="status" className="text-sm text-blue-400 font-semibold text-center">Probá con otra imagen. No hay apuro.</p>}
                 <div className="grid grid-cols-3 gap-2">
                   {MATCH_ROUNDS[matchingRound].choices.map(choice => (
-                    <button key={choice} type="button" onClick={() => handleMatchingChoice(choice)} aria-label={`Elegir ${MATCH_LABELS[choice]}`} className="min-h-24 rounded-2xl border border-[#a9c4d0] bg-[#fcf7ed] text-4xl hover:border-[#355f80] focus-visible:outline-2 focus-visible:outline-[#355f80] flex flex-col items-center justify-center gap-1">
-                      <span aria-hidden="true">{choice}</span><span className="text-xs font-bold text-[#355f80]">{MATCH_LABELS[choice]}</span>
+                    <button key={choice} type="button" onClick={() => handleMatchingChoice(choice)} aria-label={`Elegir ${MATCH_LABELS[choice]}`} className="min-h-24 rounded-2xl border border-[#a9c4d0] bg-[#fcf7ed] text-4xl hover:border-[#355f80] focus-visible:outline-2 focus-visible:outline-[#355f80] flex items-center justify-center">
+                      <span aria-hidden="true">{choice}</span>
                     </button>
                   ))}
                 </div>
