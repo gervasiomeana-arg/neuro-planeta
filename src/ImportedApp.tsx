@@ -303,7 +303,7 @@ export default function ImportedApp() {
   const [journalNote, setJournalNote] = useState<string>('');
 
   // Breathing (Zona Calma) State
-  const [breathingPhase, setBreathingPhase] = useState<'idle' | 'inhala' | 'reten' | 'exhala'>('idle');
+  const [breathingPhase, setBreathingPhase] = useState<'idle' | 'inhala' | 'exhala'>('idle');
   const [breathingSeconds, setBreathingSeconds] = useState<number>(4);
   const [breathingCycles, setBreathingCycles] = useState<number>(0);
   
@@ -802,25 +802,13 @@ export default function ImportedApp() {
       interval = setInterval(() => {
         setBreathingSeconds(prev => {
           if (prev <= 1) {
-            // Transition to next phase
+            // The visual cue is optional and never requires holding one's breath.
             if (breathingPhase === 'inhala') {
-              setBreathingPhase('reten');
-              playTherapeuticTone(440, 'sine-soft', 0.5);
-              return 4;
-            } else if (breathingPhase === 'reten') {
               setBreathingPhase('exhala');
-              playTherapeuticTone(349.23, 'sine-soft', 0.5);
               return 4;
             } else {
               setBreathingPhase('inhala');
-              playTherapeuticTone(523.25, 'sine-soft', 0.5);
-              setBreathingCycles(c => {
-                const nextCycles = c + 1;
-                if (nextCycles === 1) {
-                  awardStars(5, 'Respiración Estelar');
-                }
-                return nextCycles;
-              });
+              setBreathingCycles(c => c + 1);
               return 4;
             }
           }
@@ -1794,29 +1782,29 @@ export default function ImportedApp() {
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <h2 className="text-base font-extrabold text-purple-400">Zona Calma y Autoregulación</h2>
+              <h2 className="text-base font-extrabold text-purple-400">Zona Calma</h2>
             </div>
 
-            <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed text-left">
-              La respiración profunda ayuda a que tu sistema nervioso se sienta seguro y en paz. Sigue el ritmo del círculo estelar.
+            <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed text-left">
+              Si querés, acompañá el círculo con tu respiración. Podés seguir tu propio ritmo y parar cuando quieras.
             </p>
 
             {breathingPhase === 'idle' ? (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                 <span className="text-4xl animate-pulse">🌬️</span>
-                <h3 className="font-extrabold text-sm text-white">Guía de Respiración Diafragmática</h3>
-                <p className="text-xs text-slate-400">
-                  Ideal para momentos de inquietud o sobreestimulación.
+                <h3 className="font-extrabold text-base text-white">Una pausa tranquila</h3>
+                <p className="text-sm text-slate-400">
+                  Mirá cómo el círculo crece y se achica. No hace falta contener el aire.
                 </p>
                 <button
                   onClick={() => {
-                    playCalmSound();
                     setBreathingPhase('inhala');
                     setBreathingSeconds(4);
+                    setBreathingCycles(0);
                   }}
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs py-3 rounded-xl"
                 >
-                  Empezar Ejercicio
+                  Empezar la pausa
                 </button>
               </div>
             ) : (
@@ -1825,12 +1813,10 @@ export default function ImportedApp() {
                 <div className="flex justify-center items-center h-48">
                   <div className={`rounded-full flex flex-col justify-center items-center transition-all duration-1000 border-4 border-purple-500/50 shadow-2xl relative ${
                     breathingPhase === 'inhala' ? 'w-44 h-44 bg-purple-500/20 scale-110 shadow-purple-500/20' :
-                    breathingPhase === 'reten' ? 'w-40 h-40 bg-purple-600/35 scale-100 shadow-purple-600/30 border-blue-400/40' :
                     'w-28 h-28 bg-purple-800/10 scale-90 shadow-transparent'
                   }`}>
                     <span className="text-xl font-bold uppercase text-white tracking-widest animate-pulse">
                       {breathingPhase === 'inhala' && 'Inhala'}
-                      {breathingPhase === 'reten' && 'Retén'}
                       {breathingPhase === 'exhala' && 'Exhala'}
                     </span>
                     <span className="text-xs font-mono font-bold text-slate-300 mt-1">
@@ -1839,19 +1825,18 @@ export default function ImportedApp() {
                   </div>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 inline-block text-xs font-bold text-purple-400">
-                  Ciclos Completados: {breathingCycles}
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 inline-block text-sm font-bold text-purple-400">
+                  Vueltas: {breathingCycles}
                 </div>
 
                 <div className="flex justify-center gap-3">
                   <button
                     onClick={() => {
-                      playClickSound();
                       setBreathingPhase('idle');
                     }}
                     className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-extrabold text-xs py-2.5 px-6 rounded-xl"
                   >
-                    Terminar
+                    Detener la pausa
                   </button>
                 </div>
               </div>
