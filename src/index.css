@@ -6,45 +6,48 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-/* NeuroPlaneta: quiet, readable surfaces shared by every activity and dialog. */
+/* Warm, low-glare surfaces shared by every activity and dialog. */
 :root {
   color-scheme: light;
-  --np-ink: #273b48;
-  --np-muted: #536575;
-  --np-line: #d8e4e3;
-  --np-teal: #176a68;
-  --np-blue: #245e86;
-  --np-rose: #a84263;
-  --np-purple: #705191;
-  --np-gold: #805b18;
+  --np-ink: #293b3a;
+  --np-muted: #566765;
+  --np-line: #d5d9ce;
+  --np-page: #f2efe5;
+  --np-card: #fcf7ed;
+  --np-soft: #e5eadf;
+  --np-teal: #27665e;
+  --np-blue: #355f80;
+  --np-rose: #9d5361;
+  --np-purple: #705984;
+  --np-gold: #795c24;
 }
 
 .np-theme {
   color: var(--np-ink);
-  background: #f7f9f7;
+  background: var(--np-page);
   border-color: var(--np-line);
 }
 
 .stitch-grid {
-  background: #eaf3f1;
-  background-image: radial-gradient(#d7e9e5 1px, transparent 1px);
-  background-size: 28px 28px;
+  background: #e8ebe2;
+  background-image: radial-gradient(#d9ded3 .7px, transparent .7px);
+  background-size: 32px 32px;
 }
 
 .ambient-glow-violet, .ambient-glow-cyan, .ambient-glow-pink {
-  opacity: .16 !important;
+  opacity: .08 !important;
   animation: none;
 }
 
 #neuroplaneta-workspace > header,
 #neuroplaneta-workspace > nav {
-  background: #fffefa;
+  background: #efe7d8;
   border-color: var(--np-line);
 }
 
 #neuroplaneta-workspace > main {
-  background: linear-gradient(180deg, #f5faf8 0%, #f9f7f3 100%);
-  scrollbar-color: #b8cfca transparent;
+  background: #f1f0e8;
+  scrollbar-color: #aabbb0 transparent;
 }
 
 .np-theme [class*="bg-[#0B0F19]"],
@@ -56,12 +59,13 @@
 .np-theme [class*="bg-slate-900"],
 .np-theme [class*="bg-blue-950"],
 .np-theme [class*="bg-blue-900"] {
-  background: #fffefa;
+  background: var(--np-card);
 }
-.np-theme [class*="bg-rose-950"] { background: #fff1f2; }
+.np-theme [class*="bg-rose-950"] { background: #f7eeeb; }
+.np-theme [class~="bg-white"] { background: var(--np-card); }
 
 .np-theme [class*="bg-slate-800"],
-.np-theme [class*="bg-slate-700"] { background: #e9f2f0; }
+.np-theme [class*="bg-slate-700"] { background: var(--np-soft); }
 .np-theme [class*="border-slate-"],
 .np-theme [class*="border-white/"] { border-color: var(--np-line); }
 .np-theme [class~="text-white"],
@@ -96,11 +100,11 @@
 .np-theme :is(button, label)[class~="bg-emerald-600"],
 .np-theme button[class*="bg-gradient-to-"] { color: #fff; }
 .np-theme button[class~="bg-blue-600"],
-.np-theme button[class~="bg-[#186EF3]"] { background: #176a68; }
-.np-theme button[class~="bg-emerald-600"] { background: #176a68; }
-.np-theme button[class~="bg-pink-600"] { background: #a84263; }
-.np-theme button[class~="bg-rose-600"] { background: #a84263; }
-.np-theme button[class~="bg-amber-500"] { color: #263747; }
+.np-theme button[class~="bg-[#186EF3]"] { background: var(--np-teal); }
+.np-theme button[class~="bg-emerald-600"] { background: var(--np-teal); }
+.np-theme button[class~="bg-pink-600"] { background: var(--np-rose); }
+.np-theme button[class~="bg-rose-600"] { background: var(--np-rose); }
+.np-theme button[class~="bg-amber-500"] { color: var(--np-ink); }
 .np-theme .np-sensory-canvas,
 .np-theme .np-sensory-canvas [class~="text-white"] { color: #fff; }
 .np-theme .fixed.inset-0[class*="bg-slate-950"] { background: rgb(33 53 65 / .64); }
@@ -109,13 +113,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 .np-theme :is(button, input, select, textarea):focus-visible {
-  outline: 3px solid #246c79;
+  outline: 3px solid var(--np-teal);
   outline-offset: 3px;
 }
 .np-theme :is(input, select, textarea) {
   color: var(--np-ink);
-  background: #fff;
-  border-color: #b9cfcb;
+  background: var(--np-card);
+  border-color: #abbdb1;
 }
 .np-theme :is(input, textarea)::placeholder { color: #647784; }
 .np-theme main button { min-height: 44px; }
@@ -131,20 +135,27 @@
 #neuroplaneta-onboarding-wrapper button { min-height: 44px; }
 
 .np-modules > button {
-  background: #fffefa !important;
-  border: 1px solid #d8e4e3 !important;
-  box-shadow: 0 5px 18px rgb(35 74 78 / .06) !important;
+  background: var(--np-card) !important;
+  border: 1px solid var(--np-line) !important;
+  box-shadow: 0 4px 14px rgb(57 77 59 / .05) !important;
   min-height: 160px;
   padding: 1rem;
   transform: none !important;
 }
-.np-modules > button:hover { border-color: #83aaa6 !important; box-shadow: 0 8px 22px rgb(35 74 78 / .12) !important; }
+.np-modules > button:hover { border-color: #87aaa0 !important; box-shadow: 0 6px 18px rgb(57 77 59 / .09) !important; }
+.np-modules > button:nth-child(7n + 1) { background: #f8ebd9 !important; }
+.np-modules > button:nth-child(7n + 2) { background: #e5eef1 !important; }
+.np-modules > button:nth-child(7n + 3) { background: #eee7f1 !important; }
+.np-modules > button:nth-child(7n + 4) { background: #f5e8ed !important; }
+.np-modules > button:nth-child(7n + 5) { background: #e4eff0 !important; }
+.np-modules > button:nth-child(7n + 6) { background: #f5e9e1 !important; }
+.np-modules > button:nth-child(7n) { background: #e7efe4 !important; }
 .np-modules > button h3 { font-size: 1rem; letter-spacing: normal; }
 .np-modules > button p { line-height: 1.4; }
 .np-modules > button > div:first-of-type { width: 3rem; height: 3rem; margin-bottom: .75rem; box-shadow: none; }
 .np-modules > button > div:last-child[class*="absolute"] { display: none; }
-#neuroplaneta-workspace > nav button { min-width: 96px; min-height: 52px; }
-#neuroplaneta-workspace > nav button[class*="bg-[#186EF3]"] { background: #dcefeb; border-color: #9bc6be; }
+#neuroplaneta-workspace > nav button { min-width: 0; flex: 1 1 0; min-height: 52px; padding-inline: .5rem; }
+#neuroplaneta-workspace > nav button[class*="bg-[#186EF3]"] { background: #d8e9db; border-color: #95b5a2; }
 #neuroplaneta-workspace > header .animate-bounce,
 #neuroplaneta-workspace > header .animate-spin-slow,
 #neuroplaneta-workspace main .animate-spin-slow,

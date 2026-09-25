@@ -3767,22 +3767,9 @@ export default function ImportedApp() {
 
       </main>
 
-      {/* EMERGENCY RED SOS CALMA FLOAT ACTION BUTTON (Matching the screenshot) */}
-      {!activeModule && (
-        <button
-          onClick={() => { playTherapeuticTone(293.66, 'sine', 0.6); setActiveModule('sos'); }}
-          className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-tr from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-black rounded-full shadow-2xl flex flex-col items-center justify-center hover:scale-105 active:scale-90 transition-all border border-rose-500/30 z-40 group shrink-0"
-        >
-          <span className="text-[10px] tracking-tighter leading-none">SOS</span>
-          <span className="text-[8px] tracking-widest uppercase leading-none mt-0.5">Calma</span>
-          {/* Pulsing ring */}
-          <span className="absolute -inset-1 rounded-full border-2 border-rose-500/20 animate-ping pointer-events-none group-hover:animate-none"></span>
-        </button>
-      )}
-
-      {/* BOTTOM TAB MENU BAR (Matching the screenshot exactly) */}
+      {/* Persistent navigation keeps the calming exercise within the phone frame. */}
       <nav className="absolute bottom-0 left-0 right-0 bg-[#060913]/95 backdrop-blur-xl border-t border-white/10 py-2.5 px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))] z-40 shrink-0">
-        <div className="max-w-md mx-auto flex items-center justify-around gap-4">
+        <div className="max-w-md mx-auto flex items-center justify-around gap-2">
           <button
             onClick={() => { playClickSound(); setCurrentTab('inicio'); setActiveModule(null); }}
             className={`flex flex-col items-center gap-1 py-1.5 px-6 rounded-2xl transition-all duration-200 cursor-pointer ${
@@ -3805,6 +3792,19 @@ export default function ImportedApp() {
           >
             <span className="text-lg">🏆</span>
             <span className="text-[10px] tracking-wide font-extrabold uppercase">Logros</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Abrir ejercicio SOS Calma"
+            onClick={() => { playTherapeuticTone(293.66, 'sine', 0.6); setCurrentTab('inicio'); setActiveModule('sos'); }}
+            className={`flex flex-col items-center gap-1 py-1.5 px-2 rounded-2xl transition-colors cursor-pointer ${
+              activeModule === 'sos'
+                ? 'text-rose-400 bg-rose-500/10 border border-rose-500/30 font-bold'
+                : 'text-rose-400 hover:bg-rose-500/10 border border-transparent'
+            }`}
+          >
+            <Heart className="w-5 h-5" aria-hidden="true" />
+            <span className="text-[10px] tracking-wide font-extrabold uppercase">SOS Calma</span>
           </button>
         </div>
       </nav>
