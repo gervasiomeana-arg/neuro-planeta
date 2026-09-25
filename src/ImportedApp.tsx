@@ -325,8 +325,13 @@ export default function ImportedApp() {
         const clientFocusVal = params.get('focus') || 'Entrenamiento de Atención y Coordinación';
         const customWelcome = params.get('msg') || '';
         
-        // Generate a new temporary patient profile based on query params
-        const demoId = `demo_${Date.now()}`;
+        // Reopening the same shared link should reuse its profile and progress.
+        const demoIdentity = JSON.stringify([clientNameVal, clientAgeVal, clientFocusVal]);
+        let demoHash = 2166136261;
+        for (let i = 0; i < demoIdentity.length; i++) {
+          demoHash = Math.imul(demoHash ^ demoIdentity.charCodeAt(i), 16777619);
+        }
+        const demoId = `demo_${(demoHash >>> 0).toString(36)}`;
         const newDemoPatient: Patient = {
           id: demoId,
           name: `${clientNameVal} (Demo Cliente)`,
@@ -368,6 +373,16 @@ export default function ImportedApp() {
       console.error("Error parsing demo query params", e);
     }
   }, []);
+
+  // A profile switch must survive reload even if the child has made no edits.
+  useEffect(() => {
+    if (!activePatientId) return;
+    try {
+      localStorage.setItem('np_active_patient_id', activePatientId);
+    } catch (e) {
+      console.error('No se pudo guardar el perfil activo.', e);
+    }
+  }, [activePatientId]);
 
   // Wait for profile hydration before saving. Otherwise switching profiles can
   // overwrite the newly selected child's progress with the previous profile.
@@ -426,7 +441,6 @@ export default function ImportedApp() {
       };
       
       localStorage.setItem('np_patients', JSON.stringify(updatedPatients));
-      localStorage.setItem('np_active_patient_id', activePatientId);
       return updatedPatients;
     });
   }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
