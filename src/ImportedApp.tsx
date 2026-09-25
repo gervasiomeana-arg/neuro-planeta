@@ -246,6 +246,8 @@ export default function ImportedApp() {
   const [timerSecondsLeft, setTimerSecondsLeft] = useState<number>(0);
   const [timerDuration, setTimerDuration] = useState<number>(0);
   const [timerIsActive, setTimerIsActive] = useState<boolean>(false);
+  const timerOwnerIdRef = useRef<string | null>(null);
+  const rewardedTimerRef = useRef<string | null>(null);
 
   // Comunicar (AAC Pictograms) States
   const [constructedPhrase, setConstructedPhrase] = useState<{ id: string, word: string, emoji: string }[]>([]);
@@ -469,6 +471,7 @@ export default function ImportedApp() {
   // Switching children ends activities in progress without touching saved progress.
   useEffect(() => {
     if (!activePatientId) return;
+    timerOwnerIdRef.current = null;
     setTimerIsActive(false);
     setTimerSecondsLeft(0);
     setTimerDuration(0);
@@ -621,42 +624,32 @@ export default function ImportedApp() {
     }
   };
 
-  // Ganar estrellas mediante la conclusión del temporizador visual
+  // Keep the countdown free of state updates with side effects.
   useEffect(() => {
-    let intervalId: any;
-    if (timerIsActive && timerSecondsLeft > 0) {
-      intervalId = setInterval(() => {
-        setTimerSecondsLeft(prev => {
-          if (prev <= 1) {
-            // ¡Se completó el tiempo!
-            setTimerIsActive(false);
-            playSuccessSound();
-            
-            if (activeTimerTask) {
-              setCompletedRoutineTasks(current => {
-                if (!current.includes(activeTimerTask.id)) {
-                  // Entregar estrellas extras de foco
-                  setTimeout(() => {
-                    awardStars(12, 'Guardián de Rutinas');
-                  }, 200);
-                  return [...current, activeTimerTask.id];
-                }
-                return current;
-              });
-            }
-            setActiveTimerTask(null);
-            return 0;
-          }
-          // Sonido de tictac suave opcional
-          if (prev <= 5) {
-            playTherapeuticTone(480, 'sine-soft', 0.05);
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (!timerIsActive || timerSecondsLeft <= 0) return;
+    const intervalId = window.setInterval(() => {
+      if (timerOwnerIdRef.current !== activePatientId) {
+        setTimerIsActive(false);
+        return;
+      }
+      setTimerSecondsLeft(prev => Math.max(0, prev - 1));
+    }, 1000);
     return () => clearInterval(intervalId);
-  }, [timerIsActive, timerSecondsLeft, activeTimerTask]);
+  }, [timerIsActive, timerSecondsLeft, activePatientId]);
+
+  // Complete a task only while its original child is still selected.
+  useEffect(() => {
+    if (!timerIsActive || timerSecondsLeft !== 0 || !activeTimerTask) return;
+    setTimerIsActive(false);
+    setActiveTimerTask(null);
+    if (timerOwnerIdRef.current !== activePatientId) return;
+
+    const rewardKey = `${activePatientId}:${activeTimerTask.id}`;
+    if (completedRoutineTasks.includes(activeTimerTask.id) || rewardedTimerRef.current === rewardKey) return;
+    rewardedTimerRef.current = rewardKey;
+    setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
+    awardStars(12, 'Guardián de Rutinas');
+  }, [timerIsActive, timerSecondsLeft, activeTimerTask, activePatientId, completedRoutineTasks]);
 
   // Sound effects with adaptive sensory controls
   const playSuccessSound = () => {
@@ -2529,15 +2522,15 @@ export default function ImportedApp() {
                         {/* Skip and mark as complete */}
                         <button
                           onClick={() => {
-                            playSuccessSound();
                             setTimerIsActive(false);
-                            setCompletedRoutineTasks(current => {
-                              if (!current.includes(activeTimerTask.id)) {
+                            if (timerOwnerIdRef.current === activePatientId && !completedRoutineTasks.includes(activeTimerTask.id)) {
+                              const rewardKey = `${activePatientId}:${activeTimerTask.id}`;
+                              if (rewardedTimerRef.current !== rewardKey) {
+                                rewardedTimerRef.current = rewardKey;
+                                setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
                                 awardStars(12, 'Guardián de Rutinas');
-                                return [...current, activeTimerTask.id];
                               }
-                              return current;
-                            });
+                            }
                             setActiveTimerTask(null);
                           }}
                           className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs py-2.5 rounded-xl hover:opacity-90 transition-all shadow-md"
@@ -2637,6 +2630,7 @@ export default function ImportedApp() {
                               <button
                                 onClick={() => {
                                   playClickSound();
+                                  timerOwnerIdRef.current = activePatientId;
                                   setActiveTimerTask(task);
                                   setTimerDuration(duration);
                                   setTimerSecondsLeft(duration);
