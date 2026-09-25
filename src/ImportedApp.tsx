@@ -164,6 +164,15 @@ export default function ImportedApp() {
     }
   });
 
+  // Save additions and profile switches even before the child earns any progress.
+  useEffect(() => {
+    try {
+      localStorage.setItem('np_patients', JSON.stringify(patients));
+    } catch (e) {
+      console.error('No se pudieron guardar los perfiles.', e);
+    }
+  }, [patients]);
+
   // Onboarding & Device selection states
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(() => {
     try {
@@ -353,7 +362,6 @@ export default function ImportedApp() {
         setPatients(prev => {
           if (prev.some(p => p.id === demoId)) return prev;
           const updated = [newDemoPatient, ...prev];
-          localStorage.setItem('np_patients', JSON.stringify(updated));
           return updated;
         });
         
@@ -440,7 +448,6 @@ export default function ImportedApp() {
         customPictogramVoices
       };
       
-      localStorage.setItem('np_patients', JSON.stringify(updatedPatients));
       return updatedPatients;
     });
   }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
