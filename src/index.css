@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* NeuroPlaneta: quiet, readable surfaces shared by every activity and dialog. */
+:root {
+  color-scheme: light;
+  --np-ink: #273b48;
+  --np-muted: #536575;
+  --np-line: #d8e4e3;
+  --np-teal: #176a68;
+  --np-blue: #245e86;
+  --np-rose: #a84263;
+  --np-purple: #705191;
+  --np-gold: #805b18;
+}
+
+.np-theme {
+  color: var(--np-ink);
+  background: #f7f9f7;
+  border-color: var(--np-line);
+}
+
+.stitch-grid {
+  background: #eaf3f1;
+  background-image: radial-gradient(#d7e9e5 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.ambient-glow-violet, .ambient-glow-cyan, .ambient-glow-pink {
+  opacity: .16 !important;
+  animation: none;
+}
+
+#neuroplaneta-workspace > header,
+#neuroplaneta-workspace > nav {
+  background: #fffefa;
+  border-color: var(--np-line);
+}
+
+#neuroplaneta-workspace > main {
+  background: linear-gradient(180deg, #f5faf8 0%, #f9f7f3 100%);
+  scrollbar-color: #b8cfca transparent;
+}
+
+.np-theme [class*="bg-[#0B0F19]"],
+.np-theme [class*="bg-[#111827]"],
+.np-theme [class*="bg-[#0F172A]"],
+.np-theme [class*="bg-[#03060E]"],
+.np-theme [class*="bg-[#090D16]"],
+.np-theme [class*="bg-slate-950"],
+.np-theme [class*="bg-slate-900"],
+.np-theme [class*="bg-blue-950"],
+.np-theme [class*="bg-blue-900"] {
+  background: #fffefa;
+}
+.np-theme [class*="bg-rose-950"] { background: #fff1f2; }
+
+.np-theme [class*="bg-slate-800"],
+.np-theme [class*="bg-slate-700"] { background: #e9f2f0; }
+.np-theme [class*="border-slate-"],
+.np-theme [class*="border-white/"] { border-color: var(--np-line); }
+.np-theme [class~="text-white"],
+.np-theme [class~="text-slate-100"],
+.np-theme [class~="text-slate-200"],
+.np-theme [class~="text-slate-900"] { color: var(--np-ink); }
+.np-theme [class~="text-slate-300"],
+.np-theme [class~="text-slate-400"],
+.np-theme [class~="text-slate-500"],
+.np-theme [class~="text-slate-600"] { color: var(--np-muted); }
+.np-theme [class~="text-blue-400"],
+.np-theme [class~="text-sky-400"],
+.np-theme [class~="text-blue-500"] { color: var(--np-blue); }
+.np-theme [class~="text-emerald-400"],
+.np-theme [class~="text-emerald-500"],
+.np-theme [class~="text-teal-400"] { color: var(--np-teal); }
+.np-theme [class~="text-amber-400"],
+.np-theme [class~="text-amber-500"],
+.np-theme [class~="text-yellow-400"],
+.np-theme [class~="text-yellow-300"] { color: var(--np-gold); }
+.np-theme [class~="text-purple-400"] { color: var(--np-purple); }
+.np-theme [class~="text-pink-400"],
+.np-theme [class~="text-rose-400"],
+.np-theme [class~="text-rose-300"] { color: var(--np-rose); }
+
+/* Filled actions retain white labels after lightening the surrounding cards. */
+.np-theme :is(button, label)[class~="bg-blue-600"],
+.np-theme :is(button, label)[class~="bg-blue-700"],
+.np-theme :is(button, label)[class~="bg-[#186EF3]"],
+.np-theme :is(button, label)[class~="bg-pink-600"],
+.np-theme :is(button, label)[class~="bg-rose-600"],
+.np-theme :is(button, label)[class~="bg-emerald-600"],
+.np-theme button[class*="bg-gradient-to-"] { color: #fff; }
+.np-theme button[class~="bg-blue-600"],
+.np-theme button[class~="bg-[#186EF3]"] { background: #176a68; }
+.np-theme button[class~="bg-emerald-600"] { background: #176a68; }
+.np-theme button[class~="bg-pink-600"] { background: #a84263; }
+.np-theme button[class~="bg-rose-600"] { background: #a84263; }
+.np-theme button[class~="bg-amber-500"] { color: #263747; }
+.np-theme .np-sensory-canvas,
+.np-theme .np-sensory-canvas [class~="text-white"] { color: #fff; }
+.np-theme .fixed.inset-0[class*="bg-slate-950"] { background: rgb(33 53 65 / .64); }
+
+.np-theme button, .np-theme input, .np-theme select, .np-theme textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+.np-theme :is(button, input, select, textarea):focus-visible {
+  outline: 3px solid #246c79;
+  outline-offset: 3px;
+}
+.np-theme :is(input, select, textarea) {
+  color: var(--np-ink);
+  background: #fff;
+  border-color: #b9cfcb;
+}
+.np-theme :is(input, textarea)::placeholder { color: #647784; }
+.np-theme main button { min-height: 44px; }
+.np-theme main [class~="text-xs"],
+#neuroplaneta-onboarding-wrapper [class~="text-xs"] { font-size: .8125rem; }
+.np-theme main [class~="text-[10px]"],
+.np-theme main [class~="text-[10.5px]"],
+.np-theme main [class~="text-[11px]"] { font-size: .75rem; line-height: 1.35; }
+.np-theme main [class~="text-sm"] { font-size: .9375rem; }
+.np-theme #adult-panel-dialog [class~="text-[9px]"],
+.np-theme #adult-panel-dialog [class~="text-[10px]"] { font-size: .6875rem; line-height: 1.4; }
+#neuroplaneta-onboarding-wrapper [class~="text-[10.5px]"] { font-size: .8125rem; }
+#neuroplaneta-onboarding-wrapper button { min-height: 44px; }
+
+.np-modules > button {
+  background: #fffefa !important;
+  border: 1px solid #d8e4e3 !important;
+  box-shadow: 0 5px 18px rgb(35 74 78 / .06) !important;
+  min-height: 160px;
+  padding: 1rem;
+  transform: none !important;
+}
+.np-modules > button:hover { border-color: #83aaa6 !important; box-shadow: 0 8px 22px rgb(35 74 78 / .12) !important; }
+.np-modules > button h3 { font-size: 1rem; letter-spacing: normal; }
+.np-modules > button p { line-height: 1.4; }
+.np-modules > button > div:first-of-type { width: 3rem; height: 3rem; margin-bottom: .75rem; box-shadow: none; }
+.np-modules > button > div:last-child[class*="absolute"] { display: none; }
+#neuroplaneta-workspace > nav button { min-width: 96px; min-height: 52px; }
+#neuroplaneta-workspace > nav button[class*="bg-[#186EF3]"] { background: #dcefeb; border-color: #9bc6be; }
+#neuroplaneta-workspace > header .animate-bounce,
+#neuroplaneta-workspace > header .animate-spin-slow,
+#neuroplaneta-workspace main .animate-spin-slow,
+#neuroplaneta-workspace button .animate-ping { animation: none; }
+#neuroplaneta-workspace > header button { min-height: 44px; }
+
+@media (max-width: 380px) {
+  .np-modules { gap: .625rem; }
+  .np-modules > button { padding: .75rem; }
+}
+
+/* Custom Sleek Glass Effect */
+.glass {
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.accent-blue {
+  background: linear-gradient(135deg, #186EF3 0%, #0F56C6 100%);
+}
+
+/* Stitch Subtle Grid Background Pattern */
+
+/* Beautiful custom animations and glows */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; transform: scale(1) translate(0px, 0px); }
+  33% { opacity: 0.5; transform: scale(1.12) translate(15px, -10px); }
+  66% { opacity: 0.4; transform: scale(0.95) translate(-10px, 15px); }
+}
+
+.ambient-glow-violet {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.42) 0%, transparent 65%);
+  filter: blur(45px);
+  pointer-events: none;
+  animation: pulse-glow 12s infinite ease-in-out;
+}
+
+.ambient-glow-cyan {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.38) 0%, transparent 65%);
+  filter: blur(45px);
+  pointer-events: none;
+  animation: pulse-glow 15s infinite ease-in-out;
+}
+
+.ambient-glow-pink {
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.35) 0%, transparent 65%);
+  filter: blur(45px);
+  pointer-events: none;
+  animation: pulse-glow 9s infinite ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Avoid forced movement for children who prefer a quieter interface. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page { margin: 14mm; }
+  body * { visibility: hidden !important; }
+  #root, #root > div, #neuroplaneta-workspace, main,
+  #adult-panel-dialog, #adult-panel-scroll {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  #adult-panel-overlay {
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  #printable-activity-summary, #printable-activity-summary * {
+    visibility: visible !important;
+  }
+  #printable-activity-summary {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    background: white;
+    color: #111827;
+  }
+}
