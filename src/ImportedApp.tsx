@@ -436,7 +436,7 @@ export default function ImportedApp() {
   const attentionScoreRef = useRef(0);
   const [targetNumber, setTargetNumber] = useState<number>(0);
   const [attentionGrid, setAttentionGrid] = useState<number[]>([]);
-  const [attentionTimer, setAttentionTimer] = useState<number>(10);
+  const [attentionHint, setAttentionHint] = useState(false);
   
   // Sensorial State
   const [sensorialColor, setSensorialColor] = useState<string>('from-indigo-600 to-pink-500');
@@ -830,24 +830,6 @@ export default function ImportedApp() {
     return () => clearInterval(interval);
   }, [activeModule, breathingPhase]);
 
-  // Attention Game Loop
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (attentionGameState === 'playing') {
-      interval = setInterval(() => {
-        setAttentionTimer(prev => {
-          if (prev <= 1) {
-            setAttentionGameState('gameover');
-            playTherapeuticTone(220, 'triangle', 0.6);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [attentionGameState]);
-
   // Start Attention Game
   const startAttentionGame = () => {
     playClickSound();
@@ -867,12 +849,12 @@ export default function ImportedApp() {
     setAttentionGrid(grid);
     attentionScoreRef.current = 0;
     setAttentionScore(0);
-    setAttentionTimer(selectedAge === '3-5' ? 15 : selectedAge === '6-8' ? 12 : 9);
+    setAttentionHint(false);
     setAttentionGameState('playing');
   };
 
   // Click cell in Attention game
-  const handleCellClick = (num: number, idx: number) => {
+  const handleCellClick = (num: number) => {
     if (attentionGameState !== 'playing') return;
     
     if (num === targetNumber) {
@@ -881,12 +863,18 @@ export default function ImportedApp() {
       attentionScoreRef.current = nextScore;
       setAttentionScore(nextScore);
       setAttentionHighScore(previous => Math.max(previous, nextScore));
+      setAttentionHint(false);
       
       // Award star and achievement milestones
       if (nextScore === 5) {
         awardStars(10, 'Foco Láser');
       } else {
         setStars(s => s + 1);
+      }
+
+      if (nextScore >= 5) {
+        setAttentionGameState('gameover');
+        return;
       }
 
       // Generate new targets
@@ -900,12 +888,8 @@ export default function ImportedApp() {
         nextGrid[Math.floor(Math.random() * 16)] = nextCorrect;
       }
       setAttentionGrid(nextGrid);
-      // Give some extra time bonus
-      setAttentionTimer(t => Math.min(t + 2, 15));
     } else {
-      // Mistake penalty
-      playTherapeuticTone(250, 'sine', 0.15);
-      setAttentionTimer(t => Math.max(t - 2, 1));
+      setAttentionHint(true);
     }
   };
 
@@ -1722,11 +1706,7 @@ export default function ImportedApp() {
                 <h2 className="text-base font-extrabold text-blue-400">Atención Cósmica</h2>
               </div>
 
-              {attentionGameState === 'playing' && (
-                <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 text-red-400 animate-pulse">
-                  ⏱️ {attentionTimer}s
-                </span>
-              )}
+              {attentionGameState === 'playing' && <span className="text-sm font-bold text-blue-400">{attentionScore} de 5</span>}
             </div>
 
             {attentionGameState === 'idle' && (
@@ -1734,13 +1714,13 @@ export default function ImportedApp() {
                 <span className="text-4xl">🚀</span>
                 <h3 className="font-extrabold text-sm text-white">Juego de Concentración Estelar</h3>
                 <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                  Encuentra y presiona únicamente la tarjeta que tenga el número solicitado por la nave Cosmo. ¡Aumenta tu foco cognitivo!
+                  Buscá el número indicado. Tenés todo el tiempo que necesites para encontrar cinco.
                 </p>
                 <button
                   onClick={startAttentionGame}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3 px-6 rounded-xl shadow-lg shadow-blue-500/10 active:scale-95 transition-all"
                 >
-                  ¡Comenzar Entrenamiento!
+                  Empezar a jugar
                 </button>
               </div>
             )}
@@ -1748,17 +1728,20 @@ export default function ImportedApp() {
             {attentionGameState === 'playing' && (
               <div className="space-y-4">
                 <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-2xl text-center">
-                  <span className="text-xs text-blue-400 uppercase tracking-widest font-bold">ENCUENTRA EL NÚMERO:</span>
-                  <div className="text-4xl font-extrabold text-white mt-1 animate-pulse">
+                  <span className="text-sm text-blue-400 font-bold">Buscá el número</span>
+                  <div className="text-4xl font-extrabold text-white mt-1">
                     {targetNumber}
                   </div>
                 </div>
+
+                {attentionHint && <p role="status" className="text-sm text-blue-400 font-semibold text-center">Probá con otro número. Podés tomarte tu tiempo.</p>}
 
                 <div className="grid grid-cols-4 gap-2.5">
                   {attentionGrid.map((num, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleCellClick(num, idx)}
+                      onClick={() => handleCellClick(num)}
+                      aria-label={`Número ${num}`}
                       className="aspect-square bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-lg font-extrabold text-white transition-all active:scale-90 flex items-center justify-center shadow-inner"
                     >
                       {num}
@@ -1777,7 +1760,7 @@ export default function ImportedApp() {
                 <span className="text-4xl">🏆</span>
                 <h3 className="font-extrabold text-sm text-white">¡Misión Completada!</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Encontraste <span className="text-green-400 font-black">{attentionScore}</span> números espaciales. Puedes jugar de nuevo o elegir otra actividad.
+                  Encontraste cinco números. Podés jugar de nuevo o elegir otra actividad.
                 </p>
                 <div className="flex gap-2">
                   <button
