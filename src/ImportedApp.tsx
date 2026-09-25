@@ -466,6 +466,27 @@ export default function ImportedApp() {
   const [sensorialNotes, setSensorialNotes] = useState<{id: number, x: number, y: number, color: string}[]>([]);
   const sensoryTapCountRef = useRef(0);
 
+  // Switching children ends activities in progress without touching saved progress.
+  useEffect(() => {
+    if (!activePatientId) return;
+    setTimerIsActive(false);
+    setTimerSecondsLeft(0);
+    setTimerDuration(0);
+    setActiveTimerTask(null);
+    setCurrentTab('inicio');
+    setActiveModule(null);
+    setShowAgeSelector(false);
+    setAttentionGameState('idle');
+    setAttentionHint(false);
+    setConstructedPhrase([]);
+    setSelectedStoryId(null);
+    setCurrentEmotion(null);
+    setJournalNote('');
+    setBreathingPhase('idle');
+    setBreathingCycles(0);
+    setSensorialNotes([]);
+  }, [activePatientId]);
+
   // Sound generator helper (Web Audio API) for therapeutic ambient or feedback tones with Sensory adaptation
   const startMaskingNoise = () => {
     try {
@@ -2981,10 +3002,13 @@ export default function ImportedApp() {
                             
                             <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
                               {patients.map(p => (
-                                <div 
+                                <button
+                                  type="button"
                                   key={p.id}
                                   onClick={() => { playClickSound(); setActivePatientId(p.id); }}
-                                  className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                                  aria-pressed={activePatientId === p.id}
+                                  aria-label={`Activar perfil de ${p.name}`}
+                                  className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                                     activePatientId === p.id
                                       ? 'bg-blue-950/20 border-blue-500/50 shadow-md'
                                       : 'bg-slate-950/40 border-slate-850 hover:border-slate-700'
@@ -3002,7 +3026,7 @@ export default function ImportedApp() {
                                   ) : (
                                     <span className="text-[9px] text-slate-500 font-bold">Tocar para activar</span>
                                   )}
-                                </div>
+                                </button>
                               ))}
                             </div>
                           </div>
