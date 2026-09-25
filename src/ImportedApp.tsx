@@ -93,6 +93,17 @@ const ROUTINE_TASKS: RoutineSchedule = {
   ]
 };
 const routineTabs: RoutineTab[] = ['Mañana', 'Tarde', 'Noche'];
+const currentRoutineTab = (): RoutineTab => {
+  const hour = new Date().getHours();
+  return hour < 12 ? 'Mañana' : hour < 19 ? 'Tarde' : 'Noche';
+};
+const MATCH_ROUNDS = [
+  { word: 'perro', answer: '🐶', choices: ['🐶', '🐱', '🐰'] },
+  { word: 'manzana', answer: '🍎', choices: ['🍌', '🍎', '🍐'] },
+  { word: 'sol', answer: '☀️', choices: ['☀️', '🌙', '⭐'] },
+  { word: 'auto', answer: '🚗', choices: ['🚲', '🚌', '🚗'] }
+] as const;
+const MATCH_LABELS: Record<string, string> = { '🐶': 'perro', '🐱': 'gato', '🐰': 'conejo', '🍌': 'banana', '🍎': 'manzana', '🍐': 'pera', '☀️': 'sol', '🌙': 'luna', '⭐': 'estrella', '🚲': 'bici', '🚌': 'colectivo', '🚗': 'auto' };
 const copyDefaultRoutine = (): RoutineSchedule => ({
   Mañana: ROUTINE_TASKS.Mañana.map(task => ({ ...task })),
   Tarde: ROUTINE_TASKS.Tarde.map(task => ({ ...task })),
@@ -259,7 +270,7 @@ export default function ImportedApp() {
   const [storyFeedback, setStoryFeedback] = useState<{ isCorrect: boolean, text: string } | null>(null);
 
   // Rutinas Checklist States
-  const [activeRoutineTab, setActiveRoutineTab] = useState<RoutineTab>('Mañana');
+  const [activeRoutineTab, setActiveRoutineTab] = useState<RoutineTab>(currentRoutineTab);
   const [routineTasks, setRoutineTasks] = useState<RoutineSchedule>(copyDefaultRoutine);
   const [newRoutineName, setNewRoutineName] = useState('');
   const [newRoutineEmoji, setNewRoutineEmoji] = useState('⭐');
@@ -324,6 +335,7 @@ export default function ImportedApp() {
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0] || EMPTY_PROFILE;
   const allRoutineTasks = routineTabs.flatMap(tab => routineTasks[tab]);
   const completedRoutineCount = allRoutineTasks.filter(task => completedRoutineTasks.includes(task.id)).length;
+  const nextRoutineTasks = routineTasks[activeRoutineTab].filter(task => !completedRoutineTasks.includes(task.id)).slice(0, 2);
 
   // --- Check for Client Direct Access Parameters (e.g. ?demo=true&client=Mateo&age=6-8&focus=Atencion&msg=...) ---
   useEffect(() => {
@@ -457,6 +469,9 @@ export default function ImportedApp() {
   
   // Attention Game State
   const [attentionGameState, setAttentionGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
+  const [attentionActivity, setAttentionActivity] = useState<'numbers' | 'matching' | null>(null);
+  const [matchingRound, setMatchingRound] = useState(0);
+  const [matchingHint, setMatchingHint] = useState(false);
   const [attentionScore, setAttentionScore] = useState<number>(0);
   const attentionScoreRef = useRef(0);
   const [targetNumber, setTargetNumber] = useState<number>(0);
@@ -471,15 +486,18 @@ export default function ImportedApp() {
   // Switching children ends activities in progress without touching saved progress.
   useEffect(() => {
     if (!activePatientId) return;
-    timerOwnerIdRef.current = null;
     setTimerIsActive(false);
     setTimerSecondsLeft(0);
     setTimerDuration(0);
     setActiveTimerTask(null);
     setCurrentTab('inicio');
     setActiveModule(null);
+    setActiveRoutineTab(currentRoutineTab());
     setShowAgeSelector(false);
     setAttentionGameState('idle');
+    setAttentionActivity(null);
+    setMatchingRound(0);
+    setMatchingHint(false);
     setAttentionHint(false);
     setConstructedPhrase([]);
     setSelectedStoryId(null);
@@ -859,6 +877,7 @@ export default function ImportedApp() {
   // Start Attention Game
   const startAttentionGame = () => {
     playClickSound();
+    setAttentionActivity('numbers');
     const correctNum = Math.floor(Math.random() * 9) + 1;
     setTargetNumber(correctNum);
     
@@ -877,6 +896,28 @@ export default function ImportedApp() {
     setAttentionScore(0);
     setAttentionHint(false);
     setAttentionGameState('playing');
+  };
+
+  const startMatchingGame = () => {
+    setAttentionActivity('matching');
+    setMatchingRound(0);
+    setMatchingHint(false);
+    setAttentionGameState('playing');
+  };
+
+  const handleMatchingChoice = (choice: string) => {
+    if (attentionGameState !== 'playing' || attentionActivity !== 'matching') return;
+    if (choice !== MATCH_ROUNDS[matchingRound].answer) {
+      setMatchingHint(true);
+      return;
+    }
+    setMatchingHint(false);
+    if (matchingRound === MATCH_ROUNDS.length - 1) {
+      setAttentionGameState('gameover');
+      if (!unlockedAchievements.includes('Parejas Visuales')) awardStars(5, 'Parejas Visuales');
+    } else {
+      setMatchingRound(round => round + 1);
+    }
   };
 
   // Click cell in Attention game
@@ -1450,6 +1491,24 @@ export default function ImportedApp() {
             </div>
 
             {/* MAIN 4 CORE THERAPEUTIC MODULES GRID */}
+            <section aria-labelledby="next-steps-title" className="rounded-2xl border border-[#b9ccc1] bg-[#e8f0e8] p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 id="next-steps-title" className="font-extrabold text-base text-[#27665e]">Mi rutina: {activeRoutineTab}</h2>
+                <button type="button" onClick={() => setActiveModule('rutinas')} className="font-bold text-sm text-[#27665e] underline">Ver rutina</button>
+              </div>
+              {nextRoutineTasks.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {nextRoutineTasks.map((task, index) => (
+                    <div key={task.id} className="rounded-xl border border-[#c6d5c9] bg-[#fcf7ed] p-3 min-h-24 flex flex-col justify-center gap-1">
+                      <span className="text-xs font-bold text-[#27665e]">{index === 0 ? 'Primero' : 'Después'}</span>
+                      <span className="text-xl" aria-hidden="true">{task.emoji}</span>
+                      <span className="font-semibold text-sm leading-tight text-[#293b3a]">{task.name}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-[#435e55]">Ya marcaste las tareas de {activeRoutineTab.toLowerCase()}. Podés elegir otra actividad.</p>}
+            </section>
+
             <div className={`np-modules grid gap-3 sm:gap-4 ${appDeviceMode === 'tablet' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
               
               {/* Emociones (Mood and Emotional Regulation) */}
@@ -1475,7 +1534,7 @@ export default function ImportedApp() {
 
               {/* Atencion (Attention, Focus, Prefrontal Training) */}
               <button
-                onClick={() => { playClickSound(); setActiveModule('atencion'); startAttentionGame(); }}
+                onClick={() => { setAttentionGameState('idle'); setAttentionActivity(null); setActiveModule('atencion'); }}
                 className="bg-[#0B0F19]/80 border border-white/5 hover:border-blue-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
               >
                 {selectedAge === '9-10' && (
@@ -1733,26 +1792,24 @@ export default function ImportedApp() {
                 <h2 className="text-base font-extrabold text-blue-400">Atención Cósmica</h2>
               </div>
 
-              {attentionGameState === 'playing' && <span className="text-sm font-bold text-blue-400">{attentionScore} de 5</span>}
+              {attentionGameState === 'playing' && <span className="text-sm font-bold text-blue-400">{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}
             </div>
 
             {attentionGameState === 'idle' && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center space-y-4">
                 <span className="text-4xl">🚀</span>
-                <h3 className="font-extrabold text-sm text-white">Juego de Concentración Estelar</h3>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                  Buscá el número indicado. Tenés todo el tiempo que necesites para encontrar cinco.
+                <h3 className="font-extrabold text-base text-white">Elegí un juego</h3>
+                <p className="text-sm text-slate-400 leading-relaxed max-w-xs mx-auto">
+                  Sin reloj. Podés probar otra vez cuantas veces quieras.
                 </p>
-                <button
-                  onClick={startAttentionGame}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3 px-6 rounded-xl shadow-lg shadow-blue-500/10 active:scale-95 transition-all"
-                >
-                  Empezar a jugar
-                </button>
+                <div className="grid gap-2">
+                  <button onClick={startAttentionGame} className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm py-3 px-4 rounded-xl">🔢 Buscar números</button>
+                  <button onClick={startMatchingGame} className="bg-[#e5eef1] text-[#355f80] border border-[#a9c4d0] font-extrabold text-sm py-3 px-4 rounded-xl">🧩 Parejas de imágenes</button>
+                </div>
               </div>
             )}
 
-            {attentionGameState === 'playing' && (
+            {attentionGameState === 'playing' && attentionActivity === 'numbers' && (
               <div className="space-y-4">
                 <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-2xl text-center">
                   <span className="text-sm text-blue-400 font-bold">Buscá el número</span>
@@ -1782,26 +1839,37 @@ export default function ImportedApp() {
               </div>
             )}
 
+            {attentionGameState === 'playing' && attentionActivity === 'matching' && (
+              <div className="space-y-4">
+                <div className="bg-blue-900/10 border border-blue-500/20 p-5 rounded-2xl text-center">
+                  <span className="text-sm text-blue-400 font-bold">¿Cuál es {MATCH_ROUNDS[matchingRound].word}?</span>
+                </div>
+                {matchingHint && <p role="status" className="text-sm text-blue-400 font-semibold text-center">Probá con otra imagen. No hay apuro.</p>}
+                <div className="grid grid-cols-3 gap-2">
+                  {MATCH_ROUNDS[matchingRound].choices.map(choice => (
+                    <button key={choice} type="button" onClick={() => handleMatchingChoice(choice)} aria-label={`Elegir ${MATCH_LABELS[choice]}`} className="min-h-24 rounded-2xl border border-[#a9c4d0] bg-[#fcf7ed] text-4xl hover:border-[#355f80] focus-visible:outline-2 focus-visible:outline-[#355f80] flex flex-col items-center justify-center gap-1">
+                      <span aria-hidden="true">{choice}</span><span className="text-xs font-bold text-[#355f80]">{MATCH_LABELS[choice]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {attentionGameState === 'gameover' && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center space-y-4">
                 <span className="text-4xl">🏆</span>
                 <h3 className="font-extrabold text-sm text-white">¡Misión Completada!</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Encontraste cinco números. Podés jugar de nuevo o elegir otra actividad.
+                  {attentionActivity === 'matching' ? 'Completaste las parejas de imágenes.' : 'Encontraste cinco números.'} Podés jugar de nuevo o elegir otra actividad.
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={startAttentionGame}
+                    onClick={attentionActivity === 'matching' ? startMatchingGame : startAttentionGame}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-2.5 rounded-xl active:scale-95 transition-all"
                   >
                     Jugar de nuevo
                   </button>
-                  <button
-                    onClick={() => { playClickSound(); setActiveModule(null); }}
-                    className="flex-1 bg-slate-800 text-slate-300 font-extrabold text-xs py-2.5 rounded-xl"
-                  >
-                    Volver
-                  </button>
+                  <button onClick={() => { setAttentionGameState('idle'); setAttentionActivity(null); }} className="flex-1 bg-slate-800 text-slate-300 font-extrabold text-xs py-2.5 rounded-xl">Otro juego</button>
                 </div>
               </div>
             )}
