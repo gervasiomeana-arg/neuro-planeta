@@ -280,7 +280,7 @@ export default function ImportedApp() {
   const [sensoryAudioMode, setSensoryAudioMode] = useState<'soft' | 'silent' | 'masking'>(() => {
     try {
       const saved = localStorage.getItem('np_sensory_audio_mode');
-      return (saved as any) || 'soft';
+      return saved === 'silent' || saved === 'masking' ? saved : 'soft';
     } catch (e) {
       return 'soft';
     }
@@ -312,6 +312,13 @@ export default function ImportedApp() {
   const [arasaacFeedback, setArasaacFeedback] = useState<string>('');
 
   const soundEnabled = sensoryAudioMode !== 'silent';
+  useEffect(() => {
+    try {
+      localStorage.setItem('np_sensory_audio_mode', sensoryAudioMode);
+    } catch (e) {
+      // El modo de sonido sigue funcionando si el almacenamiento está desactivado.
+    }
+  }, [sensoryAudioMode]);
   const setSoundEnabled = (val: boolean) => {
     setSensoryAudioMode(val ? 'soft' : 'silent');
   };
@@ -1307,7 +1314,7 @@ export default function ImportedApp() {
       
       {/* HEADER SECTION (Like the screenshot) */}
       <header className="px-4 sm:px-6 py-3 sm:py-5 bg-[#03060E]/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-white">Hola, {activePatient.name.split(' (')[0]}!</h1>
             <span className="animate-bounce text-sm">✨</span>
@@ -1325,14 +1332,26 @@ export default function ImportedApp() {
           </div>
         </div>
 
-        {/* LOGROS HEADS-UP DISPLAY */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            aria-label={soundEnabled ? 'Silenciar sonidos' : 'Activar sonidos'}
+            aria-pressed={!soundEnabled}
+            title={soundEnabled ? 'Silenciar sonidos' : 'Activar sonidos'}
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="min-w-11 min-h-11 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 transition-all"
+          >
+            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </button>
+          {/* LOGROS HEADS-UP DISPLAY */}
         <button 
           onClick={() => { playClickSound(); setCurrentTab('logros'); }}
-          className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-4 py-2 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
+          className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-4 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
         >
           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
           <span className="text-xs font-bold text-yellow-300">{stars} logros</span>
         </button>
+        </div>
       </header>
 
       {/* PERSONALIZED CLIENT DEMO WELCOME MODAL */}
@@ -3604,7 +3623,6 @@ export default function ImportedApp() {
                                   onClick={() => {
                                     playClickSound();
                                     setSensoryAudioMode(mode.id as any);
-                                    localStorage.setItem('np_sensory_audio_mode', mode.id);
                                   }}
                                   className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
                                     sensoryAudioMode === mode.id
