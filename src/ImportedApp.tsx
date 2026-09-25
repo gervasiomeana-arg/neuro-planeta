@@ -104,6 +104,17 @@ const MATCH_ROUNDS = [
   { word: 'auto', answer: '🚗', choices: ['🚲', '🚌', '🚗'] }
 ] as const;
 const MATCH_LABELS: Record<string, string> = { '🐶': 'perro', '🐱': 'gato', '🐰': 'conejo', '🍌': 'banana', '🍎': 'manzana', '🍐': 'pera', '☀️': 'sol', '🌙': 'luna', '⭐': 'estrella', '🚲': 'bici', '🚌': 'colectivo', '🚗': 'auto' };
+const createNumberRound = (age: string): { target: number; grid: number[] } => {
+  const maximum = age === '3-5' ? 5 : age === '9-10' ? 12 : 9;
+  const size = age === '3-5' ? 9 : 16;
+  const target = Math.floor(Math.random() * maximum) + 1;
+  const grid = Array.from({ length: size }, () => {
+    const number = Math.floor(Math.random() * (maximum - 1)) + 1;
+    return number >= target ? number + 1 : number;
+  });
+  grid[Math.floor(Math.random() * size)] = target;
+  return { target, grid };
+};
 const copyDefaultRoutine = (): RoutineSchedule => ({
   Mañana: ROUTINE_TASKS.Mañana.map(task => ({ ...task })),
   Tarde: ROUTINE_TASKS.Tarde.map(task => ({ ...task })),
@@ -484,6 +495,8 @@ export default function ImportedApp() {
   const [targetNumber, setTargetNumber] = useState<number>(0);
   const [attentionGrid, setAttentionGrid] = useState<number[]>([]);
   const [attentionHint, setAttentionHint] = useState(false);
+  const attentionChoiceLockedRef = useRef(false);
+  useEffect(() => { attentionChoiceLockedRef.current = false; }, [attentionGrid]);
   
   // Sensorial State
   const [sensorialColor, setSensorialColor] = useState<string>('from-indigo-600 to-pink-500');
@@ -885,19 +898,8 @@ export default function ImportedApp() {
   const startAttentionGame = () => {
     playClickSound();
     setAttentionActivity('numbers');
-    const correctNum = Math.floor(Math.random() * 9) + 1;
-    setTargetNumber(correctNum);
-    
-    // Generate grid of numbers with exactly one or more matches
-    const grid: number[] = [];
-    for (let i = 0; i < 16; i++) {
-      grid.push(Math.floor(Math.random() * 9) + 1);
-    }
-    // Ensure at least one target exists
-    if (!grid.includes(correctNum)) {
-      grid[Math.floor(Math.random() * 16)] = correctNum;
-    }
-    
+    const { target, grid } = createNumberRound(selectedAge);
+    setTargetNumber(target);
     setAttentionGrid(grid);
     attentionScoreRef.current = 0;
     setAttentionScore(0);
@@ -930,9 +932,10 @@ export default function ImportedApp() {
 
   // Click cell in Attention game
   const handleCellClick = (num: number) => {
-    if (attentionGameState !== 'playing') return;
+    if (attentionGameState !== 'playing' || attentionChoiceLockedRef.current) return;
     
     if (num === targetNumber) {
+      attentionChoiceLockedRef.current = true;
       playSuccessSound();
       const nextScore = attentionScoreRef.current + 1;
       attentionScoreRef.current = nextScore;
@@ -952,17 +955,9 @@ export default function ImportedApp() {
         return;
       }
 
-      // Generate new targets
-      const nextCorrect = Math.floor(Math.random() * 9) + 1;
-      setTargetNumber(nextCorrect);
-      const nextGrid: number[] = [];
-      for (let i = 0; i < 16; i++) {
-        nextGrid.push(Math.floor(Math.random() * 9) + 1);
-      }
-      if (!nextGrid.includes(nextCorrect)) {
-        nextGrid[Math.floor(Math.random() * 16)] = nextCorrect;
-      }
-      setAttentionGrid(nextGrid);
+      const nextRound = createNumberRound(selectedAge);
+      setTargetNumber(nextRound.target);
+      setAttentionGrid(nextRound.grid);
     } else {
       setAttentionHint(true);
     }
@@ -1832,7 +1827,7 @@ export default function ImportedApp() {
             {attentionGameState === 'playing' && attentionActivity === 'numbers' && (
               <div className="space-y-4">
                 <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-2xl text-center">
-                  <span className="text-sm text-blue-400 font-bold">Buscá el número</span>
+                  <span className="text-sm text-blue-400 font-bold">Buscá este número: aparece una vez</span>
                   <div className="text-4xl font-extrabold text-white mt-1">
                     {targetNumber}
                   </div>
@@ -1840,7 +1835,7 @@ export default function ImportedApp() {
 
                 {attentionHint && <p role="status" className="text-sm text-blue-400 font-semibold text-center">Probá con otro número. Podés tomarte tu tiempo.</p>}
 
-                <div className="grid grid-cols-4 gap-2.5">
+                <div className={`grid ${attentionGrid.length === 9 ? 'grid-cols-3' : 'grid-cols-4'} gap-2.5`}>
                   {attentionGrid.map((num, idx) => (
                     <button
                       key={idx}
