@@ -215,6 +215,7 @@ export default function ImportedApp() {
   
   // Game/Module States
   const [activeModule, setActiveModule] = useState<'emociones' | 'atencion' | 'zona_calma' | 'sensorial' | 'sos' | 'comunicar' | 'social' | 'rutinas' | null>(null);
+  const [calmStep, setCalmStep] = useState(0);
   const [stars, setStars] = useState<number>(0);
   const [attentionHighScore, setAttentionHighScore] = useState<number>(0);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
@@ -2679,68 +2680,42 @@ export default function ImportedApp() {
           </div>
         )}
 
-        {/* 5. SOS EMERGENCY CALM MODAL (CRISIS INTERVENTION) */}
+        {/* A quiet, optional pause with one instruction at a time. */}
         {activeModule === 'sos' && (
-          <div className="space-y-5 animate-fade-in py-2">
-            <div className="bg-rose-950/40 border-2 border-rose-500/30 rounded-3xl p-6 text-center space-y-5 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-3 opacity-10">
-                <ShieldAlert className="w-24 h-24 text-rose-500" />
+          <div className="space-y-4 animate-fade-in py-2">
+            <section aria-labelledby="calm-title" className="bg-[#e6eee9] border border-[#b2c8bc] rounded-3xl p-5 sm:p-6 text-center space-y-5 shadow-sm">
+              <div className="w-16 h-16 bg-[#d2e5dc] rounded-2xl flex items-center justify-center mx-auto text-[#27665e]">
+                <Heart className="w-8 h-8" aria-hidden="true" />
               </div>
-
-              <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto text-rose-400">
-                <ShieldAlert className="w-9 h-9 animate-pulse" />
+              <div className="space-y-2">
+                <h2 id="calm-title" className="text-xl font-extrabold text-[#293b3a]">Un momento de calma</h2>
+                <p className="text-sm text-[#435e55] leading-relaxed">Vamos de a un paso. Podés parar cuando quieras.</p>
               </div>
-
-              <div className="space-y-1">
-                <h3 className="text-lg font-extrabold text-white">Botón de Calma S.O.S</h3>
-                <p className="text-xs text-rose-300 leading-relaxed max-w-xs mx-auto">
-                  Si te sientes muy asustado, enojado o con mucha sobrecarga en tu cuerpo, vamos a hacer este ejercicio sencillo juntos.
+              <div aria-live="polite" className="bg-[#fcf7ed] border border-[#b2c8bc] rounded-2xl px-5 py-6 min-h-40 flex flex-col items-center justify-center gap-3">
+                <span className="text-xs text-[#27665e] font-bold uppercase tracking-wide">Paso {calmStep + 1} de 3</span>
+                <p className="text-lg font-bold text-[#293b3a] leading-snug">
+                  {['Mirá a tu alrededor y elegí algo que te guste.', 'Sentí tus pies apoyados en el suelo.', 'Si querés, escuchá un sonido cercano.'][calmStep]}
                 </p>
               </div>
-
-              {/* Simple Grounding visual (5-4-3-2-1 Technique) */}
-              <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-4 text-left space-y-3.5">
-                <span className="text-[10px] text-rose-400 font-bold uppercase tracking-widest block">EJERCICIO DE CONEXIÓN A TIERRA:</span>
-                
-                <div className="space-y-2.5 text-xs">
-                  <div className="flex gap-2.5 items-center">
-                    <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-black flex items-center justify-center shrink-0">1</span>
-                    <p className="text-slate-200">Busca <span className="font-bold text-white">5 cosas</span> que puedas ver a tu alrededor.</p>
-                  </div>
-                  <div className="flex gap-2.5 items-center">
-                    <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-black flex items-center justify-center shrink-0">2</span>
-                    <p className="text-slate-200">Toca <span className="font-bold text-white">4 cosas</span> diferentes (ej: tu ropa, el suelo).</p>
-                  </div>
-                  <div className="flex gap-2.5 items-center">
-                    <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-black flex items-center justify-center shrink-0">3</span>
-                    <p className="text-slate-200">Escucha <span className="font-bold text-white">3 sonidos</span> lejanos o cercanos.</p>
-                  </div>
-                </div>
+              <div className="flex gap-3" aria-label="Progreso de la pausa">
+                {[0, 1, 2].map(step => <span key={step} className={`h-2 flex-1 rounded-full ${step <= calmStep ? 'bg-[#27665e]' : 'bg-[#c7d7ca]'}`} />)}
               </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    playCalmSound();
-                    setActiveModule('zona_calma');
-                    setBreathingPhase('inhala');
-                    setBreathingSeconds(4);
-                  }}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs py-3 rounded-xl transition-transform active:scale-95"
-                >
-                  Respirar despacio
+              <button
+                type="button"
+                onClick={() => setCalmStep(step => step === 2 ? 0 : step + 1)}
+                className="w-full bg-[#27665e] text-white font-bold text-base py-3 rounded-xl"
+              >
+                {calmStep === 2 ? 'Empezar de nuevo' : 'Siguiente paso'}
+              </button>
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={() => { setBreathingPhase('idle'); setBreathingCycles(0); setActiveModule('zona_calma'); }} className="text-[#27665e] font-bold text-sm py-2">
+                  Ir a respiración tranquila
                 </button>
-                <button
-                  onClick={() => {
-                    playClickSound();
-                    setActiveModule(null);
-                  }}
-                  className="flex-1 bg-slate-800 text-slate-300 font-bold text-xs py-3 rounded-xl"
-                >
-                  Cerrar
+                <button type="button" onClick={() => setActiveModule(null)} className="text-[#435e55] font-bold text-sm py-2">
+                  Volver al inicio
                 </button>
               </div>
-            </div>
+            </section>
           </div>
         )}
 
@@ -3796,7 +3771,7 @@ export default function ImportedApp() {
           <button
             type="button"
             aria-label="Abrir ejercicio SOS Calma"
-            onClick={() => { playTherapeuticTone(293.66, 'sine', 0.6); setCurrentTab('inicio'); setActiveModule('sos'); }}
+            onClick={() => { setCalmStep(0); setCurrentTab('inicio'); setActiveModule('sos'); }}
             className={`flex flex-col items-center gap-1 py-1.5 px-2 rounded-2xl transition-colors cursor-pointer ${
               activeModule === 'sos'
                 ? 'text-rose-400 bg-rose-500/10 border border-rose-500/30 font-bold'
