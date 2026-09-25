@@ -212,6 +212,8 @@ export default function ImportedApp() {
   const [currentTab, setCurrentTab] = useState<'inicio' | 'logros'>('inicio');
   const [selectedAge, setSelectedAge] = useState<string>('6-8');
   const [showAgeSelector, setShowAgeSelector] = useState<boolean>(false);
+  const [cosmoGreeted, setCosmoGreeted] = useState(false);
+  useEffect(() => setCosmoGreeted(false), [activePatientId]);
   
   // Game/Module States
   const [activeModule, setActiveModule] = useState<'emociones' | 'atencion' | 'zona_calma' | 'sensorial' | 'sos' | 'comunicar' | 'social' | 'rutinas' | null>(null);
@@ -1375,7 +1377,7 @@ export default function ImportedApp() {
               <button type="button" aria-label="Saludar a Cosmo" className="shrink-0 w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center border border-slate-800 shadow-inner relative group cursor-pointer"
                 onClick={() => {
                   playCalmSound();
-                  awardStars(1, 'Cosmo Amigo');
+                  setCosmoGreeted(true);
                 }}
               >
                 <span className="text-3xl animate-pulse">🪐</span>
@@ -1387,10 +1389,10 @@ export default function ImportedApp() {
               <div className="flex-1 bg-white text-slate-900 p-3.5 rounded-2xl rounded-tl-none relative shadow-md">
                 <div className="absolute left-0 top-0 -ml-2 w-0 h-0 border-t-[8px] border-t-white border-l-[8px] border-l-transparent"></div>
                 <p className="text-xs font-bold leading-relaxed">
-                  {activeAgeConfig.characterMsg}
+                  {cosmoGreeted ? `¡Hola, ${activePatient.name.split(' (')[0]}! Elegí lo que más te guste para empezar.` : activeAgeConfig.characterMsg}
                 </p>
                 <div className="text-[9px] text-blue-600 font-bold mt-1 text-right animate-pulse">
-                  ¡Tócame para saludar!
+                  {cosmoGreeted ? '¡Gracias por saludarme!' : '¡Tócame para saludar!'}
                 </div>
               </div>
             </div>
