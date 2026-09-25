@@ -441,6 +441,7 @@ export default function ImportedApp() {
   // Sensorial State
   const [sensorialColor, setSensorialColor] = useState<string>('from-indigo-600 to-pink-500');
   const [sensorialNotes, setSensorialNotes] = useState<{id: number, x: number, y: number, color: string}[]>([]);
+  const sensoryTapCountRef = useRef(0);
 
   // Sound generator helper (Web Audio API) for therapeutic ambient or feedback tones with Sensory adaptation
   const startMaskingNoise = () => {
@@ -894,10 +895,10 @@ export default function ImportedApp() {
   };
 
   // Handle tap in Sensory Color Canvas
-  const handleSensoryTap = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSensoryTap = (e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = 'clientX' in e ? e.clientX - rect.left : rect.width / 2;
+    const y = 'clientY' in e ? e.clientY - rect.top : rect.height / 2;
     
     const colors = [
       '#60A5FA', '#34D399', '#FBBF24', '#F87171', '#C084FC', '#F472B6'
@@ -922,8 +923,9 @@ export default function ImportedApp() {
       setSensorialNotes(prev => prev.filter(n => n.id !== newNote.id));
     }, 1000);
 
-    // Track sensory exploration achievement
-    if (sensorialNotes.length > 10) {
+    // Count touches across the session, not just simultaneous one-second effects.
+    sensoryTapCountRef.current += 1;
+    if (sensoryTapCountRef.current === 10) {
       awardStars(5, 'Explorador Sensorial');
     }
   };
@@ -1873,13 +1875,22 @@ export default function ImportedApp() {
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Toca la pantalla para pintar hermosas constelaciones de colores y escuchar suaves notas musicales relajantes.
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Tocá el espacio para crear colores. Podés activar o silenciar los sonidos cuando quieras.
             </p>
 
             {/* Tap canvas */}
             <div 
+              role="button"
+              tabIndex={0}
+              aria-label="Crear un destello de color"
               onClick={handleSensoryTap}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSensoryTap(e);
+                }
+              }}
               className="np-sensory-canvas relative w-full h-80 bg-gradient-to-b from-[#090D1A] to-[#121A33] border-2 border-slate-800 rounded-2xl overflow-hidden cursor-crosshair flex items-center justify-center text-center p-4 shadow-inner"
             >
               {sensorialNotes.length === 0 && (
