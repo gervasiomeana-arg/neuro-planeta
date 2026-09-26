@@ -318,6 +318,8 @@ export default function ImportedApp() {
   const [storyGenerating, setStoryGenerating] = useState(false);
   const [storyConsent, setStoryConsent] = useState(false);
   const [customStoryPage, setCustomStoryPage] = useState(0);
+  const [storyPlaying, setStoryPlaying] = useState(false);
+  const storyPlaybackRef = useRef(0);
 
   // Social Stories States
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
@@ -376,6 +378,8 @@ export default function ImportedApp() {
   const finishVoiceRef = useRef<(() => void) | null>(null);
   const phrasePlaybackIdRef = useRef(0);
   const stopCommunicationAudio = () => {
+    storyPlaybackRef.current += 1;
+    setStoryPlaying(false);
     phrasePlaybackIdRef.current += 1;
     try { window.speechSynthesis?.cancel(); } catch (e) { /* Voz no disponible. */ }
     playingVoiceRef.current?.pause();
@@ -793,6 +797,31 @@ export default function ImportedApp() {
     } catch (e) {
       // El texto permanece disponible si el navegador no ofrece lectura de voz.
     }
+  };
+
+  const playWholeStory = (story: SocialStory) => {
+    if (audioModeRef.current === 'silent' || !window.speechSynthesis) return;
+    stopCommunicationAudio();
+    const playbackId = storyPlaybackRef.current;
+    setStoryPlaying(true);
+    const speakPage = (index: number) => {
+      if (storyPlaybackRef.current !== playbackId || audioModeRef.current === 'silent') return;
+      setCustomStoryPage(index);
+      const utterance = new SpeechSynthesisUtterance(story.pages[index].text);
+      utterance.lang = 'es-AR';
+      utterance.rate = 0.85;
+      utterance.volume = audioVolume / 100;
+      utterance.onend = () => {
+        if (storyPlaybackRef.current !== playbackId) return;
+        if (index < story.pages.length - 1) speakPage(index + 1);
+        else setStoryPlaying(false);
+      };
+      utterance.onerror = () => {
+        if (storyPlaybackRef.current === playbackId) setStoryPlaying(false);
+      };
+      window.speechSynthesis.speak(utterance);
+    };
+    speakPage(0);
   };
 
   useEffect(() => { stopCommunicationAudio(); }, [activeModule, activePatientId]);
@@ -2562,6 +2591,9 @@ export default function ImportedApp() {
               <div className="space-y-4 rounded-2xl border border-teal-600/40 bg-slate-900 p-4">
                 <h3 className="text-base font-extrabold text-white">{openedCustomStory.title}</h3>
                 <p className="text-xs font-bold text-teal-300" aria-live="polite">Paso {customStoryPage + 1} de 5</p>
+                <div aria-label={`Paso ${customStoryPage + 1} de 5`} className="flex justify-center gap-2">
+                  {openedCustomStory.pages.map((_, index) => <span key={index} aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${index === customStoryPage ? 'bg-teal-300' : 'bg-slate-600'}`} />)}
+                </div>
                 <div className="rounded-2xl border border-slate-600 bg-slate-950 p-5 text-center">
                   <span aria-hidden="true" className="block text-6xl">{openedCustomStory.pages[customStoryPage].emoji}</span>
                   <p className="mt-4 text-base font-semibold leading-relaxed text-white">{openedCustomStory.pages[customStoryPage].text}</p>
@@ -2569,6 +2601,10 @@ export default function ImportedApp() {
                 <button type="button" onClick={() => readStoryText(openedCustomStory.pages[customStoryPage].text)}
                   disabled={!soundEnabled} className="min-h-12 w-full rounded-xl border border-teal-600 px-3 font-bold text-teal-200 disabled:opacity-50">
                   🔊 Escuchar este paso
+                </button>
+                <button type="button" onClick={() => storyPlaying ? stopCommunicationAudio() : playWholeStory(openedCustomStory)}
+                  disabled={!soundEnabled} className="min-h-12 w-full rounded-xl bg-teal-700 px-3 font-bold text-white disabled:opacity-50">
+                  {storyPlaying ? '⏹ Detener lectura' : '▶ Escuchar toda la historia'}
                 </button>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { stopCommunicationAudio(); setCustomStoryPage(page => Math.max(0, page - 1)); }}
@@ -2581,6 +2617,8 @@ export default function ImportedApp() {
                     {customStoryPage === 4 ? 'Terminar' : 'Siguiente'}
                   </button>
                 </div>
+                <button type="button" onClick={() => { stopCommunicationAudio(); setSelectedStoryId(null); setCustomStoryPage(0); }}
+                  className="min-h-12 w-full rounded-xl border border-slate-600 px-3 font-bold text-white">Volver a historias</button>
               </div>
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 animate-scale-up">
