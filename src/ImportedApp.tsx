@@ -365,6 +365,7 @@ export default function ImportedApp() {
   const [maskingActive, setMaskingActive] = useState<boolean>(false);
   const maskingSourceRef = useRef<any>(null);
   const maskingAudioCtxRef = useRef<any>(null);
+  const maskingGainRef = useRef<GainNode | null>(null);
 
   // ARASAAC Integration States
   const [arasaacQuery, setArasaacQuery] = useState<string>('');
@@ -679,6 +680,7 @@ export default function ImportedApp() {
       
       const gainNode = ctx.createGain();
       gainNode.gain.setValueAtTime((audioVolume / 100) * 0.08, ctx.currentTime);
+      maskingGainRef.current = gainNode;
       
       whiteNoiseSource.connect(filter);
       filter.connect(gainNode);
@@ -689,50 +691,36 @@ export default function ImportedApp() {
       setMaskingActive(true);
     } catch (e) {
       console.error("Masking noise error:", e);
+      stopMaskingNoise();
     }
   };
 
   const stopMaskingNoise = () => {
-    try {
-      if (maskingSourceRef.current) {
-        maskingSourceRef.current.stop();
-        maskingSourceRef.current = null;
-      }
-      if (maskingAudioCtxRef.current && maskingAudioCtxRef.current.state !== 'closed') {
-        maskingAudioCtxRef.current.close();
-      }
-      setMaskingActive(false);
-    } catch (e) {
-      console.error("Stop masking error:", e);
+    const source = maskingSourceRef.current;
+    const ctx = maskingAudioCtxRef.current;
+    maskingSourceRef.current = null;
+    maskingAudioCtxRef.current = null;
+    maskingGainRef.current = null;
+    if (source) {
+      try { source.stop(); } catch (e) { /* Ya estaba detenido. */ }
+      source.disconnect();
     }
+    if (ctx && ctx.state !== 'closed') void ctx.close().catch(() => {});
+    setMaskingActive(false);
   };
 
   useEffect(() => {
-    if (sensoryAudioMode === 'masking') {
-      if (!maskingActive) {
-        startMaskingNoise();
-      } else {
-        // Adjust volume on the fly
-        try {
-          if (maskingAudioCtxRef.current) {
-            stopMaskingNoise();
-            startMaskingNoise();
-          }
-        } catch(err){}
-      }
-    } else {
-      if (maskingActive) {
-        stopMaskingNoise();
-      }
-    }
-    return () => {
-      if (maskingSourceRef.current) {
-        try {
-          maskingSourceRef.current.stop();
-        } catch(e){}
-      }
-    };
-  }, [sensoryAudioMode, audioVolume]);
+    // SOS must stay quiet, even if masking was selected in the adult settings.
+    if (sensoryAudioMode === 'masking' && activeModule !== 'sos') startMaskingNoise();
+    else stopMaskingNoise();
+    return () => stopMaskingNoise();
+  }, [sensoryAudioMode, activeModule]);
+
+  useEffect(() => {
+    const gain = maskingGainRef.current;
+    const ctx = maskingAudioCtxRef.current;
+    if (gain && ctx) gain.gain.setTargetAtTime((audioVolume / 100) * 0.08, ctx.currentTime, 0.05);
+  }, [audioVolume]);
 
   const playTherapeuticTone = (freq: number, type: 'sine' | 'triangle' | 'sine-soft' = 'sine', duration: number = 0.3) => {
     if (audioModeRef.current === 'silent') return;
@@ -3688,7 +3676,7 @@ export default function ImportedApp() {
                       <div className="space-y-3">
                         <h3 className="font-extrabold text-white text-xs">🎨 Biblioteca Unificada de Pictogramas Propietaria</h3>
                         <p className="text-[10px] text-slate-400 leading-relaxed">
-                          Sube fotos reales desde la cámara de tu celular o graba voces reales de familiares. La voz familiar disminuye la ansiedad y mejora exponencialmente la respuesta al tratamiento.
+                          Podés agregar fotos o grabar voces familiares para personalizar los pictogramas. Probá con el niño qué imágenes y sonidos prefiere.
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-900">
