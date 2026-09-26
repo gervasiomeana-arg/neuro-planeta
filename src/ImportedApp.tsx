@@ -971,6 +971,56 @@ export default function ImportedApp() {
       : 'Historia guardada en el perfil activo. Ya aparece en Social.');
   };
 
+  const exportStories = () => {
+    if (!socialStories.length || loadedPatientId !== activePatientId) return;
+    const data = JSON.stringify({ format: 'neuroplaneta-stories-v1', stories: socialStories }, null, 2);
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'neuroplaneta-historias.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStoryEditorMessage('Archivo descargado. Llevá el archivo al otro dispositivo e importalo desde Historias.');
+  };
+
+  const importStories = async (file?: File) => {
+    if (!file || loadedPatientId !== activePatientId || !activePatientId) return;
+    if (file.size > 50_000) {
+      setStoryEditorMessage('El archivo es demasiado grande. Importá hasta 30 historias por vez.');
+      return;
+    }
+    const targetProfile = activePatientId;
+    try {
+      const data: unknown = JSON.parse(await file.text());
+      if (!data || typeof data !== 'object' || !('format' in data) || data.format !== 'neuroplaneta-stories-v1' ||
+          !('stories' in data) || !Array.isArray(data.stories) || data.stories.length > 30 ||
+          !data.stories.every((story: unknown) => {
+            if (!story || typeof story !== 'object' || !('title' in story) || !('pages' in story)) return false;
+            return typeof story.title === 'string' && story.title.trim().length > 0 && story.title.length <= 60 &&
+              Array.isArray(story.pages) && story.pages.length === 5 && story.pages.every((page: unknown) =>
+                !!page && typeof page === 'object' && 'emoji' in page && 'text' in page &&
+                typeof page.emoji === 'string' && page.emoji.length > 0 && page.emoji.length <= 8 &&
+                typeof page.text === 'string' && page.text.trim().length > 0 && page.text.length <= 180);
+          })) throw new Error('Formato no válido. Usá un archivo de historias exportado desde NeuroPlaneta.');
+      if (storyPatientRef.current !== targetProfile) return;
+      const imported = data.stories as SocialStory[];
+      const signatures = new Set(socialStories.map(story => JSON.stringify([story.title, story.pages])));
+      const unique = imported.filter(story => {
+        const signature = JSON.stringify([story.title, story.pages]);
+        if (signatures.has(signature)) return false;
+        signatures.add(signature);
+        return true;
+      }).map(story => ({ title: story.title.trim(), pages: story.pages.map(page => ({ emoji: page.emoji, text: page.text.trim() })),
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` }));
+      setSocialStories(previous => [...previous, ...unique]);
+      setStoryEditorMessage(`Importación completada: ${unique.length} historia(s) nueva(s). Revisalas antes de mostrarlas al niño.`);
+    } catch (error) {
+      if (storyPatientRef.current === targetProfile) setStoryEditorMessage(error instanceof Error ? error.message : 'No se pudo importar el archivo.');
+    }
+  };
+
   const searchARASAAC = async (query: string) => {
     if (!query.trim()) return;
     setArasaacLoading(true);
@@ -3350,6 +3400,16 @@ export default function ImportedApp() {
                         )}
                         <div className="space-y-2">
                           <h4 className="font-bold text-white">Guardadas en este perfil ({socialStories.length})</h4>
+                          <p className="text-xs text-slate-300">Para usar estas historias en otro celular, descargá el archivo y abrí allí Historias → Importar. El archivo contiene los textos: compartilo solo con personas de confianza.</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={exportStories} disabled={!socialStories.length || loadedPatientId !== activePatientId}
+                              className="min-h-11 rounded-xl border border-teal-600 px-3 font-bold text-teal-200 disabled:opacity-50">Descargar historias</button>
+                            <label className="min-h-11 rounded-xl border border-teal-600 px-3 py-3 font-bold text-teal-200">
+                              Importar historias
+                              <input type="file" accept=".json,application/json" aria-label="Archivo de historias" className="sr-only"
+                                onChange={event => { void importStories(event.target.files?.[0]); event.target.value = ''; }} />
+                            </label>
+                          </div>
                           {socialStories.map(story => (
                             <div key={story.id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-700 p-3">
                               <span className="min-w-0 flex-1 font-bold text-slate-100">{story.title}</span>
