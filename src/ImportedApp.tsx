@@ -283,7 +283,7 @@ export default function ImportedApp() {
   // Social Stories States
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [storyStep, setStoryStep] = useState<'intro' | 'feedback'>('intro');
-  const [storyFeedback, setStoryFeedback] = useState<{ isCorrect: boolean, text: string } | null>(null);
+  const [storyFeedback, setStoryFeedback] = useState<{ text: string } | null>(null);
 
   // Rutinas Checklist States
   const [activeRoutineTab, setActiveRoutineTab] = useState<RoutineTab>(currentRoutineTab);
@@ -2373,15 +2373,15 @@ export default function ImportedApp() {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Practica cómo actuar en situaciones reales. Cosmo te dará sabios consejos para mejorar tus habilidades de empatía y calma.
+              Explorá situaciones cotidianas. Hay más de una forma de pedir ayuda, cuidar tu espacio y jugar con otros.
             </p>
 
             {selectedStoryId === null ? (
               <div className="space-y-3">
                 {[
-                  { id: 'compartir', title: '🤝 Compartir un Juguete', desc: 'Aprende a negociar de forma asertiva con amigos.', badge: 'Socialización' },
-                  { id: 'ruido', title: '🎧 Ruido Fuerte en Clase', desc: 'Gestiona la sobrecarga sensorial auditiva.', badge: 'Calma' },
-                  { id: 'esperar', title: '⏱️ Esperar mi Turno', desc: 'Desarrolla la paciencia de forma lúdica.', badge: 'Autocontrol' }
+                  { id: 'compartir', title: '🤝 Jugar con otra persona', desc: 'Podés compartir o pedir un rato para jugar solo.', badge: 'Elegir' },
+                  { id: 'ruido', title: '🎧 Ruido fuerte en clase', desc: 'Formas de pedir un espacio tranquilo.', badge: 'Pedir ayuda' },
+                  { id: 'esperar', title: '⏱️ Esperar mi turno', desc: 'Distintas maneras de saber cuándo te toca.', badge: 'Turnos' }
                 ].map(story => (
                   <button
                     key={story.id}
@@ -2409,53 +2409,47 @@ export default function ImportedApp() {
                   const storiesData: Record<string, {
                     title: string;
                     setup: string;
-                    choices: { text: string, feedback: string, correct: boolean }[];
+                    choices: { text: string, feedback: string }[];
                   }> = {
                     compartir: {
-                      title: 'Compartir un Juguete',
-                      setup: 'Estás en el parque divirtiéndote mucho con un cohete estelar brillante. Otro niño se acerca y te dice amablemente si pueden jugar juntos.',
+                      title: 'Jugar con otra persona',
+                      setup: 'Estás jugando con tu cohete. Otro niño pregunta si puede jugar con vos. ¿Qué preferís?',
                       choices: [
                         {
-                          text: 'Dices "¡No, es mío!" y te alejas enojado.',
-                          feedback: 'Cosmo dice: El juguete es tuyo y tienes derecho a usarlo, pero si lo alejas de mala manera, el otro niño se sentirá triste. Compartir o proponer un turno ("un minuto tú, un minuto yo") es genial para hacer nuevos amigos y divertirse al doble.',
-                          correct: false
+                          text: '"Ahora quiero jugar solo. Después te aviso."',
+                          feedback: 'Está bien querer jugar solo. Podés decirlo con palabras o con una tarjeta. Un adulto puede ayudarte a explicar tu decisión.'
                         },
                         {
-                          text: 'Sonríes y dices: "Podemos turnarnos. ¿Qué tal si tú lo lanzas al espacio y yo lo atrapo?"',
-                          feedback: '¡Excelente decisión estelar! Proponer un juego cooperativo evita peleas, hace sentir bien a tu amigo y te convierte en un magnífico comandante del respeto.',
-                          correct: true
+                          text: '"Podemos jugar por turnos."',
+                          feedback: 'Si querés jugar juntos, pueden decidir quién empieza y cuándo cambia el turno. Podés pedir ayuda para organizarlo.'
                         }
                       ]
                     },
                     ruido: {
-                      title: 'Ruido Fuerte en Clase',
-                      setup: 'De repente, suena una alarma escolar o hay ruidos de obras de construcción muy ruidosos en la ventana. Te sientes muy abrumado y tus oídos duelen.',
+                      title: 'Ruido fuerte en clase',
+                      setup: 'Suena una alarma y el ruido te molesta. ¿Qué podrías pedir?',
                       choices: [
                         {
-                          text: 'Gritas muy fuerte para tapar el sonido y sales corriendo de la clase sin avisar.',
-                          feedback: 'Cosmo dice: Salir corriendo de repente puede ser muy peligroso. En lugar de huir, intenta cruzar tus brazos o apretar una pelota antiestrés, y avísale suavemente a tu terapeuta o maestro para que te ayude.',
-                          correct: false
+                          text: '"Necesito ayuda. El ruido me molesta."',
+                          feedback: 'Podés decirlo, señalar una tarjeta o hacer una seña acordada. Un adulto puede acompañarte a un lugar tranquilo.'
                         },
                         {
-                          text: 'Te pones tus audífonos de reducción de ruido o le haces la señal visual a tu maestra para pedir ir a la "Zona Calma".',
-                          feedback: '¡Impresionante superpoder de autoregulación! Usar herramientas táctiles o pedir ayuda visualmente es una forma fantástica de cuidar tu mente y tus sentidos sin asustarte.',
-                          correct: true
+                          text: 'Pido mis auriculares o un lugar más tranquilo.',
+                          feedback: 'Si tenés auriculares o un espacio tranquilo disponible, podés pedir usarlos. No tenés que soportar el ruido en silencio.'
                         }
                       ]
                     },
                     esperar: {
-                      title: 'Esperar mi Turno',
-                      setup: 'Quieres tirarte por la resbaladilla más alta, pero hay tres niños esperando delante de ti. Te dan muchas ganas de empujarlos para ir más rápido.',
+                      title: 'Esperar mi turno',
+                      setup: 'Hay otros niños esperando para usar el juego. Querés saber cuándo te toca.',
                       choices: [
                         {
-                          text: 'Te metes a la fuerza y empujas a los de adelante para pasar primero.',
-                          feedback: 'Cosmo dice: Empujar puede lastimar a tus compañeros y causar accidentes en los juegos. Todos los niños merecen divertirse seguros. ¡Entrenemos esa paciencia de astronauta!',
-                          correct: false
+                          text: 'Pregunto: "¿Quién sigue? ¿Cuándo me toca?"',
+                          feedback: 'Preguntar ayuda a conocer el orden. Un adulto puede mostrarte quién está antes y quién después.'
                         },
                         {
-                          text: 'Respiras hondo contando estrellas del 1 al 5 en tu mente y esperas feliz a que llegue tu turno.',
-                          feedback: '¡Sublime paciencia cósmica! Contar estrellas o dar pasitos suaves en tu lugar hace que esperar sea un juego divertido de autocontrol mental.',
-                          correct: true
+                          text: 'Pido hacer otra cosa mientras espero.',
+                          feedback: 'Podés elegir una actividad para la espera o pedir ayuda si se hace difícil. No hace falta estar contento para esperar.'
                         }
                       ]
                     }
@@ -2477,19 +2471,15 @@ export default function ImportedApp() {
                           </p>
 
                           <div className="space-y-2.5">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">¿Qué decides hacer?</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">¿Qué podrías hacer?</span>
                             {currentStory.choices.map((choice, i) => (
                               <button
                                 key={i}
                                 onClick={() => {
-                                  if (choice.correct) {
-                                    playSuccessSound();
+                                  setStoryFeedback({ text: choice.feedback });
+                                  if (!unlockedAchievements.includes('Empatía Cósmica')) {
                                     awardStars(10, 'Empatía Cósmica');
-                                    setStoryFeedback({ isCorrect: true, text: choice.feedback });
-                                  } else {
-                                    playTherapeuticTone(240, 'sine', 0.4);
-                                    setStoryFeedback({ isCorrect: false, text: choice.feedback });
-                                  }
+                                  } else playClickSound();
                                   setStoryStep('feedback');
                                 }}
                                 className="w-full text-left p-3.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-2xl text-xs text-slate-200 font-extrabold active:scale-98 transition-all hover:border-pink-500/20"
@@ -2501,32 +2491,26 @@ export default function ImportedApp() {
                         </>
                       ) : (
                         <div className="space-y-4 animate-scale-up">
-                          <div className={`p-4 rounded-2xl border ${
-                            storyFeedback?.isCorrect 
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                          }`}>
+                          <div className="p-4 rounded-2xl border bg-blue-500/10 border-blue-500/20 text-blue-400" role="status">
                             <div className="flex gap-2 items-start text-xs">
-                              <span className="text-lg">{storyFeedback?.isCorrect ? '✅' : '💡'}</span>
+                              <span className="text-lg">💡</span>
                               <div className="space-y-1">
-                                <h4 className="font-black">{storyFeedback?.isCorrect ? '¡Decisión Fabulosa!' : 'Aprende con Cosmo'}</h4>
+                                <h4 className="font-black">Una forma de hacerlo</h4>
                                 <p className="text-slate-300 leading-relaxed">{storyFeedback?.text}</p>
                               </div>
                             </div>
                           </div>
 
                           <div className="flex gap-2">
-                            {!storyFeedback?.isCorrect && (
-                              <button
-                                onClick={() => {
-                                  playClickSound();
-                                  setStoryStep('intro');
-                                }}
-                                className="flex-1 bg-amber-500 text-slate-950 font-black text-xs py-2.5 rounded-xl hover:bg-amber-400 transition-all active:scale-95"
-                              >
-                                Intentar de Nuevo
-                              </button>
-                            )}
+                            <button
+                              onClick={() => {
+                                playClickSound();
+                                setStoryStep('intro');
+                              }}
+                              className="flex-1 bg-amber-500 text-slate-950 font-black text-xs py-2.5 rounded-xl hover:bg-amber-400 transition-all active:scale-95"
+                            >
+                              Ver otra opción
+                            </button>
                             <button
                               onClick={() => {
                                 playClickSound();
@@ -2911,7 +2895,7 @@ export default function ImportedApp() {
                 { name: 'Explorador Sensorial', desc: 'Interactuaste con el lienzo de tonos relajantes.', icon: '✨', reward: 5 },
                 { name: 'Foco Láser', desc: 'Superaste un nivel alto de atención concentrada.', icon: '🎯', reward: 10 },
                 { name: 'Comunicación Estelar', desc: 'Creaste y hablaste una frase completa usando el tablero de pictogramas.', icon: '💬', reward: 5 },
-                { name: 'Empatía Cósmica', desc: 'Completaste con éxito una historia de interacciones sociales.', icon: '🤝', reward: 10 },
+                { name: 'Empatía Cósmica', desc: 'Exploraste distintas opciones en una historia social.', icon: '🤝', reward: 10 },
                 { name: 'Guardián de Rutinas', desc: 'Completaste exitosamente una rutina diaria (mañana, tarde o noche).', icon: '📅', reward: 15 }
               ].map((ach) => {
                 const isUnlocked = unlockedAchievements.includes(ach.name);
