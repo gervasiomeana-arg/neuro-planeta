@@ -45,6 +45,24 @@ interface AgeGroup {
 }
 
 // Patient interface representing clinic patients / school profiles (NeuroPlaneta Enterprise)
+type StoryPage = { emoji: string; text: string };
+type SocialStory = { id: string; title: string; pages: StoryPage[] };
+
+const makeGuidedStory = (situation: string): SocialStory => {
+  const event = situation.trim().replace(/[.!?]+$/, '');
+  return {
+    id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    title: event.slice(0, 60),
+    pages: [
+      { emoji: '🗓️', text: `Pronto pasará algo nuevo: ${event}. Puedo preguntar qué va a suceder.` },
+      { emoji: '💬', text: 'Antes, puedo hablar con un adulto sobre lo que necesito o me preocupa.' },
+      { emoji: '👀', text: 'Cuando llegue el momento, puedo mirar el lugar y avanzar a mi ritmo.' },
+      { emoji: '🤝', text: 'Si quiero una pausa o ayuda, puedo decirlo, mostrar una tarjeta o buscar a un adulto.' },
+      { emoji: '⭐', text: 'Después puedo contar qué me gustó y qué me gustaría hacer diferente la próxima vez.' }
+    ]
+  };
+};
+
 interface Patient {
   id: string;
   name: string;
@@ -61,6 +79,7 @@ interface Patient {
   customPictogramVoices: Record<string, string>;
   therapeuticObjective?: string;
   attentionHighScore?: number;
+  socialStories?: SocialStory[];
 }
 
 // Neutral fallback while a new profile is being created.
@@ -228,7 +247,7 @@ export default function ImportedApp() {
   const [onboardingStep, setOnboardingStep] = useState<number>(1);
 
   // Clinician dashboard tab selection
-  const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'pictogramas' | 'sonido' | 'reportes'>('pacientes');
+  const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'pictogramas' | 'sonido' | 'reportes' | 'historias'>('pacientes');
 
   // Client demo mode states
   const [clientDemoMessage, setClientDemoMessage] = useState<string>('');
@@ -279,6 +298,15 @@ export default function ImportedApp() {
   // Comunicar (AAC Pictograms) States
   const [constructedPhrase, setConstructedPhrase] = useState<{ id: string, word: string, emoji: string }[]>([]);
   const [activePictogramCategory, setActivePictogramCategory] = useState<'necesidades' | 'emociones' | 'acciones' | 'objetos'>('necesidades');
+
+  // Historias creadas por adultos; el niño solo ve las guardadas en su perfil.
+  const [socialStories, setSocialStories] = useState<SocialStory[]>([]);
+  const [storySituation, setStorySituation] = useState('');
+  const [storyDraft, setStoryDraft] = useState<SocialStory | null>(null);
+  const [storyEditorMessage, setStoryEditorMessage] = useState('');
+  const [storyGenerating, setStoryGenerating] = useState(false);
+  const [storyConsent, setStoryConsent] = useState(false);
+  const [customStoryPage, setCustomStoryPage] = useState(0);
 
   // Social Stories States
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
@@ -380,6 +408,7 @@ export default function ImportedApp() {
   
   // Active patient profile helper
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0] || EMPTY_PROFILE;
+  const openedCustomStory = socialStories.find(story => story.id === selectedStoryId);
   const allRoutineTasks = routineTabs.flatMap(tab => routineTasks[tab]);
   const completedRoutineCount = allRoutineTasks.filter(task => completedRoutineTasks.includes(task.id)).length;
   const nextRoutineTasks = routineTasks[activeRoutineTab].filter(task => !completedRoutineTasks.includes(task.id)).slice(0, 2);
@@ -477,6 +506,10 @@ export default function ImportedApp() {
       setEmotionJournal(activePatient.emotionJournal || []);
       setCustomPictogramImages(activePatient.customPictogramImages || {});
       setCustomPictogramVoices(activePatient.customPictogramVoices || {});
+      setSocialStories(activePatient.socialStories || []);
+      setStoryDraft(null);
+      setStorySituation('');
+      setCustomStoryPage(0);
       setLoadedPatientId(activePatientId);
     }
   }, [activePatientId]);
@@ -524,7 +557,8 @@ export default function ImportedApp() {
         JSON.stringify(readRoutineTasks(current.routineTasks)) !== JSON.stringify(routineTasks) ||
         JSON.stringify(current.emotionJournal) !== JSON.stringify(emotionJournal) ||
         JSON.stringify(current.customPictogramImages) !== JSON.stringify(customPictogramImages) ||
-        JSON.stringify(current.customPictogramVoices) !== JSON.stringify(customPictogramVoices);
+        JSON.stringify(current.customPictogramVoices) !== JSON.stringify(customPictogramVoices) ||
+        JSON.stringify(current.socialStories || []) !== JSON.stringify(socialStories);
 
       if (!hasChanged) return prev;
 
@@ -541,12 +575,13 @@ export default function ImportedApp() {
         routineTasks,
         emotionJournal,
         customPictogramImages,
-        customPictogramVoices
+        customPictogramVoices,
+        socialStories
       };
       
       return updatedPatients;
     });
-  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
+  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices, socialStories]);
 
   
   // Attention Game State
@@ -807,6 +842,69 @@ export default function ImportedApp() {
       setParentsFeedback('Respuesta incorrecta. Inténtalo de nuevo.');
       generateParentsMath();
     }
+  };
+
+  const generateAiStory = async () => {
+    const situation = storySituation.trim();
+    if (situation.length < 12 || situation.length > 200) {
+      setStoryEditorMessage('Describí la situación en 12 a 200 caracteres.');
+      return;
+    }
+    if (!storyConsent) {
+      setStoryEditorMessage('Confirmá que evitaste datos personales y autorizás enviar esta situación a la IA.');
+      return;
+    }
+    setStoryGenerating(true);
+    setStoryEditorMessage('');
+    try {
+      const response = await fetch('/api/social-stories/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ situation })
+      });
+      if (!response.ok) throw new Error(response.status === 503
+        ? 'La IA no está configurada en este servidor. Podés crear un borrador guiado.'
+        : 'No se pudo generar con IA. Probá de nuevo o usá el borrador guiado.');
+      const data = await response.json();
+      if (!data || typeof data.title !== 'string' || !Array.isArray(data.pages) || data.pages.length !== 5 ||
+          !data.pages.every((page: StoryPage) => typeof page.text === 'string' && typeof page.emoji === 'string')) {
+        throw new Error('La respuesta no tiene cinco pasos válidos. Probá de nuevo.');
+      }
+      setStoryDraft({
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        title: data.title.slice(0, 60),
+        pages: data.pages.map((page: StoryPage) => ({ text: page.text.slice(0, 180), emoji: page.emoji.slice(0, 8) }))
+      });
+      setStoryEditorMessage('Borrador creado con IA. Revisá cada paso antes de guardarlo.');
+    } catch (error) {
+      setStoryEditorMessage(error instanceof Error ? error.message : 'No se pudo generar la historia.');
+    } finally {
+      setStoryGenerating(false);
+    }
+  };
+
+  const createGuidedDraft = () => {
+    if (storySituation.trim().length < 12 || storySituation.trim().length > 200) {
+      setStoryEditorMessage('Describí la situación en 12 a 200 caracteres.');
+      return;
+    }
+    setStoryDraft(makeGuidedStory(storySituation));
+    setStoryEditorMessage('Borrador guiado sin IA. Revisá cada paso antes de guardarlo.');
+  };
+
+  const saveStoryDraft = () => {
+    if (!storyDraft || loadedPatientId !== activePatientId || !activePatientId) return;
+    const title = storyDraft.title.trim();
+    const pages = storyDraft.pages.map(page => ({ emoji: page.emoji.trim(), text: page.text.trim() }));
+    if (!title || pages.length !== 5 || pages.some(page => !page.text || page.text.length > 180 || !page.emoji)) {
+      setStoryEditorMessage('Completá el título, el dibujo y el texto de los cinco pasos.');
+      return;
+    }
+    setSocialStories(previous => [...previous, { ...storyDraft, title, pages }]);
+    setStoryDraft(null);
+    setStorySituation('');
+    setStoryConsent(false);
+    setStoryEditorMessage('Historia guardada en el perfil activo. Ya aparece en Social.');
   };
 
   const searchARASAAC = async (query: string) => {
@@ -2418,6 +2516,36 @@ export default function ImportedApp() {
                     <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-pink-400 transition-colors" />
                   </button>
                 ))}
+                {socialStories.map(story => (
+                  <button key={story.id} type="button" onClick={() => { setSelectedStoryId(story.id); setCustomStoryPage(0); }}
+                    className="w-full min-h-16 rounded-2xl border border-teal-600/40 bg-teal-950/20 p-4 text-left text-sm font-bold text-teal-100">
+                    📖 {story.title} <span className="block text-xs font-normal text-slate-300">Historia preparada por tu familia</span>
+                  </button>
+                ))}
+              </div>
+            ) : openedCustomStory ? (
+              <div className="space-y-4 rounded-2xl border border-teal-600/40 bg-slate-900 p-4">
+                <h3 className="text-base font-extrabold text-white">{openedCustomStory.title}</h3>
+                <p className="text-xs font-bold text-teal-300" aria-live="polite">Paso {customStoryPage + 1} de 5</p>
+                <div className="rounded-2xl border border-slate-600 bg-slate-950 p-5 text-center">
+                  <span aria-hidden="true" className="block text-6xl">{openedCustomStory.pages[customStoryPage].emoji}</span>
+                  <p className="mt-4 text-base font-semibold leading-relaxed text-white">{openedCustomStory.pages[customStoryPage].text}</p>
+                </div>
+                <button type="button" onClick={() => readStoryText(openedCustomStory.pages[customStoryPage].text)}
+                  disabled={!soundEnabled} className="min-h-12 w-full rounded-xl border border-teal-600 px-3 font-bold text-teal-200 disabled:opacity-50">
+                  🔊 Escuchar este paso
+                </button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { stopCommunicationAudio(); setCustomStoryPage(page => Math.max(0, page - 1)); }}
+                    disabled={customStoryPage === 0} className="min-h-12 flex-1 rounded-xl border border-slate-600 px-3 text-white disabled:opacity-40">Anterior</button>
+                  <button type="button" onClick={() => {
+                    stopCommunicationAudio();
+                    if (customStoryPage === 4) { setSelectedStoryId(null); setCustomStoryPage(0); }
+                    else setCustomStoryPage(page => Math.min(4, page + 1));
+                  }} className="min-h-12 flex-1 rounded-xl bg-teal-700 px-3 font-bold text-white">
+                    {customStoryPage === 4 ? 'Terminar' : 'Siguiente'}
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 animate-scale-up">
@@ -3054,6 +3182,7 @@ export default function ImportedApp() {
                     {[
                       { id: 'pacientes', label: '👥 Perfiles', desc: 'Familia / Escuela' },
                       { id: 'rutinas', label: '📅 Rutinas', desc: 'Editar tareas' },
+                      { id: 'historias', label: '📖 Historias', desc: 'Crear y revisar' },
                       { id: 'pictogramas', label: '🎨 Pictogramas', desc: 'Biblioteca' },
                       { id: 'sonido', label: '🔊 Audio Sensorial', desc: 'Hipersensibilidad' },
                       { id: 'reportes', label: '📋 Resumen', desc: 'Uso local' }
@@ -3078,6 +3207,85 @@ export default function ImportedApp() {
 
                   {/* Scrollable Dashboard Viewport */}
                   <div id="adult-panel-scroll" className="flex-1 overflow-y-auto py-3 pr-1 min-h-0 text-left text-xs">
+
+                    {parentsActiveTab === 'historias' && (
+                      <section className="space-y-4" aria-label="Crear historias sociales">
+                        <div>
+                          <h3 className="text-base font-extrabold text-white">Historias para {activePatient.name}</h3>
+                          <p className="text-slate-300 mt-1 leading-relaxed">Un adulto escribe la situación, revisa cinco pasos con dibujos y decide si guardarlos. Usá un apodo y evitá nombres de escuelas, direcciones y datos clínicos.</p>
+                        </div>
+                        <label className="block space-y-1 font-bold text-slate-200">
+                          <span>¿Qué va a pasar?</span>
+                          <textarea aria-label="Situación para la historia" maxLength={200} rows={3} value={storySituation}
+                            onChange={event => { setStorySituation(event.target.value); setStoryEditorMessage(''); }}
+                            placeholder="Por ejemplo: el lunes empezamos una escuela nueva"
+                            className="w-full rounded-xl border border-slate-600 bg-slate-950 p-3 text-sm text-white placeholder:text-slate-400 focus:border-emerald-400" />
+                        </label>
+                        <label className="flex items-start gap-2 rounded-xl border border-slate-700 bg-slate-900 p-3 text-slate-200">
+                          <input type="checkbox" checked={storyConsent} onChange={event => setStoryConsent(event.target.checked)} className="mt-1" />
+                          <span>Para usar IA, confirmo que no incluí datos personales y autorizo enviar solo esta situación al proveedor de IA.</span>
+                        </label>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || loadedPatientId !== activePatientId}
+                            className="min-h-12 rounded-xl bg-teal-700 px-3 font-bold text-white disabled:opacity-50">
+                            {storyGenerating ? 'Creando con IA…' : 'Crear con IA'}
+                          </button>
+                          <button type="button" onClick={createGuidedDraft} disabled={storyGenerating || loadedPatientId !== activePatientId}
+                            className="min-h-12 rounded-xl border border-teal-600 bg-teal-950 px-3 font-bold text-teal-200 disabled:opacity-50">
+                            Crear borrador sin IA
+                          </button>
+                        </div>
+                        <p className="text-slate-400">La IA requiere un servidor configurado. En GitHub Pages podés crear y guardar el borrador guiado sin IA.</p>
+                        {storyEditorMessage && <p role="status" className="rounded-xl bg-slate-900 p-3 text-teal-200">{storyEditorMessage}</p>}
+                        {storyDraft && (
+                          <div className="space-y-3 rounded-2xl border border-teal-600/50 bg-slate-900 p-3">
+                            <h4 className="font-extrabold text-white">Revisá el borrador antes de guardarlo</h4>
+                            <label className="block space-y-1 text-slate-200">
+                              <span>Título</span>
+                              <input aria-label="Título de la historia" maxLength={60} value={storyDraft.title}
+                                onChange={event => setStoryDraft({ ...storyDraft, title: event.target.value })}
+                                className="w-full min-h-11 rounded-xl border border-slate-600 bg-slate-950 px-3 text-white" />
+                            </label>
+                            {storyDraft.pages.map((page, index) => (
+                              <div key={index} className="rounded-xl border border-slate-700 bg-slate-950 p-3 space-y-2">
+                                <h5 className="font-bold text-teal-200">Paso {index + 1} de 5</h5>
+                                <label className="flex items-center gap-2 text-slate-200">
+                                  <span>Dibujo</span>
+                                  <select aria-label={`Dibujo del paso ${index + 1}`} value={page.emoji}
+                                    onChange={event => setStoryDraft({ ...storyDraft, pages: storyDraft.pages.map((item, i) => i === index ? { ...item, emoji: event.target.value } : item) })}
+                                    className="min-h-11 rounded-xl border border-slate-600 bg-slate-900 px-3 text-xl">
+                                    {[...new Set(['🗓️', '💬', '👀', '🤝', '⭐', '🏫', '🏠', '🚶', '🧸', '🎒', '🫂', '🌿', page.emoji])].map(emoji =>
+                                      <option key={emoji} value={emoji}>{emoji}</option>)}
+                                  </select>
+                                </label>
+                                <textarea aria-label={`Texto del paso ${index + 1}`} rows={2} maxLength={180} value={page.text}
+                                  onChange={event => setStoryDraft({ ...storyDraft, pages: storyDraft.pages.map((item, i) => i === index ? { ...item, text: event.target.value } : item) })}
+                                  className="w-full rounded-xl border border-slate-600 bg-slate-900 p-3 text-sm text-white" />
+                                <button type="button" onClick={() => readStoryText(page.text)} disabled={!soundEnabled}
+                                  className="min-h-11 rounded-xl border border-slate-600 px-3 text-teal-200 disabled:opacity-50">
+                                  🔊 Escuchar este paso
+                                </button>
+                              </div>
+                            ))}
+                            <div className="flex gap-2">
+                              <button type="button" onClick={saveStoryDraft} className="min-h-12 flex-1 rounded-xl bg-teal-700 px-3 font-bold text-white">Guardar para el niño</button>
+                              <button type="button" onClick={() => setStoryDraft(null)} className="min-h-12 rounded-xl border border-slate-600 px-3 text-slate-200">Descartar</button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <h4 className="font-bold text-white">Guardadas en este perfil ({socialStories.length})</h4>
+                          {socialStories.map(story => (
+                            <div key={story.id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-700 p-3">
+                              <span className="font-bold text-slate-100">{story.title}</span>
+                              <button type="button" aria-label={`Borrar historia ${story.title}`}
+                                onClick={() => { if (window.confirm('¿Borrar esta historia del perfil?')) setSocialStories(previous => previous.filter(item => item.id !== story.id)); }}
+                                className="min-h-11 rounded-lg border border-rose-500/40 px-3 text-rose-200">Borrar</button>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
 
                     {parentsActiveTab === 'rutinas' && (
                       <section className="space-y-4" aria-label="Editar rutinas del perfil activo">
