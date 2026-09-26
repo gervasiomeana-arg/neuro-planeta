@@ -2216,13 +2216,14 @@ export default function ImportedApp() {
               <button
                 onClick={async () => {
                   if (constructedPhrase.length === 0 || audioModeRef.current === 'silent') return;
+                  const isAudioSilent = () => audioModeRef.current === 'silent';
                   stopCommunicationAudio();
                   const playbackId = phrasePlaybackIdRef.current;
                   const phrase = [...constructedPhrase];
                   
                   // Sequential audio playback: custom voice -> fallback to synthesis
                   for (let i = 0; i < phrase.length; i++) {
-                    if (phrasePlaybackIdRef.current !== playbackId || audioModeRef.current === 'silent') return;
+                    if (phrasePlaybackIdRef.current !== playbackId || isAudioSilent()) return;
                     const item = phrase[i];
                     const customVoice = customPictogramVoices[item.id];
                     
@@ -2262,7 +2263,7 @@ export default function ImportedApp() {
                     await new Promise(r => setTimeout(r, 200));
                   }
 
-                  if (phrasePlaybackIdRef.current !== playbackId || audioModeRef.current === 'silent') return;
+                  if (phrasePlaybackIdRef.current !== playbackId || isAudioSilent()) return;
                   if (phrase.length >= 2) {
                     awardStars(5, 'Comunicación Estelar');
                   }
