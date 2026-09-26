@@ -729,6 +729,22 @@ export default function ImportedApp() {
     }
   };
 
+  const readStoryText = (message: string) => {
+    if (audioModeRef.current === 'silent') return;
+    try {
+      stopCommunicationAudio();
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.lang = 'es-AR';
+      utterance.rate = 0.85;
+      utterance.volume = audioVolume / 100;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      // El texto permanece disponible si el navegador no ofrece lectura de voz.
+    }
+  };
+
+  useEffect(() => { stopCommunicationAudio(); }, [activeModule, activePatientId]);
+
   // Keep the countdown free of state updates with side effects.
   useEffect(() => {
     if (!timerIsActive || timerSecondsLeft <= 0) return;
@@ -2469,23 +2485,33 @@ export default function ImportedApp() {
                           <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800/80">
                             {currentStory.setup}
                           </p>
+                          <button type="button" onClick={() => readStoryText(currentStory.setup)} disabled={!soundEnabled}
+                            aria-label="Escuchar la situación" className="min-h-11 px-4 rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-400 text-xs font-bold disabled:opacity-50 flex items-center gap-2">
+                            <Volume2 className="w-4 h-4" /> Escuchar la situación
+                          </button>
 
                           <div className="space-y-2.5">
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">¿Qué podrías hacer?</span>
                             {currentStory.choices.map((choice, i) => (
-                              <button
-                                key={i}
-                                onClick={() => {
-                                  setStoryFeedback({ text: choice.feedback });
-                                  if (!unlockedAchievements.includes('Empatía Cósmica')) {
-                                    awardStars(10, 'Empatía Cósmica');
-                                  } else playClickSound();
-                                  setStoryStep('feedback');
-                                }}
-                                className="w-full text-left p-3.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-2xl text-xs text-slate-200 font-extrabold active:scale-98 transition-all hover:border-pink-500/20"
-                              >
-                                {choice.text}
-                              </button>
+                              <div key={i} className="flex items-stretch gap-2">
+                                <button type="button"
+                                  onClick={() => {
+                                    stopCommunicationAudio();
+                                    setStoryFeedback({ text: choice.feedback });
+                                    if (!unlockedAchievements.includes('Empatía Cósmica')) {
+                                      awardStars(10, 'Empatía Cósmica');
+                                    } else playClickSound();
+                                    setStoryStep('feedback');
+                                  }}
+                                  className="flex-1 text-left p-3.5 min-h-16 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-2xl text-xs text-slate-200 font-extrabold active:scale-98 transition-all hover:border-pink-500/20"
+                                >
+                                  {choice.text}
+                                </button>
+                                <button type="button" onClick={() => readStoryText(choice.text)} disabled={!soundEnabled}
+                                  aria-label={`Escuchar opción ${i + 1}`} className="min-w-11 min-h-11 rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-400 disabled:opacity-50 flex items-center justify-center">
+                                  <Volume2 className="w-5 h-5" />
+                                </button>
+                              </div>
                             ))}
                           </div>
                         </>
@@ -2500,6 +2526,10 @@ export default function ImportedApp() {
                               </div>
                             </div>
                           </div>
+                          <button type="button" onClick={() => readStoryText(storyFeedback?.text || '')} disabled={!soundEnabled || !storyFeedback?.text}
+                            aria-label="Escuchar explicación" className="min-h-11 px-4 rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-400 text-xs font-bold disabled:opacity-50 flex items-center gap-2">
+                            <Volume2 className="w-4 h-4" /> Escuchar explicación
+                          </button>
 
                           <div className="flex gap-2">
                             <button
