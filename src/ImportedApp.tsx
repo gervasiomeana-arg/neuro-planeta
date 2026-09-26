@@ -31,7 +31,8 @@ import {
   Search,
   Clipboard,
   RefreshCw,
-  FileText
+  FileText,
+  LogOut
 } from 'lucide-react';
 
 // Theme customization based on age groups
@@ -101,8 +102,181 @@ const localDayKey = (): string => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 };
-type RoutineTask = { id: string; name: string; emoji: string };
+type RoutineTask = { id: string; name: string; emoji: string; steps?: string[] };
 type RoutineSchedule = Record<RoutineTab, RoutineTask[]>;
+
+const DEFAULT_TASK_STEPS: Record<string, string[]> = {
+  lavarse: [
+    'Poner pasta en el cepillo 🪥',
+    'Cepillar dientes arriba, abajo y muelas 🦷',
+    'Lavar la cara con agua fresca 💧',
+    'Secar con toalla limpia 🧖'
+  ],
+  dientes_noche: [
+    'Poner pasta en el cepillo 🪥',
+    'Cepillar bien durante 2 minutos 🦷',
+    'Enjuagar y escupir el agua 💧',
+    'Guardar el cepillo en su vaso 🧴'
+  ],
+  vestirse: [
+    'Elegir ropa limpia y cómoda 👕',
+    'Poner remera o buzo 👚',
+    'Poner pantalón o falda 👖',
+    'Poner medias y zapatillas 👟'
+  ],
+  desayuno: [
+    'Sentarse tranquilo a la mesa 🪑',
+    'Tomar leche o jugo con calma 🥛',
+    'Comer tostadas, fruta o cereal 🍌',
+    'Llevar taza y plato a la cocina 🍽️'
+  ],
+  tareas: [
+    'Preparar mesa limpia y cartuchera ✏️',
+    'Abrir el cuaderno en la tarea de hoy 📖',
+    'Hacer una actividad con paciencia 📝',
+    'Guardar todo adentro de la mochila 🎒'
+  ],
+  ordenar: [
+    'Guardar juguetes en su caja 🧸',
+    'Acomodar libros y útiles en el estante 📚',
+    'Dejar la cama ordenada 🛏️',
+    'Revisar que el piso esté libre 🧹'
+  ],
+  juego: [
+    'Elegir un juego o juguete con calma 🎲',
+    'Jugar divirtiéndose y cuidando las cosas 🧩',
+    'Guardar los juguetes en su lugar al terminar 📦'
+  ],
+  merienda: [
+    'Lavarse bien las manos con jabón 🧼',
+    'Comer fruta o snack nutritivo 🍎',
+    'Tomar agua fresca o jugo 🥤',
+    'Llevar las cosas a la cocina 🥣'
+  ],
+  bano: [
+    'Preparar toalla y ropa limpia 🧖',
+    'Enjabonar cuerpo y brazos 🧼',
+    'Lavar el pelo con champú suave 🚿',
+    'Secarse bien antes de salir 🧽'
+  ],
+  cena: [
+    'Lavarse las manos antes de comer 🧼',
+    'Sentarse a compartir en familia 🍲',
+    'Masticar despacio y pedir con respeto 💬',
+    'Agradecer y ayudar a levantar la mesa 🥣'
+  ],
+  dormir: [
+    'Ponerse el pijama cómodo 🛌',
+    'Apagar luces fuertes y ruidos 💡',
+    'Escuchar un cuento o respirar despacio 📖',
+    'Cerrar los ojitos y descansar 🌙'
+  ],
+  despertar: [
+    'Abrir los ojos y estirarse como gato 🐱',
+    'Agradecer el nuevo día ☀️',
+    'Ponerse las pantuflas 🩴',
+    'Ir al baño a hacer pis 🚽'
+  ]
+};
+
+const FIRST_THEN_REWARDS = [
+  { name: 'Tiempo de juego recreativo', emoji: '🎮' },
+  { name: 'Ir al parque o plaza', emoji: '🌳' },
+  { name: 'Dibujar o pintar con colores', emoji: '🎨' },
+  { name: 'Ver videos favoritos / tablet', emoji: '📱' },
+  { name: 'Escuchar música tranquila', emoji: '🎵' },
+  { name: 'Descanso con peluche favorito', emoji: '🧸' },
+  { name: 'Comer algo rico y saludable', emoji: '🍎' },
+  { name: 'Construir con bloques', emoji: '🧱' }
+];
+
+interface RegulationZone {
+  id: 'azul' | 'verde' | 'amarillo' | 'rojo';
+  name: string;
+  badge: string;
+  energyLabel: string;
+  emojis: string;
+  cardColor: string;
+  buttonBorder: string;
+  textColor: string;
+  description: string;
+  feelings: string[];
+  strategies: { title: string; desc: string; icon: string; action?: 'respirar' | 'sos' | 'sensorial' | 'comunicar' }[];
+}
+
+const REGULATION_ZONES: RegulationZone[] = [
+  {
+    id: 'azul',
+    name: 'Zona Azul',
+    badge: 'Baja Energía',
+    energyLabel: 'Cuerpo lento • Poca energía',
+    emojis: '😴 🌧️ 😢',
+    cardColor: 'bg-blue-950/40 border-blue-500/30',
+    buttonBorder: 'border-blue-500/40 hover:border-blue-400',
+    textColor: 'text-blue-400',
+    description: 'Tu cuerpo se siente pesado, triste, con sueño o sin ganas de moverte.',
+    feelings: ['Cansado', 'Triste', 'Aburrido', 'Sin energía', 'Tímido'],
+    strategies: [
+      { title: 'Estiramiento suave', desc: 'Estirar los brazos al techo como un árbol.', icon: '🙆' },
+      { title: 'Agua fresca', desc: 'Tomar un vaso de agua fresca para despertar tus sentidos.', icon: '💧' },
+      { title: 'Música o sonidos suaves', desc: 'Escuchar sonidos relajantes para armonizar.', icon: '🎵', action: 'sensorial' },
+      { title: 'Pedir un abrazo', desc: 'Acercarse a un adulto o a un peluche suave.', icon: '🫂', action: 'comunicar' }
+    ]
+  },
+  {
+    id: 'verde',
+    name: 'Zona Verde',
+    badge: 'Zona Óptima',
+    energyLabel: 'En foco • Calma y equilibrio',
+    emojis: '😊 🌱 🌟',
+    cardColor: 'bg-emerald-950/40 border-emerald-500/30',
+    buttonBorder: 'border-emerald-500/40 hover:border-emerald-400',
+    textColor: 'text-emerald-400',
+    description: 'Tu cuerpo está en equilibrio. Te sientes calmo, contento y listo para aprender o jugar.',
+    feelings: ['Calmo', 'Feliz', 'Concentrado', 'Agradecido', 'Listo'],
+    strategies: [
+      { title: 'Momento de aprender', desc: 'Excelente momento para tus tareas, juegos o rutinas.', icon: '🚀' },
+      { title: 'Compartir tu alegría', desc: 'Contar lo que estás haciendo o sonreír con alguien.', icon: '💬', action: 'comunicar' },
+      { title: 'Avanzar en tu rutina', desc: 'Completar tus tareas y ganar estrellas brillantes.', icon: '⭐' }
+    ]
+  },
+  {
+    id: 'amarillo',
+    name: 'Zona Amarilla',
+    badge: 'Alerta / Inquietud',
+    energyLabel: 'Energía alta • Inquietud',
+    emojis: '😮 ⚡ 🐝',
+    cardColor: 'bg-amber-950/40 border-amber-500/30',
+    buttonBorder: 'border-amber-500/40 hover:border-amber-400',
+    textColor: 'text-amber-400',
+    description: 'Empiezas a sentir que pierdes el control: nervios, frustración o cuerpo muy inquieto.',
+    feelings: ['Inquieto', 'Frustrado', 'Nervioso', 'Euforia', 'Preocupado'],
+    strategies: [
+      { title: 'Respiración tranquila', desc: 'Acompañar el círculo estelar que crece y se achica.', icon: '🌬️', action: 'respirar' },
+      { title: 'Apretar y soltar', desc: 'Apretar las manos como piedras 5 segundos y luego aflojarlas.', icon: '✊' },
+      { title: 'Lienzo sensorial', desc: 'Pintar colores y constelaciones suaves en pantalla.', icon: '🎨', action: 'sensorial' },
+      { title: 'Pausa de agua', desc: 'Tomar unos sorbos despacio sintiendo el agua.', icon: '🥛' }
+    ]
+  },
+  {
+    id: 'rojo',
+    name: 'Zona Roja',
+    badge: 'Sobrecarga / Desborde',
+    energyLabel: 'Desborde • Fuera de control',
+    emojis: '🛑 🌋 😠',
+    cardColor: 'bg-rose-950/40 border-rose-500/30',
+    buttonBorder: 'border-rose-500/40 hover:border-rose-400',
+    textColor: 'text-rose-400',
+    description: 'Sensación de sobrecarga extrema: enojo muy grande, miedo intenso o necesidad de parar todo.',
+    feelings: ['Muy enojado', 'Asustado', 'Sobrecargado', 'Fuera de control', 'Bloqueado'],
+    strategies: [
+      { title: 'Botón SOS Calma', desc: 'Hacer el ejercicio de conexión a tierra paso a paso.', icon: '🛡️', action: 'sos' },
+      { title: 'Espacio tranquilo', desc: 'Ir a un rincón seguro sin ruidos ni luces fuertes.', icon: '⛺' },
+      { title: 'Pedir silencio / pausa', desc: 'Usar el pictograma para comunicar que necesitas calma.', icon: '🔇', action: 'comunicar' },
+      { title: 'Acompañamiento seguro', desc: 'Un adulto de confianza te acompaña sin exigirte hablar.', icon: '🤝' }
+    ]
+  }
+];
 
 const ROUTINE_TASKS: RoutineSchedule = {
   'Mañana': [
@@ -228,14 +402,8 @@ export default function ImportedApp() {
   }, [patients]);
 
   // Onboarding & Device selection states
-  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('np_onboarding_completed');
-      return saved === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+  // Siempre arranca desde el principio (pantalla de acceso) al actualizar o iniciar la app
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
 
   const [appDeviceMode, setAppDeviceMode] = useState<'movil' | 'tablet'>(() => {
     try {
@@ -329,6 +497,14 @@ export default function ImportedApp() {
   // Rutinas Checklist States
   const [activeRoutineTab, setActiveRoutineTab] = useState<RoutineTab>(currentRoutineTab);
   const [routineTasks, setRoutineTasks] = useState<RoutineSchedule>(copyDefaultRoutine);
+  const [routineViewMode, setRoutineViewMode] = useState<'horario' | 'primero_despues'>('horario');
+  const [firstTask, setFirstTask] = useState<{ name: string; emoji: string }>({ name: 'Hacer mis deberes con calma', emoji: '📝' });
+  const [thenTask, setThenTask] = useState<{ name: string; emoji: string }>({ name: 'Tiempo de juego recreativo', emoji: '🎮' });
+  const [isFirstCompleted, setIsFirstCompleted] = useState<boolean>(false);
+  const [showFirstPicker, setShowFirstPicker] = useState<boolean>(false);
+  const [showThenPicker, setShowThenPicker] = useState<boolean>(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [completedMicroSteps, setCompletedMicroSteps] = useState<Record<string, number[]>>({});
   const [newRoutineName, setNewRoutineName] = useState('');
   const [newRoutineEmoji, setNewRoutineEmoji] = useState('⭐');
   const [completedRoutineTasks, setCompletedRoutineTasks] = useState<string[]>([]);
@@ -336,6 +512,8 @@ export default function ImportedApp() {
   const rewardedRoutineTasksRef = useRef<Set<string>>(new Set());
   const [routineDay, setRoutineDay] = useState(localDayKey);
   const [todayKey, setTodayKey] = useState(localDayKey);
+  const [parentsEditingTaskId, setParentsEditingTaskId] = useState<string | null>(null);
+  const [newMicroStepText, setNewMicroStepText] = useState<string>('');
   
   // Settings & Parents Mode with Sensory Sound Engine & ARASAAC Integration
   const [sensoryAudioMode, setSensoryAudioMode] = useState<'soft' | 'silent' | 'masking'>(() => {
@@ -412,7 +590,10 @@ export default function ImportedApp() {
   const [parentsMathQuestion, setParentsMathQuestion] = useState<{q: string, a: number}>({q: '7 x 8', a: 56});
   const [parentsFeedback, setParentsFeedback] = useState<string>('');
   
-  // Emotion Module State
+  // Emotion Module State (Semáforo de Regulación y Caritas)
+  const [emotionSubTab, setEmotionSubTab] = useState<'semaforo' | 'caritas'>('semaforo');
+  const [selectedZoneId, setSelectedZoneId] = useState<'azul' | 'verde' | 'amarillo' | 'rojo' | null>(null);
+  const [zoneStrategyFeedback, setZoneStrategyFeedback] = useState<string | null>(null);
   const [currentEmotion, setCurrentEmotion] = useState<string | null>(null);
   const [emotionJournal, setEmotionJournal] = useState<{date: string, emotion: string, note: string}[]>([]);
   const [journalNote, setJournalNote] = useState<string>('');
@@ -651,6 +832,15 @@ export default function ImportedApp() {
     setConstructedPhrase([]);
     setSelectedStoryId(null);
     setCurrentEmotion(null);
+    setEmotionSubTab('semaforo');
+    setSelectedZoneId(null);
+    setZoneStrategyFeedback(null);
+    setRoutineViewMode('horario');
+    setIsFirstCompleted(false);
+    setShowFirstPicker(false);
+    setShowThenPicker(false);
+    setExpandedTaskId(null);
+    setCompletedMicroSteps({});
     setJournalNote('');
     setBreathingPhase('idle');
     setBreathingCycles(0);
@@ -781,19 +971,20 @@ export default function ImportedApp() {
     }
   };
 
-  const readStoryText = (message: string) => {
+  const speakTherapeuticText = (message: string) => {
     if (audioModeRef.current === 'silent') return;
     try {
       stopCommunicationAudio();
       const utterance = new SpeechSynthesisUtterance(message);
       utterance.lang = 'es-AR';
-      utterance.rate = 0.85;
+      utterance.rate = 0.88;
       utterance.volume = audioVolume / 100;
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       // El texto permanece disponible si el navegador no ofrece lectura de voz.
     }
   };
+  const readStoryText = speakTherapeuticText;
 
   const playWholeStory = (story: SocialStory) => {
     if (audioModeRef.current === 'silent' || !window.speechSynthesis) return;
@@ -1170,9 +1361,21 @@ export default function ImportedApp() {
     if (completedRoutineTasks.includes(task.id)) {
       playClickSound();
       setCompletedRoutineTasks(prev => prev.filter(id => id !== task.id));
+      setCompletedMicroSteps(prev => {
+        const next = { ...prev };
+        delete next[task.id];
+        return next;
+      });
       return;
     }
     setCompletedRoutineTasks(prev => prev.includes(task.id) ? prev : [...prev, task.id]);
+    const steps = task.steps || DEFAULT_TASK_STEPS[task.id];
+    if (steps && steps.length > 0) {
+      setCompletedMicroSteps(prev => ({
+        ...prev,
+        [task.id]: steps.map((_, i) => i)
+      }));
+    }
     if (rewardedRoutineTasksRef.current.has(task.id)) {
       playSuccessSound();
       return;
@@ -1314,6 +1517,22 @@ export default function ImportedApp() {
     }
   };
 
+  // Salida limpia de la app hacia la pantalla de acceso
+  const handleExitApp = () => {
+    playClickSound();
+    stopCommunicationAudio();
+    stopMaskingNoise();
+    setStoryDraft(null);
+    setSelectedStoryId(null);
+    setActiveModule(null);
+    setCurrentTab('inicio');
+    setShowParentsMode(false);
+    setParentsAuthenticated(false);
+    setShowAgeSelector(false);
+    setOnboardingStep(1);
+    setOnboardingCompleted(false);
+  };
+
   // ONBOARDING WIZARD RENDER
   if (!onboardingCompleted) {
     return (
@@ -1328,23 +1547,25 @@ export default function ImportedApp() {
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#186EF3]/15 rounded-full blur-2xl"></div>
           <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/15 rounded-full blur-2xl"></div>
 
-          {/* Stepper indicator */}
-          <div className="flex justify-center items-center gap-2 mb-2">
-            {[1, 2, 3].map((step) => (
-              <div
-                key={step}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  onboardingStep === step
-                    ? 'w-8 bg-blue-500'
-                    : onboardingStep > step
-                    ? 'w-2 bg-emerald-500'
-                    : 'w-2 bg-slate-800'
-                }`}
-              />
-            ))}
-          </div>
+          {/* Stepper indicator only when in creation steps 2 or 3 */}
+          {onboardingStep > 1 && (
+            <div className="flex justify-center items-center gap-2 mb-2">
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    onboardingStep === step
+                      ? 'w-8 bg-blue-500'
+                      : onboardingStep > step
+                      ? 'w-2 bg-emerald-500'
+                      : 'w-2 bg-slate-800'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
 
-          {/* STEP 1: DEVICE MODE QUESTION */}
+          {/* STEP 1: PORTAL DE ACCESO (DEVICE MODE & EXPLORER SELECTION) */}
           {onboardingStep === 1 && (
             <div className="space-y-5 animate-fade-in text-left">
               <div className="text-center">
@@ -1353,74 +1574,137 @@ export default function ImportedApp() {
                 <p className="text-xs text-slate-400 mt-1">Tu espacio estelar de aprendizaje, calma y comunicación adaptada.</p>
               </div>
 
-              <div className="border-t border-slate-800/80 pt-4 space-y-4">
-                <label className="text-xs font-bold text-blue-400 uppercase tracking-wider block text-center">
-                  📱 ¿Cómo vas a usar la aplicación?
-                </label>
+              {/* Selector de modo de pantalla / dispositivo */}
+              <div className="border-t border-slate-800/80 pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-blue-400 uppercase tracking-wider block">
+                    📱 Vista de la aplicación
+                  </label>
+                  <span className="text-[10px] text-slate-400">Podés cambiarlo cuando quieras</span>
+                </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Tablet option card */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playClickSound();
-                      setOnboardingDeviceMode('tablet');
-                    }}
-                    className={`p-5 rounded-2xl border transition-all text-left space-y-3 cursor-pointer ${
-                      onboardingDeviceMode === 'tablet'
-                        ? 'bg-[#186EF3]/10 border-[#186EF3] shadow-[0_0_20px_rgba(24,110,243,0.25)] text-white'
-                        : 'bg-slate-950/60 border-white/5 hover:border-white/10 text-slate-400'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl">💻</span>
-                      {onboardingDeviceMode === 'tablet' && <CheckCircle2 className="w-4 h-4 text-[#186EF3]" />}
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-sm text-slate-100">Dispositivo Tablet</h4>
-                      <p className="text-[10.5px] text-slate-400 mt-1 leading-relaxed">
-                        Optimiza la interfaz con grids de 3 a 5 columnas, botones más espaciosos y controles táctiles más grandes para terapias y el hogar.
-                      </p>
-                    </div>
-                  </button>
-
+                <div className="grid grid-cols-2 gap-3">
                   {/* Mobile option card */}
                   <button
                     type="button"
                     onClick={() => {
                       playClickSound();
                       setOnboardingDeviceMode('movil');
+                      setAppDeviceMode('movil');
+                      localStorage.setItem('np_app_device_mode', 'movil');
                     }}
-                    className={`p-5 rounded-2xl border transition-all text-left space-y-3 cursor-pointer ${
+                    className={`p-3.5 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
                       onboardingDeviceMode === 'movil'
-                        ? 'bg-[#186EF3]/10 border-[#186EF3] shadow-[0_0_20px_rgba(24,110,243,0.25)] text-white'
+                        ? 'bg-[#186EF3]/15 border-[#186EF3] shadow-[0_0_20px_rgba(24,110,243,0.25)] text-white'
                         : 'bg-slate-950/60 border-white/5 hover:border-white/10 text-slate-400'
                     }`}
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl">📱</span>
-                      {onboardingDeviceMode === 'movil' && <CheckCircle2 className="w-4 h-4 text-[#186EF3]" />}
-                    </div>
+                    <span className="text-2xl">📱</span>
                     <div>
-                      <h4 className="font-extrabold text-sm text-slate-100">Dispositivo Celular</h4>
-                      <p className="text-[10.5px] text-slate-400 mt-1 leading-relaxed">
-                        Diseño de columna única adaptado a pantallas de celulares, ideal para sostener con una mano durante transiciones rápidas.
-                      </p>
+                      <h4 className="font-extrabold text-xs text-slate-100">Celular</h4>
+                      <p className="text-[9.5px] text-slate-400 leading-tight">Columna táctil adaptada</p>
+                    </div>
+                  </button>
+
+                  {/* Tablet option card */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setOnboardingDeviceMode('tablet');
+                      setAppDeviceMode('tablet');
+                      localStorage.setItem('np_app_device_mode', 'tablet');
+                    }}
+                    className={`p-3.5 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
+                      onboardingDeviceMode === 'tablet'
+                        ? 'bg-[#186EF3]/15 border-[#186EF3] shadow-[0_0_20px_rgba(24,110,243,0.25)] text-white'
+                        : 'bg-slate-950/60 border-white/5 hover:border-white/10 text-slate-400'
+                    }`}
+                  >
+                    <span className="text-2xl">💻</span>
+                    <div>
+                      <h4 className="font-extrabold text-xs text-slate-100">Tablet</h4>
+                      <p className="text-[9.5px] text-slate-400 leading-tight">Vista amplia en columnas</p>
                     </div>
                   </button>
                 </div>
               </div>
 
-              <div className="pt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => { playClickSound(); setOnboardingStep(2); }}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs py-3 px-8 rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 mx-auto"
-                >
-                  <span>Siguiente Paso</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              {/* Profiles list or prompt to create first */}
+              {patients.length > 0 ? (
+                <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-teal-400 uppercase tracking-wider block">
+                      🧑‍🚀 Elegí tu explorador para ingresar
+                    </label>
+                    <span className="text-[10px] text-slate-400">{patients.length} perfil(es)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                    {patients.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          playSuccessSound();
+                          setActivePatientId(p.id);
+                          setSelectedAge(p.selectedAge || '6-8');
+                          setAppDeviceMode(onboardingDeviceMode);
+                          localStorage.setItem('np_app_device_mode', onboardingDeviceMode);
+                          localStorage.setItem('np_active_patient_id', p.id);
+                          setOnboardingCompleted(true);
+                        }}
+                        className="p-3 rounded-2xl border border-white/10 hover:border-teal-400/50 bg-slate-950/70 hover:bg-slate-900 transition-all text-left flex items-center justify-between group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-2xl p-1.5 rounded-xl bg-white/5 border border-white/5 group-hover:scale-105 transition-transform shrink-0">
+                            {p.avatar || '👦'}
+                          </span>
+                          <div className="min-w-0">
+                            <h4 className="font-extrabold text-xs text-white truncate">{p.name}</h4>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400">
+                              <span>{p.selectedAge || '6-8'} años</span>
+                              <span>•</span>
+                              <span className="text-yellow-400 font-semibold flex items-center gap-0.5">
+                                ⭐ {p.stars || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-teal-500/10 text-teal-300 group-hover:bg-teal-500 group-hover:text-white transition-colors">
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 flex flex-col sm:flex-row gap-2.5 items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClickSound();
+                        setOnboardingChildName('');
+                        setOnboardingStep(2);
+                      }}
+                      className="w-full sm:w-auto bg-slate-900 hover:bg-slate-850 text-teal-300 border border-teal-500/30 font-extrabold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Crear nuevo perfil</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { playClickSound(); setOnboardingStep(2); }}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs py-3 px-8 rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 mx-auto cursor-pointer"
+                  >
+                    <span>Configurar primer perfil</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1643,7 +1927,7 @@ export default function ImportedApp() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             aria-label={soundEnabled ? 'Silenciar sonidos' : 'Activar sonidos'}
@@ -1655,13 +1939,24 @@ export default function ImportedApp() {
             {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </button>
           {/* LOGROS HEADS-UP DISPLAY */}
-        <button 
-          onClick={() => { playClickSound(); setCurrentTab('logros'); }}
-          className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-4 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
-        >
-          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
-          <span className="text-xs font-bold text-yellow-300">{stars} logros</span>
-        </button>
+          <button 
+            onClick={() => { playClickSound(); setCurrentTab('logros'); }}
+            className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-3 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
+          >
+            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
+            <span className="text-xs font-bold text-yellow-300">{stars} logros</span>
+          </button>
+          {/* BOTÓN SALIDA DE LA APP (SIEMPRE VISIBLE EN MÓVIL Y ESCRITORIO) */}
+          <button
+            type="button"
+            aria-label="Salir de la aplicación al menú de acceso"
+            title="Salir al acceso principal"
+            onClick={handleExitApp}
+            className="min-h-11 px-3 rounded-full border border-rose-500/40 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <LogOut className="w-4 h-4 text-rose-300" />
+            <span className="text-xs font-bold text-rose-200">Salir</span>
+          </button>
         </div>
       </header>
 
@@ -1824,19 +2119,92 @@ export default function ImportedApp() {
             <section aria-labelledby="next-steps-title" className="rounded-2xl border border-[#b9ccc1] bg-[#e8f0e8] p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h2 id="next-steps-title" className="font-extrabold text-base text-[#27665e]">Mi rutina: {activeRoutineTab}</h2>
-                <button type="button" onClick={() => setActiveModule('rutinas')} className="font-bold text-sm text-[#27665e] underline">Ver rutina</button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => { playClickSound(); setRoutineViewMode('primero_despues'); setActiveModule('rutinas'); }} 
+                    className="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-[#27665e]/15 text-[#27665e] hover:bg-[#27665e]/25 transition-colors cursor-pointer"
+                  >
+                    👉 Primero / Después
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { playClickSound(); setRoutineViewMode('horario'); setActiveModule('rutinas'); }} 
+                    className="font-bold text-sm text-[#27665e] underline cursor-pointer"
+                  >
+                    Ver todo
+                  </button>
+                </div>
               </div>
               {nextRoutineTasks.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
                   {nextRoutineTasks.map((task, index) => (
-                    <div key={task.id} className="rounded-xl border border-[#c6d5c9] bg-[#fcf7ed] p-3 min-h-24 flex flex-col justify-center gap-1">
-                      <span className="text-xs font-bold text-[#27665e]">{index === 0 ? 'Primero' : 'Después'}</span>
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => {
+                        playClickSound();
+                        setExpandedTaskId(task.id);
+                        setRoutineViewMode('horario');
+                        setActiveModule('rutinas');
+                      }}
+                      className="rounded-xl border border-[#c6d5c9] bg-[#fcf7ed] p-3 min-h-24 flex flex-col justify-center gap-1 text-left transition-all hover:border-[#27665e]/40 hover:scale-[1.01] active:scale-98 cursor-pointer shadow-sm"
+                      title="Ver micro-pasos de esta tarea"
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-bold text-[#27665e]">{index === 0 ? '1. Primero' : '2. Después'}</span>
+                        <span className="text-[10px] text-[#27665e] font-extrabold">📋 Pasos →</span>
+                      </div>
                       <span className="text-xl" aria-hidden="true">{task.emoji}</span>
-                      <span className="font-semibold text-sm leading-tight text-[#293b3a]">{task.name}</span>
-                    </div>
+                      <span className="font-semibold text-sm leading-tight text-[#293b3a] truncate w-full">{task.name}</span>
+                    </button>
                   ))}
                 </div>
               ) : <p className="text-sm text-[#435e55]">Ya marcaste las tareas de {activeRoutineTab.toLowerCase()}. Podés elegir otra actividad.</p>}
+            </section>
+
+            {/* SEMÁFORO DE REGULACIÓN - ACCESO DIRECTO RÁPIDO */}
+            <section aria-labelledby="semaforo-home-title" className="rounded-2xl border border-amber-500/30 bg-[#0B0F19]/90 p-4 space-y-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl" aria-hidden="true">🚦</span>
+                  <div>
+                    <h2 id="semaforo-home-title" className="font-extrabold text-sm text-white">Semáforo de Regulación</h2>
+                    <p className="text-[11px] text-slate-400">¿Cómo está tu cuerpo y energía hoy?</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { playClickSound(); setEmotionSubTab('semaforo'); setActiveModule('emociones'); }}
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                >
+                  Ver estrategias →
+                </button>
+              </div>
+
+              {/* 4 Zonas de regulación en 1 toque */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {REGULATION_ZONES.map(zone => (
+                  <button
+                    key={zone.id}
+                    type="button"
+                    onClick={() => {
+                      playSuccessSound();
+                      setSelectedZoneId(zone.id);
+                      setEmotionSubTab('semaforo');
+                      setActiveModule('emociones');
+                    }}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-center ${zone.cardColor} ${zone.buttonBorder}`}
+                    title={`Abrir ${zone.name}: ${zone.energyLabel}`}
+                  >
+                    <span className="text-2xl">{zone.emojis.split(' ')[0]}</span>
+                    <span className={`text-[11px] font-black ${zone.textColor} truncate w-full`}>
+                      {zone.name.replace('Zona ', '')}
+                    </span>
+                    <span className="text-[9px] text-slate-400 truncate w-full">{zone.badge}</span>
+                  </button>
+                ))}
+              </div>
             </section>
 
             <div className={`np-modules grid gap-3 sm:gap-4 ${appDeviceMode === 'tablet' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
@@ -2010,101 +2378,313 @@ export default function ImportedApp() {
           </div>
         )}
 
-        {/* 1. EMOCIONES MODULE */}
+        {/* 1. EMOCIONES MODULE WITH ZONES OF REGULATION */}
         {activeModule === 'emociones' && (
-          <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => { playClickSound(); setActiveModule(null); }}
-                className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <h2 className="text-base font-extrabold text-amber-500">¿Cómo te sientes en este momento?</h2>
-            </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Toca la carita que represente mejor tu emoción. Cosmo te dará un valioso consejo regulador.
-            </p>
-
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: 'Feliz', emoji: '😊', bg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', tip: '¡Increíble! Guarda esta energía feliz. ¿Quieres dibujarla o saltar de alegría?' },
-                { label: 'Triste', emoji: '😢', bg: 'bg-blue-500/10 border-blue-500/20 text-blue-400', tip: 'Está bien sentirse triste a veces. ¿Quieres respirar despacio conmigo o hablar con alguien?' },
-                { label: 'Enojado', emoji: '😠', bg: 'bg-rose-500/10 border-rose-500/20 text-rose-400', tip: 'El enojo es una emoción fuerte. Vamos a soplar como un dragón de fuego muy suave.' },
-                { label: 'Ansioso', emoji: '😮', bg: 'bg-purple-500/10 border-purple-500/20 text-purple-400', tip: 'Si tu cuerpo se siente inquieto, intentemos buscar 3 cosas de color azul a tu alrededor.' }
-              ].map((em) => (
-                <button
-                  key={em.label}
-                  onClick={() => {
-                    playSuccessSound();
-                    setCurrentEmotion(em.label);
-                    // Add to log
-                    setEmotionJournal(prev => [
-                      { date: new Date().toLocaleTimeString(), emotion: em.emoji + ' ' + em.label, note: em.tip },
-                      ...prev
-                    ]);
-                    awardStars(2);
-                  }}
-                  className={`border-2 p-3.5 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-95 ${
-                    currentEmotion === em.label ? 'border-amber-500 bg-amber-500/10 scale-105' : em.bg
-                  }`}
+          <div className="space-y-4 animate-fade-in text-left">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => { playClickSound(); setActiveModule(null); }}
+                  className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
                 >
-                  <span className="text-3xl">{em.emoji}</span>
-                  <span className="text-[10px] font-black">{em.label}</span>
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
-              ))}
+                <h2 className="text-base font-extrabold text-amber-500">Emociones y Regulación</h2>
+              </div>
             </div>
 
-            {/* Coping Advice Box */}
-            {currentEmotion && (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 animate-fade-in">
-                <div className="flex gap-3 items-start">
-                  <span className="text-2xl">💡</span>
-                  <div>
-                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wide">Consejo de Cosmo:</h4>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      {currentEmotion === 'Feliz' && '¡Increíble! Guarda esta energía feliz. ¿Quieres dar 3 aplausos gigantes?'}
-                      {currentEmotion === 'Triste' && 'Está bien sentirse triste a veces. Hagamos una respiración pausada o demos un abrazo tierno.'}
-                      {currentEmotion === 'Enojado' && 'El enojo es una emoción fuerte. Intenta apretar tus puños como piedras y luego soltarlos suavemente, sintiendo la calma.'}
-                      {currentEmotion === 'Ansioso' && 'Si tu cuerpo se siente inquieto, respira como si soplaras burbujas gigantes. Todo va a estar bien.'}
-                    </p>
-                  </div>
+            {/* Sub-tab navigation between Semáforo de Regulación and Caritas */}
+            <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs gap-1.5">
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setEmotionSubTab('semaforo'); }}
+                className={`flex-1 py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  emotionSubTab === 'semaforo'
+                    ? 'bg-amber-500/15 text-amber-300 shadow-md border border-amber-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🚦 Semáforo de Regulación</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setEmotionSubTab('caritas'); }}
+                className={`flex-1 py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  emotionSubTab === 'caritas'
+                    ? 'bg-amber-500/15 text-amber-300 shadow-md border border-amber-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>😊 Caritas y Diario</span>
+              </button>
+            </div>
+
+            {/* VIEW 1: SEMÁFORO DE LAS 4 ZONAS DE REGULACIÓN */}
+            {emotionSubTab === 'semaforo' && (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  ¿En qué zona sientes que está tu energía hoy? Toca un color para descubrir qué necesita tu cuerpo:
+                </p>
+
+                {/* 4 Zones Grid */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {REGULATION_ZONES.map((zone) => {
+                    const isSelected = selectedZoneId === zone.id;
+                    return (
+                      <button
+                        key={zone.id}
+                        type="button"
+                        onClick={() => {
+                          playSuccessSound();
+                          setSelectedZoneId(zone.id);
+                          setZoneStrategyFeedback(null);
+                          // Register in emotion journal
+                          setEmotionJournal(prev => [
+                            {
+                              date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              emotion: `${zone.badge} (${zone.name})`,
+                              note: zone.description
+                            },
+                            ...prev
+                          ]);
+                          awardStars(3, 'Zona de Regulación');
+                        }}
+                        className={`p-3.5 rounded-2xl border-2 text-left flex flex-col justify-between transition-all duration-200 cursor-pointer min-h-[135px] relative overflow-hidden ${
+                          isSelected
+                            ? `${zone.cardColor} ${zone.buttonBorder} scale-[1.02] shadow-xl`
+                            : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl filter drop-shadow-sm">{zone.emojis.split(' ')[0]}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${zone.cardColor}`}>
+                              {zone.badge}
+                            </span>
+                          </div>
+                          <h3 className={`text-sm font-extrabold mt-2 ${zone.textColor}`}>{zone.name}</h3>
+                          <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{zone.energyLabel}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5 text-[9px] font-semibold text-slate-400">
+                          <span>{isSelected ? '✓ Seleccionada' : 'Tocar para explorar'}</span>
+                          <span>→</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* Active Zone Detail & Strategies */}
+                {(() => {
+                  const activeZone = REGULATION_ZONES.find(z => z.id === selectedZoneId);
+                  if (!activeZone) {
+                    return (
+                      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
+                        👆 Elige una de las 4 zonas arriba para ver las estrategias que ayudan a tu cuerpo.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className={`p-4 sm:p-5 rounded-3xl border-2 ${activeZone.cardColor} space-y-4 animate-scale-up`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{activeZone.emojis.split(' ')[0]}</span>
+                            <h3 className={`text-base font-black ${activeZone.textColor}`}>{activeZone.name} ({activeZone.badge})</h3>
+                          </div>
+                          <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                            {activeZone.description}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playClickSound();
+                            speakTherapeuticText(
+                              `${activeZone.name}, ${activeZone.badge}. ${activeZone.description}. Las estrategias que te pueden ayudar son: ${activeZone.strategies.map(s => s.title).join(', ')}.`
+                            );
+                          }}
+                          className="shrink-0 p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
+                          title="Escuchar explicación con voz"
+                        >
+                          <Volume2 className="w-4 h-4 text-white" />
+                          <span className="hidden sm:inline">Escuchar</span>
+                        </button>
+                      </div>
+
+                      {/* Feelings chips */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                          Palabras que describen cómo te sientes:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {activeZone.feelings.map(feel => (
+                            <span key={feel} className="text-xs px-2.5 py-1 rounded-xl bg-slate-950/80 border border-white/10 text-slate-200 font-semibold">
+                              {feel}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Therapeutic Strategies */}
+                      <div className="space-y-2 pt-2 border-t border-white/10">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                          🛠️ Estrategias para ayudarte a autorregularte:
+                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {activeZone.strategies.map((strat, idx) => (
+                            <div key={idx} className="p-3 rounded-2xl bg-slate-950/80 border border-white/10 flex flex-col justify-between gap-2 text-left">
+                              <div className="flex items-start gap-2">
+                                <span className="text-xl shrink-0 p-1 bg-white/5 rounded-lg">{strat.icon}</span>
+                                <div>
+                                  <h4 className="text-xs font-bold text-white leading-snug">{strat.title}</h4>
+                                  <p className="text-[10.5px] text-slate-400 mt-0.5 leading-tight">{strat.desc}</p>
+                                </div>
+                              </div>
+
+                              {strat.action && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    playClickSound();
+                                    if (strat.action === 'respirar') {
+                                      setBreathingPhase('inhala');
+                                      setBreathingSeconds(4);
+                                      setBreathingCycles(0);
+                                      setActiveModule('zona_calma');
+                                    } else if (strat.action === 'sos') {
+                                      setCalmStep(0);
+                                      setActiveModule('sos');
+                                    } else if (strat.action === 'sensorial') {
+                                      setActiveModule('sensorial');
+                                    } else if (strat.action === 'comunicar') {
+                                      setActiveModule('comunicar');
+                                    }
+                                  }}
+                                  className="w-full mt-1 py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-extrabold text-[10px] flex items-center justify-center gap-1 transition-all"
+                                >
+                                  <span>Probar herramienta</span>
+                                  <span>→</span>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
-            {/* Quick Therapeutic Note */}
-            <div className="bg-[#111827]/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-              <label className="block text-xs font-bold text-slate-300">
-                Escribe o dibuja algo que te gustaría contarle a tu terapeuta:
-              </label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={journalNote}
-                  onChange={(e) => setJournalNote(e.target.value)}
-                  placeholder="Ej: Hoy dormí genial..." 
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                />
-                <button
-                  onClick={() => {
-                    if (!journalNote.trim()) return;
-                    playSuccessSound();
-                    setEmotionJournal(prev => [
-                      { date: new Date().toLocaleTimeString(), emotion: '✍️ Nota', note: journalNote },
-                      ...prev
-                    ]);
-                    setJournalNote('');
-                    awardStars(5, 'Diario Estelar');
-                  }}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl"
-                >
-                  Guardar
-                </button>
-              </div>
-            </div>
+            {/* VIEW 2: CARITAS Y DIARIO */}
+            {emotionSubTab === 'caritas' && (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Toca la carita que represente mejor tu emoción. Cosmo te dará un valioso consejo regulador.
+                </p>
 
+                <div className="grid grid-cols-4 gap-2.5">
+                  {[
+                    { label: 'Feliz', emoji: '😊', bg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', tip: '¡Increíble! Guarda esta energía feliz. ¿Quieres dibujarla o saltar de alegría?' },
+                    { label: 'Triste', emoji: '😢', bg: 'bg-blue-500/10 border-blue-500/20 text-blue-400', tip: 'Está bien sentirse triste a veces. ¿Quieres respirar despacio conmigo o hablar con alguien?' },
+                    { label: 'Enojado', emoji: '😠', bg: 'bg-rose-500/10 border-rose-500/20 text-rose-400', tip: 'El enojo es una emoción fuerte. Vamos a soplar como un dragón de fuego muy suave.' },
+                    { label: 'Ansioso', emoji: '😮', bg: 'bg-purple-500/10 border-purple-500/20 text-purple-400', tip: 'Si tu cuerpo se siente inquieto, intentemos buscar 3 cosas de color azul a tu alrededor.' }
+                  ].map((em) => (
+                    <button
+                      key={em.label}
+                      type="button"
+                      onClick={() => {
+                        playSuccessSound();
+                        setCurrentEmotion(em.label);
+                        // Add to log
+                        setEmotionJournal(prev => [
+                          { date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), emotion: em.emoji + ' ' + em.label, note: em.tip },
+                          ...prev
+                        ]);
+                        awardStars(2);
+                      }}
+                      className={`border-2 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer ${
+                        currentEmotion === em.label ? 'border-amber-500 bg-amber-500/10 scale-105' : em.bg
+                      }`}
+                    >
+                      <span className="text-3xl">{em.emoji}</span>
+                      <span className="text-[10px] font-black">{em.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Coping Advice Box */}
+                {currentEmotion && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 animate-fade-in">
+                    <div className="flex gap-3 items-start">
+                      <span className="text-2xl">💡</span>
+                      <div>
+                        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wide">Consejo de Cosmo:</h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                          {currentEmotion === 'Feliz' && '¡Increíble! Guarda esta energía feliz. ¿Quieres dar 3 aplausos gigantes?'}
+                          {currentEmotion === 'Triste' && 'Está bien sentirse triste a veces. Hagamos una respiración pausada o demos un abrazo tierno.'}
+                          {currentEmotion === 'Enojado' && 'El enojo es una emoción fuerte. Intenta apretar tus puños como piedras y luego soltarlos suavemente, sintiendo la calma.'}
+                          {currentEmotion === 'Ansioso' && 'Si tu cuerpo se siente inquieto, respira como si soplaras burbujas gigantes. Todo va a estar bien.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Therapeutic Note */}
+                <div className="bg-[#111827]/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Escribe o comparte una nota para tu familia o terapeuta:
+                  </label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={journalNote}
+                      onChange={(e) => setJournalNote(e.target.value)}
+                      placeholder="Ej: Hoy dormí genial..." 
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!journalNote.trim()) return;
+                        playSuccessSound();
+                        setEmotionJournal(prev => [
+                          { date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), emotion: '✍️ Nota', note: journalNote },
+                          ...prev
+                        ]);
+                        setJournalNote('');
+                        awardStars(5, 'Diario Estelar');
+                      }}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl cursor-pointer"
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Recent entries log */}
+                {emotionJournal.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                      Registro de hoy ({emotionJournal.length})
+                    </h4>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {emotionJournal.slice(0, 5).map((entry, i) => (
+                        <div key={i} className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-bold text-slate-200">{entry.emotion}</span>
+                          <span className="text-[10px] text-slate-500 shrink-0">{entry.date}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -2812,7 +3392,7 @@ export default function ImportedApp() {
           </div>
         )}
 
-        {/* 4.7. RUTINAS MODULE (Visual Schedule Checklist) */}
+        {/* 4.7. RUTINAS MODULE (Visual Schedule Checklist, First-Then Board & Micro-Steps) */}
         {activeModule === 'rutinas' && (
           <div className="space-y-4 animate-fade-in text-left">
             <div className="flex items-center gap-2">
@@ -2822,292 +3402,656 @@ export default function ImportedApp() {
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <h2 className="text-base font-extrabold text-emerald-400">Mis Rutinas Diarias</h2>
+              <h2 className="text-base font-extrabold text-emerald-400">Mis Rutinas y Estructura</h2>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Completa las rutinas de tu día para ganar estrellas brillantes. ¡La constancia es la clave!
-            </p>
-
-            {/* Routine tabs */}
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800/60 text-xs gap-1">
-              {(['Mañana', 'Tarde', 'Noche'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    playClickSound();
-                    setActiveRoutineTab(tab);
-                  }}
-                  className={`flex-1 py-2 rounded-lg font-black transition-all ${
-                    activeRoutineTab === tab
-                      ? 'bg-slate-800 text-emerald-400 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {tab === 'Mañana' && '☀️ Mañana'}
-                  {tab === 'Tarde' && '🌤️ Tarde'}
-                  {tab === 'Noche' && '🌙 Noche'}
-                </button>
-              ))}
+            {/* Mode selector between Horarios del Día and Tablero Primero/Después */}
+            <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs gap-1.5">
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setRoutineViewMode('horario'); }}
+                className={`flex-1 py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  routineViewMode === 'horario'
+                    ? 'bg-slate-800 text-emerald-400 shadow-md border border-emerald-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>📅 Horarios del Día</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setRoutineViewMode('primero_despues'); }}
+                className={`flex-1 py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  routineViewMode === 'primero_despues'
+                    ? 'bg-emerald-500/15 text-emerald-300 shadow-md border border-emerald-500/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>👉 Tablero Primero / Después</span>
+              </button>
             </div>
 
-            {/* Routine Progress and tasks */}
-            {(() => {
-              const currentTasks = routineTasks[activeRoutineTab];
-              const completedInTab = currentTasks.filter(t => completedRoutineTasks.includes(t.id)).length;
-              const percent = currentTasks.length ? Math.round((completedInTab / currentTasks.length) * 100) : 0;
-
-              if (activeTimerTask) {
-                const radius = 60;
-                const circumference = 2 * Math.PI * radius;
-                const strokeDashoffset = timerDuration > 0 
-                  ? circumference - (timerSecondsLeft / timerDuration) * circumference 
-                  : circumference;
-
-                return (
-                  <div className="bg-[#111827] border border-slate-800 rounded-3xl p-6 text-center space-y-6 shadow-2xl animate-scale-up relative overflow-hidden">
-                    <div className="space-y-1.5">
-                      <span className="text-4xl animate-bounce inline-block">{activeTimerTask.emoji}</span>
-                      <h3 className="font-extrabold text-sm text-white">Temporizador Estelar</h3>
-                      <p className="text-xs text-[#FF7A59] font-black">{activeTimerTask.name}</p>
-                      <p className="text-[11px] text-slate-400">
-                        ¡Realiza la actividad con calma antes de que se acabe el tiempo!
-                      </p>
-                    </div>
-
-                    {/* VISUAL DIMINISHING COLOR CIRCLE */}
-                    <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r={radius}
-                          className="stroke-slate-900"
-                          strokeWidth="8"
-                          fill="transparent"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r={radius}
-                          className={`transition-all duration-1000 stroke-linecap-round ${
-                            (timerSecondsLeft / timerDuration) > 0.5 
-                              ? 'stroke-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]'
-                              : (timerSecondsLeft / timerDuration) > 0.25
-                                ? 'stroke-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]'
-                                : 'stroke-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]'
-                          }`}
-                          strokeWidth="8"
-                          fill="transparent"
-                          strokeDasharray={circumference}
-                          strokeDashoffset={strokeDashoffset}
-                        />
-                      </svg>
-                      {/* Digital Clock in the center */}
-                      <div className="absolute flex flex-col items-center">
-                        <span className="text-2xl font-black text-white font-mono tracking-tight">
-                          {Math.floor(timerSecondsLeft / 60)}:{(timerSecondsLeft % 60).toString().padStart(2, '0')}
-                        </span>
-                        <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black mt-1">
-                          {timerIsActive ? 'EN PROGRESO' : 'PAUSADO'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* HOURGLASS GRAPHICAL BAR */}
-                    <div className="flex justify-center items-center gap-2 text-xs text-slate-400">
-                      <span>⏳</span>
-                      <div className="w-28 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-900/60">
-                        <div 
-                          className="bg-emerald-400 h-full transition-all duration-1000"
-                          style={{ width: `${(timerSecondsLeft / timerDuration) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span>⌛</span>
-                    </div>
-
-                    {/* TIMER CONTROLS */}
-                    <div className="flex flex-col gap-2 pt-2">
-                      <div className="flex gap-2">
-                        {/* Pause / Play */}
-                        <button
-                          onClick={() => {
-                            playClickSound();
-                            setTimerIsActive(!timerIsActive);
-                          }}
-                          className={`flex-1 font-extrabold text-xs py-2.5 rounded-xl border transition-all ${
-                            timerIsActive
-                              ? 'bg-amber-600/20 text-amber-400 border-amber-500/20 hover:bg-amber-600/30'
-                              : 'bg-emerald-600/20 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600/30'
-                          }`}
-                        >
-                          {timerIsActive ? '⏸️ Pausar' : '▶️ Reanudar'}
-                        </button>
-
-                        {/* Quick Adjustments */}
-                        <button
-                          onClick={() => {
-                            playClickSound();
-                            setTimerSecondsLeft(prev => Math.min(timerDuration, prev + 30));
-                          }}
-                          className="bg-slate-900 border border-slate-800 text-slate-300 font-extrabold text-xs px-2.5 rounded-xl hover:bg-slate-850"
-                          title="Agregar 30 segundos"
-                        >
-                          +30s
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            playClickSound();
-                            setTimerSecondsLeft(prev => Math.max(10, prev - 30));
-                          }}
-                          className="bg-slate-900 border border-slate-800 text-slate-300 font-extrabold text-xs px-2.5 rounded-xl hover:bg-slate-850"
-                          title="Quitar 30 segundos"
-                        >
-                          -30s
-                        </button>
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
-                        {/* Skip and mark as complete */}
-                        <button
-                          onClick={() => {
-                            setTimerIsActive(false);
-                            if (timerOwnerIdRef.current === activePatientId && !completedRoutineTasks.includes(activeTimerTask.id)) {
-                              setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
-                              rewardRoutineTask(activeTimerTask.id, 12, 'Guardián de Rutinas');
-                            }
-                            setActiveTimerTask(null);
-                          }}
-                          className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs py-2.5 rounded-xl hover:opacity-90 transition-all shadow-md"
-                        >
-                          ¡Completar Actividad! 🚀
-                        </button>
-
-                        {/* Cancel */}
-                        <button
-                          onClick={() => {
-                            playClickSound();
-                            setTimerIsActive(false);
-                            setActiveTimerTask(null);
-                          }}
-                          className="px-4 bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 rounded-xl text-xs font-bold transition-all"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
+            {/* VIEW 1: TABLERO PRIMERO / DESPUÉS (FIRST-THEN BOARD) */}
+            {routineViewMode === 'primero_despues' && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3.5 text-xs text-slate-300 flex items-center justify-between gap-3 shadow-md">
+                  <div className="space-y-1 min-w-0">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-400 block">
+                      ⭐ Tablero de Anticipación Estelar
+                    </span>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Primero completamos una tarea y después disfrutamos de tu actividad favorita. ¡Ayuda a cambiar de actividad sin ansiedad!
+                    </p>
                   </div>
-                );
-              }
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      speakTherapeuticText(`Primero hacemos: ${firstTask.name}. Y después tenemos: ${thenTask.name}.`);
+                    }}
+                    className="shrink-0 p-2 sm:px-3 sm:py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-300 flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
+                    title="Escuchar tablero con voz"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Escuchar</span>
+                  </button>
+                </div>
 
-              return (
-                <div className="space-y-4">
-                  {/* Progress tracker */}
-                  <div className="bg-[#111827]/60 border border-slate-800 rounded-2xl p-4 space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-300">Progreso de la {activeRoutineTab}:</span>
-                      <span className="font-black text-emerald-400">{completedInTab} / {currentTasks.length} ({percent}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-900">
-                      <div 
-                        className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${percent}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Tasks list */}
-                  <div className="space-y-2">
-                    {currentTasks.length === 0 && <p className="rounded-2xl border border-slate-800 p-5 text-sm text-slate-400">Todavía no hay tareas. Una persona adulta puede agregarlas desde el panel de configuración.</p>}
-                    {currentTasks.map(task => {
-                      const isDone = completedRoutineTasks.includes(task.id);
-                      
-                      // Custom default duration mapped to each specific activity
-                      let duration = 60; // default 1 min
-                      if (task.id === 'lavarse' || task.id === 'dientes_noche') duration = 120; // 2 min
-                      if (task.id === 'tareas') duration = 900; // 15 min
-                      if (task.id === 'bano') duration = 600; // 10 min
-                      if (task.id === 'ordenar') duration = 300; // 5 min
-                      if (task.id === 'juego') duration = 600; // 10 min
-
-                      return (
-                        <div
-                          key={task.id}
-                          className={`w-full p-2.5 rounded-2xl border-2 flex items-center justify-between transition-all duration-200 ${
-                            isDone
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-inner'
-                              : 'bg-[#111827] border-slate-800 text-slate-300 hover:border-slate-700'
-                          }`}
+                {/* The Two Cards Container */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch relative">
+                  
+                  {/* CARD 1: PRIMERO */}
+                  <div className={`p-4 sm:p-5 rounded-3xl border-2 flex flex-col justify-between gap-4 transition-all duration-300 ${
+                    isFirstCompleted
+                      ? 'bg-emerald-950/30 border-emerald-500/60 shadow-lg'
+                      : 'bg-slate-900 border-blue-500/40 shadow-md'
+                  }`}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          1. PRIMERO • ACTIVIDAD
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { playClickSound(); setShowFirstPicker(!showFirstPicker); }}
+                          className="text-[10.5px] font-bold text-blue-400 hover:text-blue-300 underline"
                         >
-                          {/* Left: Complete toggle Area */}
-                          <button
-                            onClick={() => toggleRoutineTask(task, currentTasks)}
-                            className="flex-1 flex items-center gap-3 text-left py-2 px-1.5 focus:outline-none"
-                            aria-pressed={isDone}
+                          {showFirstPicker ? 'Cerrar' : 'Cambiar tarea'}
+                        </button>
+                      </div>
+
+                      {/* Picker for First Task */}
+                      {showFirstPicker && (
+                        <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 animate-scale-up">
+                          <span className="text-[10px] font-bold text-slate-400 block">Elegí una tarea o escribe una personalizada:</span>
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = (e.currentTarget.elements.namedItem('customTask') as HTMLInputElement);
+                              if (input && input.value.trim()) {
+                                setFirstTask({ name: input.value.trim(), emoji: '📝' });
+                                setShowFirstPicker(false);
+                                setIsFirstCompleted(false);
+                              }
+                            }}
+                            className="flex gap-1.5"
                           >
-                            <span className="text-2xl filter drop-shadow-sm">{task.emoji}</span>
-                            <span className={`text-xs font-black ${isDone ? 'line-through text-slate-400' : ''}`}>
-                              {task.name}
-                            </span>
-                          </button>
-
-                          {/* Right: Actions */}
-                          <div className="flex items-center gap-2">
-                            {/* Visual timer clock button (Only shown if not completed yet) */}
-                            {!isDone && (
+                            <input
+                              name="customTask"
+                              type="text"
+                              maxLength={60}
+                              placeholder="Escribe otra actividad..."
+                              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-slate-500"
+                            />
+                            <button
+                              type="submit"
+                              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+                            >
+                              Fijar
+                            </button>
+                          </form>
+                          <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto pr-1">
+                            {allRoutineTasks.map(t => (
                               <button
+                                key={t.id}
+                                type="button"
                                 onClick={() => {
                                   playClickSound();
-                                  timerOwnerIdRef.current = activePatientId;
-                                  setActiveTimerTask(task);
-                                  setTimerDuration(duration);
-                                  setTimerSecondsLeft(duration);
-                                  setTimerIsActive(true);
+                                  setFirstTask({ name: t.name, emoji: t.emoji });
+                                  setShowFirstPicker(false);
+                                  setIsFirstCompleted(false);
                                 }}
-                                className="px-3 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 scale-95 hover:scale-100"
-                                aria-label={`Iniciar temporizador para ${task.name}`}
-                                title="Iniciar temporizador visual"
+                                className="p-2 rounded-xl text-left text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-2 cursor-pointer"
                               >
-                                ⏱️ <span className="text-[9px] font-extrabold uppercase hidden sm:inline">Reloj</span>
+                                <span>{t.emoji}</span>
+                                <span className="truncate">{t.name}</span>
                               </button>
-                            )}
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                            {/* Standard Check box */}
+                      <div className="text-center py-2 space-y-2">
+                        <span className="text-5xl inline-block filter drop-shadow-md animate-pulse">{firstTask.emoji}</span>
+                        <h3 className="text-base sm:text-lg font-black text-white leading-snug">{firstTask.name}</h3>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-white/5">
+                      {/* Visual timer launch */}
+                      {!isFirstCompleted && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playClickSound();
+                            timerOwnerIdRef.current = activePatientId;
+                            setActiveTimerTask({ id: 'primero_task', name: firstTask.name, emoji: firstTask.emoji });
+                            setTimerDuration(120);
+                            setTimerSecondsLeft(120);
+                            setTimerIsActive(true);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/25 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          ⏱️ <span>Poner reloj de 2 minutos</span>
+                        </button>
+                      )}
+
+                      {/* Main action completion button */}
+                      {!isFirstCompleted ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSuccessSound();
+                            setIsFirstCompleted(true);
+                            awardStars(5, 'Primero y Después');
+                          }}
+                          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>✅ ¡Terminé el PRIMERO!</span>
+                        </button>
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-center font-extrabold text-xs">
+                          🎉 ¡Completado con éxito! ⭐ +5 estrellas
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CARD 2: DESPUÉS */}
+                  <div className={`p-4 sm:p-5 rounded-3xl border-2 flex flex-col justify-between gap-4 transition-all duration-300 ${
+                    isFirstCompleted
+                      ? 'bg-amber-950/30 border-amber-400 shadow-xl scale-[1.01]'
+                      : 'bg-slate-900/80 border-slate-800 shadow-sm opacity-90'
+                  }`}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          2. DESPUÉS • RECOMPENSA
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { playClickSound(); setShowThenPicker(!showThenPicker); }}
+                          className="text-[10.5px] font-bold text-amber-400 hover:text-amber-300 underline"
+                        >
+                          {showThenPicker ? 'Cerrar' : 'Elegir premio'}
+                        </button>
+                      </div>
+
+                      {/* Picker for Rewards */}
+                      {showThenPicker && (
+                        <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 animate-scale-up">
+                          <span className="text-[10px] font-bold text-slate-400 block">Elegí tu actividad favorita o escribe una:</span>
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = (e.currentTarget.elements.namedItem('customReward') as HTMLInputElement);
+                              if (input && input.value.trim()) {
+                                setThenTask({ name: input.value.trim(), emoji: '🎁' });
+                                setShowThenPicker(false);
+                              }
+                            }}
+                            className="flex gap-1.5"
+                          >
+                            <input
+                              name="customReward"
+                              type="text"
+                              maxLength={60}
+                              placeholder="Escribe otra recompensa..."
+                              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-slate-500"
+                            />
                             <button
-                              onClick={() => toggleRoutineTask(task, currentTasks)}
-                              aria-label={`${isDone ? 'Marcar pendiente' : 'Marcar completada'}: ${task.name}`}
-                              aria-pressed={isDone}
-                              className={`w-11 h-11 rounded-lg flex items-center justify-center border-2 transition-all shrink-0 ${
-                                isDone 
-                                  ? 'bg-emerald-500 border-emerald-400 text-slate-950' 
-                                  : 'border-slate-700 bg-slate-950 hover:border-slate-600'
+                              type="submit"
+                              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs"
+                            >
+                              Fijar
+                            </button>
+                          </form>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                            {FIRST_THEN_REWARDS.map((rew, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  playClickSound();
+                                  setThenTask(rew);
+                                  setShowThenPicker(false);
+                                }}
+                                className="p-2 rounded-xl text-left text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-2"
+                              >
+                                <span>{rew.emoji}</span>
+                                <span className="truncate">{rew.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-center py-2 space-y-2">
+                        <span className="text-5xl inline-block filter drop-shadow-md">{thenTask.emoji}</span>
+                        <h3 className="text-base sm:text-lg font-black text-amber-300 leading-snug">{thenTask.name}</h3>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5">
+                      {isFirstCompleted ? (
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/50 text-amber-200 text-center font-black text-xs shadow-lg animate-bounce">
+                          🌟 ¡MOMENTO DE DISFRUTAR! 🚀
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 text-center italic py-2">
+                          Completa el <strong className="text-white">PRIMERO</strong> para desbloquear tu tiempo de {thenTask.name.toLowerCase()}.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset Board button */}
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setIsFirstCompleted(false);
+                    }}
+                    className="py-2.5 px-6 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white text-xs font-extrabold transition-all"
+                  >
+                    🔄 Reiniciar Tablero para otra tarea
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* VIEW 2: HORARIOS DEL DÍA CON MICRO-PASOS */}
+            {routineViewMode === 'horario' && (
+              <div className="space-y-4">
+                {/* Routine tabs */}
+                <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800/60 text-xs gap-1">
+                  {(['Mañana', 'Tarde', 'Noche'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => {
+                        playClickSound();
+                        setActiveRoutineTab(tab);
+                      }}
+                      className={`flex-1 py-2 rounded-lg font-black transition-all cursor-pointer ${
+                        activeRoutineTab === tab
+                          ? 'bg-slate-800 text-emerald-400 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {tab === 'Mañana' && '☀️ Mañana'}
+                      {tab === 'Tarde' && '🌤️ Tarde'}
+                      {tab === 'Noche' && '🌙 Noche'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Routine Progress and tasks */}
+                {(() => {
+                  const currentTasks = routineTasks[activeRoutineTab];
+                  const completedInTab = currentTasks.filter(t => completedRoutineTasks.includes(t.id)).length;
+                  const percent = currentTasks.length ? Math.round((completedInTab / currentTasks.length) * 100) : 0;
+
+                  if (activeTimerTask) {
+                    const radius = 60;
+                    const circumference = 2 * Math.PI * radius;
+                    const strokeDashoffset = timerDuration > 0 
+                      ? circumference - (timerSecondsLeft / timerDuration) * circumference 
+                      : circumference;
+
+                    return (
+                      <div className="bg-[#111827] border border-slate-800 rounded-3xl p-6 text-center space-y-6 shadow-2xl animate-scale-up relative overflow-hidden">
+                        <div className="space-y-1.5">
+                          <span className="text-4xl animate-bounce inline-block">{activeTimerTask.emoji}</span>
+                          <h3 className="font-extrabold text-sm text-white">Temporizador Estelar</h3>
+                          <p className="text-xs text-[#FF7A59] font-black">{activeTimerTask.name}</p>
+                          <p className="text-[11px] text-slate-400">
+                            ¡Realiza la actividad con calma antes de que se acabe el tiempo!
+                          </p>
+                        </div>
+
+                        {/* VISUAL DIMINISHING COLOR CIRCLE */}
+                        <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
+                          <svg className="w-full h-full transform -rotate-90">
+                            <circle
+                              cx="80"
+                              cy="80"
+                              r={radius}
+                              className="stroke-slate-900"
+                              strokeWidth="8"
+                              fill="transparent"
+                            />
+                            <circle
+                              cx="80"
+                              cy="80"
+                              r={radius}
+                              className={`transition-all duration-1000 stroke-linecap-round ${
+                                (timerSecondsLeft / timerDuration) > 0.5 
+                                  ? 'stroke-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]'
+                                  : (timerSecondsLeft / timerDuration) > 0.25
+                                    ? 'stroke-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]'
+                                    : 'stroke-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+                              }`}
+                              strokeWidth="8"
+                              fill="transparent"
+                              strokeDasharray={circumference}
+                              strokeDashoffset={strokeDashoffset}
+                            />
+                          </svg>
+                          {/* Digital Clock in the center */}
+                          <div className="absolute flex flex-col items-center">
+                            <span className="text-2xl font-black text-white font-mono tracking-tight">
+                              {Math.floor(timerSecondsLeft / 60)}:{(timerSecondsLeft % 60).toString().padStart(2, '0')}
+                            </span>
+                            <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black mt-1">
+                              {timerIsActive ? 'EN PROGRESO' : 'PAUSADO'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* HOURGLASS GRAPHICAL BAR */}
+                        <div className="flex justify-center items-center gap-2 text-xs text-slate-400">
+                          <span>⏳</span>
+                          <div className="w-28 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-900/60">
+                            <div 
+                              className="bg-emerald-400 h-full transition-all duration-1000"
+                              style={{ width: `${(timerSecondsLeft / timerDuration) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span>⌛</span>
+                        </div>
+
+                        {/* TIMER CONTROLS */}
+                        <div className="flex flex-col gap-2 pt-2">
+                          <div className="flex gap-2">
+                            {/* Pause / Play */}
+                            <button
+                              onClick={() => {
+                                playClickSound();
+                                setTimerIsActive(!timerIsActive);
+                              }}
+                              className={`flex-1 font-extrabold text-xs py-2.5 rounded-xl border transition-all ${
+                                timerIsActive
+                                  ? 'bg-amber-600/20 text-amber-400 border-amber-500/20 hover:bg-amber-600/30'
+                                  : 'bg-emerald-600/20 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600/30'
                               }`}
                             >
-                              {isDone && <span className="text-[10px] font-black">✓</span>}
+                              {timerIsActive ? '⏸️ Pausar' : '▶️ Reanudar'}
+                            </button>
+
+                            {/* Quick Adjustments */}
+                            <button
+                              onClick={() => {
+                                playClickSound();
+                                setTimerSecondsLeft(prev => Math.min(timerDuration, prev + 30));
+                              }}
+                              className="bg-slate-900 border border-slate-800 text-slate-300 font-extrabold text-xs px-2.5 rounded-xl hover:bg-slate-850"
+                              title="Agregar 30 segundos"
+                            >
+                              +30s
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                playClickSound();
+                                setTimerSecondsLeft(prev => Math.max(10, prev - 30));
+                              }}
+                              className="bg-slate-900 border border-slate-800 text-slate-300 font-extrabold text-xs px-2.5 rounded-xl hover:bg-slate-850"
+                              title="Quitar 30 segundos"
+                            >
+                              -30s
+                            </button>
+                          </div>
+
+                          <div className="flex gap-2 pt-1">
+                            {/* Skip and mark as complete */}
+                            <button
+                              onClick={() => {
+                                setTimerIsActive(false);
+                                if (timerOwnerIdRef.current === activePatientId && !completedRoutineTasks.includes(activeTimerTask.id)) {
+                                  setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
+                                  rewardRoutineTask(activeTimerTask.id, 12, 'Guardián de Rutinas');
+                                }
+                                setActiveTimerTask(null);
+                              }}
+                              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs py-2.5 rounded-xl hover:opacity-90 transition-all shadow-md"
+                            >
+                              ¡Completar Actividad! 🚀
+                            </button>
+
+                            {/* Cancel */}
+                            <button
+                              onClick={() => {
+                                playClickSound();
+                                setTimerIsActive(false);
+                                setActiveTimerTask(null);
+                              }}
+                              className="px-4 bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 rounded-xl text-xs font-bold transition-all"
+                            >
+                              Cancelar
                             </button>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  }
 
-                  {/* Quick reset option */}
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        playClickSound();
-                        setCompletedRoutineTasks(prev => prev.filter(id => !currentTasks.some(ct => ct.id === id)));
-                      }}
-                      className="w-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold py-2.5 rounded-xl hover:bg-slate-850"
-                    >
-                      Reiniciar Rutina de la {activeRoutineTab}
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-400 text-center">Las tareas completadas se reinician cada día. Tus estrellas se conservan.</p>
-                </div>
-              );
-            })()}
+                  return (
+                    <div className="space-y-4">
+                      {/* Progress tracker */}
+                      <div className="bg-[#111827]/60 border border-slate-800 rounded-2xl p-4 space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-300">Progreso de la {activeRoutineTab}:</span>
+                          <span className="font-black text-emerald-400">{completedInTab} / {currentTasks.length} ({percent}%)</span>
+                        </div>
+                        <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-900">
+                          <div 
+                            className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${percent}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Tasks list with Micro-Steps */}
+                      <div className="space-y-2.5">
+                        {currentTasks.length === 0 && <p className="rounded-2xl border border-slate-800 p-5 text-sm text-slate-400">Todavía no hay tareas. Una persona adulta puede agregarlas desde el panel de configuración.</p>}
+                        {currentTasks.map(task => {
+                          const isDone = completedRoutineTasks.includes(task.id);
+                          const steps = task.steps || DEFAULT_TASK_STEPS[task.id] || [];
+                          const doneSteps = completedMicroSteps[task.id] || [];
+                          const isExpanded = expandedTaskId === task.id;
+                          
+                          // Custom default duration mapped to each specific activity
+                          let duration = 60; // default 1 min
+                          if (task.id === 'lavarse' || task.id === 'dientes_noche') duration = 120; // 2 min
+                          if (task.id === 'tareas') duration = 900; // 15 min
+                          if (task.id === 'bano') duration = 600; // 10 min
+                          if (task.id === 'ordenar') duration = 300; // 5 min
+                          if (task.id === 'juego') duration = 600; // 10 min
+
+                          return (
+                            <div
+                              key={task.id}
+                              className={`w-full p-3 rounded-2xl border-2 transition-all duration-200 ${
+                                isDone
+                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-inner'
+                                  : 'bg-[#111827] border-slate-800 text-slate-300 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                {/* Left: Complete toggle Area */}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRoutineTask(task, currentTasks)}
+                                  className="flex-1 flex items-center gap-3 text-left py-1 px-1 focus:outline-none cursor-pointer"
+                                  aria-pressed={isDone}
+                                >
+                                  <span className="text-2xl filter drop-shadow-sm">{task.emoji}</span>
+                                  <div className="min-w-0">
+                                    <span className={`text-xs font-black block truncate ${isDone ? 'line-through text-slate-400' : ''}`}>
+                                      {task.name}
+                                    </span>
+                                    {steps.length > 0 && (
+                                      <span className="text-[10px] text-teal-400 font-semibold block">
+                                        {isDone ? 'Completado' : `${doneSteps.length} de ${steps.length} pasos`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+
+                                {/* Right: Actions */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {/* Micro-steps toggle button if available */}
+                                  {steps.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        playClickSound();
+                                        setExpandedTaskId(isExpanded ? null : task.id);
+                                      }}
+                                      className={`px-2.5 py-1.5 rounded-xl text-[10.5px] font-extrabold border transition-all flex items-center gap-1 ${
+                                        isExpanded
+                                          ? 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                                          : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
+                                      }`}
+                                      aria-label={`${isExpanded ? 'Ocultar' : 'Ver'} micro-pasos de ${task.name}`}
+                                    >
+                                      <span>📋 Pasos</span>
+                                      <span className="text-[9px]">{isExpanded ? '▲' : '▼'}</span>
+                                    </button>
+                                  )}
+
+                                  {/* Visual timer clock button (Only shown if not completed yet) */}
+                                  {!isDone && (
+                                    <button
+                                      onClick={() => {
+                                        playClickSound();
+                                        timerOwnerIdRef.current = activePatientId;
+                                        setActiveTimerTask(task);
+                                        setTimerDuration(duration);
+                                        setTimerSecondsLeft(duration);
+                                        setTimerIsActive(true);
+                                      }}
+                                      className="px-2.5 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shrink-0 scale-95 hover:scale-100"
+                                      aria-label={`Iniciar temporizador para ${task.name}`}
+                                      title="Iniciar temporizador visual"
+                                    >
+                                      ⏱️ <span className="text-[9px] font-extrabold uppercase hidden sm:inline">Reloj</span>
+                                    </button>
+                                  )}
+
+                                  {/* Standard Check box */}
+                                  <button
+                                    onClick={() => toggleRoutineTask(task, currentTasks)}
+                                    aria-label={`${isDone ? 'Marcar pendiente' : 'Marcar completada'}: ${task.name}`}
+                                    aria-pressed={isDone}
+                                    className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
+                                      isDone 
+                                        ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-md' 
+                                        : 'border-slate-700 bg-slate-950 hover:border-slate-600'
+                                    }`}
+                                  >
+                                    {isDone && <span className="text-xs font-black">✓</span>}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* EXPANDABLE MICRO-STEPS LIST */}
+                              {isExpanded && steps.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-white/10 space-y-2 animate-fade-in">
+                                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold">
+                                    <span>Micro-pasos paso a paso:</span>
+                                    <span>{doneSteps.length} / {steps.length} hechos</span>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    {steps.map((stepText, stepIdx) => {
+                                      const isStepDone = doneSteps.includes(stepIdx);
+                                      return (
+                                        <button
+                                          key={stepIdx}
+                                          type="button"
+                                          onClick={() => {
+                                            playClickSound();
+                                            setCompletedMicroSteps(prev => {
+                                              const current = prev[task.id] || [];
+                                              const next = current.includes(stepIdx)
+                                                ? current.filter(i => i !== stepIdx)
+                                                : [...current, stepIdx];
+                                              
+                                              // Auto-complete task if all micro-steps are checked
+                                              if (next.length === steps.length && !completedRoutineTasks.includes(task.id)) {
+                                                toggleRoutineTask(task, currentTasks);
+                                              }
+                                              return { ...prev, [task.id]: next };
+                                            });
+                                          }}
+                                          className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer ${
+                                            isStepDone
+                                              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                              : 'bg-slate-950/70 text-slate-300 hover:bg-slate-900 border border-white/5'
+                                          }`}
+                                        >
+                                          <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black border shrink-0 ${
+                                            isStepDone
+                                              ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                                              : 'border-slate-700 bg-slate-900 text-slate-500'
+                                          }`}>
+                                            {isStepDone ? '✓' : stepIdx + 1}
+                                          </span>
+                                          <span className={isStepDone ? 'line-through text-slate-400' : ''}>
+                                            {stepText}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Quick reset option */}
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() => {
+                            playClickSound();
+                            setCompletedRoutineTasks(prev => prev.filter(id => !currentTasks.some(ct => ct.id === id)));
+                          }}
+                          className="w-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold py-2.5 rounded-xl hover:bg-slate-850 cursor-pointer"
+                        >
+                          Reiniciar Rutina de la {activeRoutineTab}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-400 text-center">Las tareas completadas se reinician cada día. Tus estrellas se conservan.</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
 
@@ -3469,12 +4413,105 @@ export default function ImportedApp() {
                                   [next[index], next[index + 1]] = [next[index + 1], next[index]];
                                   return { ...prev, [activeRoutineTab]: next };
                                 })} className="rounded-lg bg-slate-800 px-2 py-2 disabled:opacity-40">↓</button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playClickSound();
+                                  setParentsEditingTaskId(parentsEditingTaskId === task.id ? null : task.id);
+                                }}
+                                className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all border ${
+                                  parentsEditingTaskId === task.id
+                                    ? 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                                }`}
+                                title="Editar micro-pasos de esta tarea"
+                              >
+                                📋 Pasos ({(task.steps || DEFAULT_TASK_STEPS[task.id] || []).length})
+                              </button>
                               <button type="button" aria-label={`Eliminar ${task.name}`} title="Eliminar tarea"
                                 onClick={() => {
                                   setRoutineTasks(prev => ({ ...prev, [activeRoutineTab]: prev[activeRoutineTab].filter(item => item.id !== task.id) }));
                                   setCompletedRoutineTasks(prev => prev.filter(id => id !== task.id));
                                   if (activeTimerTask?.id === task.id) { setActiveTimerTask(null); setTimerIsActive(false); }
                                 }} className="rounded-lg bg-rose-950/40 px-2 py-2 text-rose-300">Eliminar</button>
+
+                              {/* MICRO-STEPS INLINE EDITOR FOR THIS TASK */}
+                              {parentsEditingTaskId === task.id && (() => {
+                                const currentSteps = task.steps || DEFAULT_TASK_STEPS[task.id] || [];
+                                return (
+                                  <div className="w-full mt-2 p-3 bg-slate-900 border border-teal-500/30 rounded-xl space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-teal-300">Micro-pasos para {task.name}:</span>
+                                      <span className="text-[10px] text-slate-400">Guían al niño paso a paso</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      {currentSteps.map((step, sIdx) => (
+                                        <div key={sIdx} className="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 text-xs">
+                                          <span className="text-slate-400 font-bold shrink-0">{sIdx + 1}.</span>
+                                          <span className="flex-1 text-slate-200">{step}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = currentSteps.filter((_, i) => i !== sIdx);
+                                              setRoutineTasks(prev => ({
+                                                ...prev,
+                                                [activeRoutineTab]: prev[activeRoutineTab].map(item => item.id === task.id ? { ...item, steps: updated } : item)
+                                              }));
+                                            }}
+                                            className="text-rose-400 hover:text-rose-300 px-2 py-0.5 rounded text-[11px] font-bold"
+                                          >
+                                            Quitar
+                                          </button>
+                                        </div>
+                                      ))}
+                                      {currentSteps.length === 0 && (
+                                        <p className="text-[11px] text-slate-400 italic">No tiene micro-pasos definidos aún.</p>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2 pt-1">
+                                      <input
+                                        type="text"
+                                        value={newMicroStepText}
+                                        placeholder="Nuevo micro-paso (ej. Poner pasta en el cepillo)..."
+                                        maxLength={60}
+                                        onChange={(e) => setNewMicroStepText(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            const text = newMicroStepText.trim();
+                                            if (text) {
+                                              const updated = [...currentSteps, text];
+                                              setRoutineTasks(prev => ({
+                                                ...prev,
+                                                [activeRoutineTab]: prev[activeRoutineTab].map(item => item.id === task.id ? { ...item, steps: updated } : item)
+                                              }));
+                                              setNewMicroStepText('');
+                                            }
+                                          }
+                                        }}
+                                        className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const text = newMicroStepText.trim();
+                                          if (text) {
+                                            const updated = [...currentSteps, text];
+                                            setRoutineTasks(prev => ({
+                                              ...prev,
+                                              [activeRoutineTab]: prev[activeRoutineTab].map(item => item.id === task.id ? { ...item, steps: updated } : item)
+                                            }));
+                                            setNewMicroStepText('');
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-lg"
+                                      >
+                                        Agregar
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                           {routineTasks[activeRoutineTab].length === 0 && <p className="text-slate-400 rounded-xl border border-slate-800 p-3">Agrega una tarea para comenzar.</p>}
@@ -4276,11 +5313,11 @@ export default function ImportedApp() {
       </main>
 
       {/* Persistent navigation keeps the calming exercise within the phone frame. */}
-      <nav className="absolute bottom-0 left-0 right-0 bg-[#060913]/95 backdrop-blur-xl border-t border-white/10 py-2.5 px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))] z-40 shrink-0">
-        <div className="max-w-md mx-auto flex items-center justify-around gap-2">
+      <nav className="absolute bottom-0 left-0 right-0 bg-[#060913]/95 backdrop-blur-xl border-t border-white/10 py-2 px-2 pb-[max(0.625rem,env(safe-area-inset-bottom))] z-40 shrink-0">
+        <div className="max-w-md mx-auto flex items-center justify-around gap-1">
           <button
             onClick={() => { playClickSound(); setCurrentTab('inicio'); setActiveModule(null); }}
-            className={`flex flex-col items-center gap-1 py-1.5 px-6 rounded-2xl transition-all duration-200 cursor-pointer ${
+            className={`flex flex-col items-center gap-1 py-1.5 px-3 sm:px-5 rounded-2xl transition-all duration-200 cursor-pointer ${
               currentTab === 'inicio' && !activeModule
                 ? 'text-white bg-[#186EF3]/20 border border-[#186EF3]/30 font-bold shadow-[0_0_15px_rgba(24,110,243,0.15)]' 
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02] border border-transparent'
@@ -4292,7 +5329,7 @@ export default function ImportedApp() {
 
           <button
             onClick={() => { playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
-            className={`flex flex-col items-center gap-1 py-1.5 px-6 rounded-2xl transition-all duration-200 cursor-pointer ${
+            className={`flex flex-col items-center gap-1 py-1.5 px-3 sm:px-5 rounded-2xl transition-all duration-200 cursor-pointer ${
               currentTab === 'logros' 
                 ? 'text-white bg-[#186EF3]/20 border border-[#186EF3]/30 font-bold shadow-[0_0_15px_rgba(24,110,243,0.15)]' 
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02] border border-transparent'
@@ -4305,7 +5342,7 @@ export default function ImportedApp() {
             type="button"
             aria-label="Abrir ejercicio SOS Calma"
             onClick={() => { setShowParentsMode(false); setParentsAuthenticated(false); setCalmStep(0); setCurrentTab('inicio'); setActiveModule('sos'); }}
-            className={`flex flex-col items-center gap-1 py-1.5 px-2 rounded-2xl transition-colors cursor-pointer ${
+            className={`flex flex-col items-center gap-1 py-1.5 px-2 sm:px-4 rounded-2xl transition-colors cursor-pointer ${
               activeModule === 'sos'
                 ? 'text-rose-400 bg-rose-500/10 border border-rose-500/30 font-bold'
                 : 'text-rose-400 hover:bg-rose-500/10 border border-transparent'
@@ -4313,6 +5350,16 @@ export default function ImportedApp() {
           >
             <Heart className="w-5 h-5" aria-hidden="true" />
             <span className="text-[10px] tracking-wide font-extrabold uppercase">SOS Calma</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Salir de la aplicación al menú de acceso"
+            title="Salir al acceso principal"
+            onClick={handleExitApp}
+            className="flex flex-col items-center gap-1 py-1.5 px-2 sm:px-4 rounded-2xl text-rose-300 hover:text-rose-100 hover:bg-rose-500/10 border border-transparent transition-all cursor-pointer"
+          >
+            <LogOut className="w-5 h-5" aria-hidden="true" />
+            <span className="text-[10px] tracking-wide font-extrabold uppercase">Salir</span>
           </button>
         </div>
       </nav>
