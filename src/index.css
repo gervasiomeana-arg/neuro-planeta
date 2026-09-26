@@ -48,6 +48,7 @@
 #neuroplaneta-workspace > main {
   background: #f1f0e8;
   scrollbar-color: #aabbb0 transparent;
+  padding-bottom: 7rem;
 }
 
 .np-theme [class*="bg-[#0B0F19]"],
