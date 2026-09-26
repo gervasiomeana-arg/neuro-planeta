@@ -100,6 +100,9 @@
 .np-theme :is(button, label)[class~="bg-rose-600"],
 .np-theme :is(button, label)[class~="bg-emerald-600"],
 .np-theme button[class*="bg-gradient-to-"] { color: #fff; }
+.np-theme button[class~="bg-teal-700"] { background: var(--np-teal); color: #fff; }
+.np-theme button[class~="text-teal-200"],
+.np-theme [class~="text-teal-300"] { color: var(--np-teal); }
 .np-theme button[class~="bg-blue-600"],
 .np-theme button[class~="bg-[#186EF3]"] { background: var(--np-teal); }
 .np-theme button[class~="bg-emerald-600"] { background: var(--np-teal); }
