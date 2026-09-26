@@ -331,6 +331,19 @@ export default function ImportedApp() {
   const [arasaacLoading, setArasaacLoading] = useState<boolean>(false);
   const [arasaacFeedback, setArasaacFeedback] = useState<string>('');
 
+  const audioModeRef = useRef(sensoryAudioMode);
+  audioModeRef.current = sensoryAudioMode;
+  const playingVoiceRef = useRef<HTMLAudioElement | null>(null);
+  const finishVoiceRef = useRef<(() => void) | null>(null);
+  const phrasePlaybackIdRef = useRef(0);
+  const stopCommunicationAudio = () => {
+    phrasePlaybackIdRef.current += 1;
+    try { window.speechSynthesis?.cancel(); } catch (e) { /* Voz no disponible. */ }
+    playingVoiceRef.current?.pause();
+    playingVoiceRef.current = null;
+    finishVoiceRef.current?.();
+    finishVoiceRef.current = null;
+  };
   const soundEnabled = sensoryAudioMode !== 'silent';
   useEffect(() => {
     try {
@@ -339,7 +352,14 @@ export default function ImportedApp() {
       // El modo de sonido sigue funcionando si el almacenamiento está desactivado.
     }
   }, [sensoryAudioMode]);
+  useEffect(() => {
+    if (sensoryAudioMode === 'silent') stopCommunicationAudio();
+  }, [sensoryAudioMode]);
   const setSoundEnabled = (val: boolean) => {
+    if (!val) {
+      audioModeRef.current = 'silent';
+      stopCommunicationAudio();
+    }
     setSensoryAudioMode(val ? 'soft' : 'silent');
   };
   const [showParentsMode, setShowParentsMode] = useState<boolean>(false);
@@ -659,7 +679,7 @@ export default function ImportedApp() {
   }, [sensoryAudioMode, audioVolume]);
 
   const playTherapeuticTone = (freq: number, type: 'sine' | 'triangle' | 'sine-soft' = 'sine', duration: number = 0.3) => {
-    if (sensoryAudioMode === 'silent') return;
+    if (audioModeRef.current === 'silent') return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -696,10 +716,13 @@ export default function ImportedApp() {
 
   // Reproducir voz grabada de mamá/papá/terapeuta
   const playCustomVoice = (base64Data: string) => {
-    if (sensoryAudioMode === 'silent') return;
+    if (audioModeRef.current === 'silent') return;
     try {
+      stopCommunicationAudio();
       const audio = new Audio(base64Data);
+      playingVoiceRef.current = audio;
       audio.volume = audioVolume / 100;
+      audio.onended = () => { if (playingVoiceRef.current === audio) playingVoiceRef.current = null; };
       audio.play().catch(e => console.log("Permiso de reproducción de audio:", e));
     } catch (err) {
       console.error("Error reproduciendo voz:", err);
@@ -2121,7 +2144,7 @@ export default function ImportedApp() {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Toca los pictogramas para construir tu frase. Cosmo la leerá en voz alta para ayudarte a expresarte.
+              Toca los pictogramas para construir tu frase. {soundEnabled ? 'Podés escucharla cuando quieras.' : 'El sonido está apagado; tu frase se sigue viendo.'}
             </p>
 
             {/* Smart Unified Search bar inside children SACS module */}
@@ -2176,51 +2199,62 @@ export default function ImportedApp() {
             <div className="flex gap-2">
               <button
                 onClick={async () => {
-                  if (constructedPhrase.length === 0) return;
-                  playSuccessSound();
+                  if (constructedPhrase.length === 0 || audioModeRef.current === 'silent') return;
+                  stopCommunicationAudio();
+                  const playbackId = phrasePlaybackIdRef.current;
+                  const phrase = [...constructedPhrase];
                   
                   // Sequential audio playback: custom voice -> fallback to synthesis
-                  for (let i = 0; i < constructedPhrase.length; i++) {
-                    const item = constructedPhrase[i];
+                  for (let i = 0; i < phrase.length; i++) {
+                    if (phrasePlaybackIdRef.current !== playbackId || audioModeRef.current === 'silent') return;
+                    const item = phrase[i];
                     const customVoice = customPictogramVoices[item.id];
                     
-                    if (customVoice) {
-                      await new Promise<void>((resolve) => {
-                        try {
+                    await new Promise<void>((resolve) => {
+                      let finished = false;
+                      let activeAudio: HTMLAudioElement | null = null;
+                      const finish = () => {
+                        if (finished) return;
+                        finished = true;
+                        if (finishVoiceRef.current === finish) finishVoiceRef.current = null;
+                        if (activeAudio && playingVoiceRef.current === activeAudio) playingVoiceRef.current = null;
+                        resolve();
+                      };
+                      finishVoiceRef.current = finish;
+                      try {
+                        if (customVoice) {
                           const audio = new Audio(customVoice);
-                          audio.onended = () => resolve();
-                          audio.onerror = () => resolve();
-                          audio.play().catch(() => resolve());
-                        } catch (e) {
-                          resolve();
-                        }
-                      });
-                    } else {
-                      await new Promise<void>((resolve) => {
-                        try {
+                          activeAudio = audio;
+                          playingVoiceRef.current = audio;
+                          audio.volume = audioVolume / 100;
+                          audio.onended = finish;
+                          audio.onerror = finish;
+                          audio.onpause = finish;
+                          audio.play().catch(finish);
+                        } else {
                           const utterance = new SpeechSynthesisUtterance(item.word);
                           utterance.lang = 'es-ES';
                           utterance.rate = 0.85;
-                          utterance.onend = () => resolve();
-                          utterance.onerror = () => resolve();
+                          utterance.volume = audioVolume / 100;
+                          utterance.onend = finish;
+                          utterance.onerror = finish;
                           window.speechSynthesis.speak(utterance);
-                        } catch (e) {
-                          resolve();
                         }
-                      });
-                    }
+                      } catch (e) { finish(); }
+                    });
                     // delay between words
                     await new Promise(r => setTimeout(r, 200));
                   }
 
-                  if (constructedPhrase.length >= 2) {
+                  if (phrasePlaybackIdRef.current !== playbackId || audioModeRef.current === 'silent') return;
+                  if (phrase.length >= 2) {
                     awardStars(5, 'Comunicación Estelar');
                   }
                 }}
-                disabled={constructedPhrase.length === 0}
+                disabled={constructedPhrase.length === 0 || !soundEnabled}
                 className="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 disabled:opacity-40 text-white font-extrabold text-xs py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
               >
-                <span>🔊 Escuchar Frase</span>
+                <span>{soundEnabled ? '🔊 Escuchar frase' : '🔇 Sonido desactivado'}</span>
               </button>
 
               <button
@@ -2289,12 +2323,14 @@ export default function ImportedApp() {
                       onClick={() => {
                         if (customVoice) {
                           playCustomVoice(customVoice);
-                        } else {
+                        } else if (audioModeRef.current !== 'silent') {
+                          stopCommunicationAudio();
                           playTherapeuticTone(330, 'sine', 0.15);
                           // Speak individual pictogram
                           try {
                             const individualUtterance = new SpeechSynthesisUtterance(pic.word);
                             individualUtterance.lang = 'es-ES';
+                            individualUtterance.volume = audioVolume / 100;
                             window.speechSynthesis.speak(individualUtterance);
                           } catch (e) {}
                         }
