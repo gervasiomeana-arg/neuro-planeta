@@ -303,6 +303,10 @@ export default function ImportedApp() {
   const [socialStories, setSocialStories] = useState<SocialStory[]>([]);
   const [storySituation, setStorySituation] = useState('');
   const [storyDraft, setStoryDraft] = useState<SocialStory | null>(null);
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const storyRequestRef = useRef<AbortController | null>(null);
+  const storyPatientRef = useRef(activePatientId);
+  storyPatientRef.current = activePatientId;
   const [storyEditorMessage, setStoryEditorMessage] = useState('');
   const [storyGenerating, setStoryGenerating] = useState(false);
   const [storyConsent, setStoryConsent] = useState(false);
@@ -506,9 +510,15 @@ export default function ImportedApp() {
       setEmotionJournal(activePatient.emotionJournal || []);
       setCustomPictogramImages(activePatient.customPictogramImages || {});
       setCustomPictogramVoices(activePatient.customPictogramVoices || {});
+      storyRequestRef.current?.abort();
+      storyRequestRef.current = null;
+      setStoryGenerating(false);
       setSocialStories(activePatient.socialStories || []);
       setStoryDraft(null);
+      setEditingStoryId(null);
       setStorySituation('');
+      setStoryConsent(false);
+      setStoryEditorMessage('');
       setCustomStoryPage(0);
       setLoadedPatientId(activePatientId);
     }
@@ -854,10 +864,16 @@ export default function ImportedApp() {
       setStoryEditorMessage('Confirmá que evitaste datos personales y autorizás enviar esta situación a la IA.');
       return;
     }
+    if (loadedPatientId !== activePatientId || !activePatientId) return;
+    const requestPatientId = activePatientId;
+    const controller = new AbortController();
+    storyRequestRef.current?.abort();
+    storyRequestRef.current = controller;
     setStoryGenerating(true);
     setStoryEditorMessage('');
     try {
       const response = await fetch('/api/social-stories/draft', {
+        signal: controller.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ situation })
@@ -866,10 +882,12 @@ export default function ImportedApp() {
         ? 'La IA no está configurada en este servidor. Podés crear un borrador guiado.'
         : 'No se pudo generar con IA. Probá de nuevo o usá el borrador guiado.');
       const data = await response.json();
+      if (storyPatientRef.current !== requestPatientId || controller.signal.aborted) return;
       if (!data || typeof data.title !== 'string' || !Array.isArray(data.pages) || data.pages.length !== 5 ||
           !data.pages.every((page: StoryPage) => typeof page.text === 'string' && typeof page.emoji === 'string')) {
         throw new Error('La respuesta no tiene cinco pasos válidos. Probá de nuevo.');
       }
+      setEditingStoryId(null);
       setStoryDraft({
         id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         title: data.title.slice(0, 60),
@@ -877,9 +895,12 @@ export default function ImportedApp() {
       });
       setStoryEditorMessage('Borrador creado con IA. Revisá cada paso antes de guardarlo.');
     } catch (error) {
-      setStoryEditorMessage(error instanceof Error ? error.message : 'No se pudo generar la historia.');
+      if (storyPatientRef.current === requestPatientId && !controller.signal.aborted) {
+        setStoryEditorMessage(error instanceof Error ? error.message : 'No se pudo generar la historia.');
+      }
     } finally {
-      setStoryGenerating(false);
+      if (storyPatientRef.current === requestPatientId) setStoryGenerating(false);
+      if (storyRequestRef.current === controller) storyRequestRef.current = null;
     }
   };
 
@@ -888,6 +909,7 @@ export default function ImportedApp() {
       setStoryEditorMessage('Describí la situación en 12 a 200 caracteres.');
       return;
     }
+    setEditingStoryId(null);
     setStoryDraft(makeGuidedStory(storySituation));
     setStoryEditorMessage('Borrador guiado sin IA. Revisá cada paso antes de guardarlo.');
   };
@@ -900,11 +922,17 @@ export default function ImportedApp() {
       setStoryEditorMessage('Completá el título, el dibujo y el texto de los cinco pasos.');
       return;
     }
-    setSocialStories(previous => [...previous, { ...storyDraft, title, pages }]);
+    const savedStory = { ...storyDraft, title, pages };
+    setSocialStories(previous => editingStoryId
+      ? previous.map(story => story.id === editingStoryId ? savedStory : story)
+      : [...previous, savedStory]);
     setStoryDraft(null);
+    setEditingStoryId(null);
     setStorySituation('');
     setStoryConsent(false);
-    setStoryEditorMessage('Historia guardada en el perfil activo. Ya aparece en Social.');
+    setStoryEditorMessage(editingStoryId
+      ? 'Cambios guardados en la historia de este perfil.'
+      : 'Historia guardada en el perfil activo. Ya aparece en Social.');
   };
 
   const searchARASAAC = async (query: string) => {
@@ -3226,11 +3254,11 @@ export default function ImportedApp() {
                           <span>Para usar IA, confirmo que no incluí datos personales y autorizo enviar solo esta situación al proveedor de IA.</span>
                         </label>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || loadedPatientId !== activePatientId || window.location.hostname.endsWith('.github.io')}
+                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || !!editingStoryId || loadedPatientId !== activePatientId || window.location.hostname.endsWith('.github.io')}
                             className="min-h-12 rounded-xl bg-teal-700 px-3 font-bold text-white disabled:opacity-50">
                             {storyGenerating ? 'Creando con IA…' : window.location.hostname.endsWith('.github.io') ? 'IA disponible con servidor' : 'Crear con IA'}
                           </button>
-                          <button type="button" onClick={createGuidedDraft} disabled={storyGenerating || loadedPatientId !== activePatientId}
+                          <button type="button" onClick={createGuidedDraft} disabled={storyGenerating || !!editingStoryId || loadedPatientId !== activePatientId}
                             className="min-h-12 rounded-xl border border-teal-600 bg-teal-950 px-3 font-bold text-teal-200 disabled:opacity-50">
                             Crear borrador sin IA
                           </button>
@@ -3238,8 +3266,8 @@ export default function ImportedApp() {
                         <p className="text-slate-400">La IA requiere un servidor configurado. En GitHub Pages podés crear y guardar el borrador guiado sin IA.</p>
                         {storyEditorMessage && <p role="status" className="rounded-xl bg-slate-900 p-3 text-teal-200">{storyEditorMessage}</p>}
                         {storyDraft && (
-                          <div className="space-y-3 rounded-2xl border border-teal-600/50 bg-slate-900 p-3">
-                            <h4 className="font-extrabold text-white">Revisá el borrador antes de guardarlo</h4>
+                          <div id="story-editor" className="space-y-3 rounded-2xl border border-teal-600/50 bg-slate-900 p-3">
+                            <h4 className="font-extrabold text-white">{editingStoryId ? 'Editá la historia guardada' : 'Revisá el borrador antes de guardarlo'}</h4>
                             <label className="block space-y-1 text-slate-200">
                               <span>Título</span>
                               <input aria-label="Título de la historia" maxLength={60} value={storyDraft.title}
@@ -3268,8 +3296,10 @@ export default function ImportedApp() {
                               </div>
                             ))}
                             <div className="flex gap-2">
-                              <button type="button" onClick={saveStoryDraft} className="min-h-12 flex-1 rounded-xl bg-teal-700 px-3 font-bold text-white">Guardar para el niño</button>
-                              <button type="button" onClick={() => setStoryDraft(null)} className="min-h-12 rounded-xl border border-slate-600 px-3 text-slate-200">Descartar</button>
+                              <button type="button" onClick={saveStoryDraft} className="min-h-12 flex-1 rounded-xl bg-teal-700 px-3 font-bold text-white">{editingStoryId ? 'Guardar cambios' : 'Guardar para el niño'}</button>
+                              <button type="button" onClick={() => { setStoryDraft(null); setEditingStoryId(null); setStoryEditorMessage(''); }} className="min-h-12 rounded-xl border border-slate-600 px-3 text-slate-200">
+                                {editingStoryId ? 'Cancelar edición' : 'Descartar'}
+                              </button>
                             </div>
                           </div>
                         )}
@@ -3277,7 +3307,14 @@ export default function ImportedApp() {
                           <h4 className="font-bold text-white">Guardadas en este perfil ({socialStories.length})</h4>
                           {socialStories.map(story => (
                             <div key={story.id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-700 p-3">
-                              <span className="font-bold text-slate-100">{story.title}</span>
+                              <span className="min-w-0 flex-1 font-bold text-slate-100">{story.title}</span>
+                              <button type="button" aria-label={`Editar historia ${story.title}`} onClick={() => {
+                                setStorySituation('');
+                                setStoryEditorMessage('Podés cambiar el texto y los dibujos. Guardá cuando termines.');
+                                setEditingStoryId(story.id);
+                                setStoryDraft({ ...story, pages: story.pages.map(page => ({ ...page })) });
+                                requestAnimationFrame(() => document.getElementById('story-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                              }} className="min-h-11 rounded-lg border border-teal-600 px-3 text-teal-200">Editar</button>
                               <button type="button" aria-label={`Borrar historia ${story.title}`}
                                 onClick={() => { if (window.confirm('¿Borrar esta historia del perfil?')) setSocialStories(previous => previous.filter(item => item.id !== story.id)); }}
                                 className="min-h-11 rounded-lg border border-rose-500/40 px-3 text-rose-200">Borrar</button>
