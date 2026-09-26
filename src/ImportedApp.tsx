@@ -50,10 +50,17 @@ type SocialStory = { id: string; title: string; pages: StoryPage[] };
 
 const makeGuidedStory = (situation: string): SocialStory => {
   const event = situation.trim().replace(/[.!?]+$/, '');
+  const newSchool = /(?:escuela|colegio|jard[ií]n)/i.test(event) && /(?:nuev[ao]|empez|comienz|primer|cambi)/i.test(event);
   return {
     id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    title: event.slice(0, 60),
-    pages: [
+    title: newSchool ? 'Mi nueva escuela' : event.slice(0, 60),
+    pages: newSchool ? [
+      { emoji: '🏫', text: 'Pronto iré a una escuela nueva. Un adulto puede contarme cómo será mi primer día.' },
+      { emoji: '🎒', text: 'Antes de salir, preparo mis cosas con ayuda. Puedo preguntar lo que quiera saber.' },
+      { emoji: '👋', text: 'Al llegar, miro el lugar y saludo a mi manera. Puedo tomarme mi tiempo.' },
+      { emoji: '🤝', text: 'Si necesito ayuda o una pausa, puedo pedirla a un adulto de confianza.' },
+      { emoji: '🏠', text: 'Al terminar, vuelvo a casa y cuento cómo me fue, si tengo ganas.' }
+    ] : [
       { emoji: '🗓️', text: `Pronto pasará algo nuevo: ${event}. Puedo preguntar qué va a suceder.` },
       { emoji: '💬', text: 'Antes, puedo hablar con un adulto sobre lo que necesito o me preocupa.' },
       { emoji: '👀', text: 'Cuando llegue el momento, puedo mirar el lugar y avanzar a mi ritmo.' },
