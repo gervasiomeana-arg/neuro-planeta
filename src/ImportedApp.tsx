@@ -611,13 +611,21 @@ export default function ImportedApp() {
   const [attentionActivity, setAttentionActivity] = useState<'numbers' | 'matching' | null>(null);
   const [matchingRound, setMatchingRound] = useState(0);
   const [matchingHint, setMatchingHint] = useState(false);
+  const matchingChoiceLockedRef = useRef(false);
   const [attentionScore, setAttentionScore] = useState<number>(0);
   const attentionScoreRef = useRef(0);
   const [targetNumber, setTargetNumber] = useState<number>(0);
   const [attentionGrid, setAttentionGrid] = useState<number[]>([]);
   const [attentionHint, setAttentionHint] = useState(false);
   const attentionChoiceLockedRef = useRef(false);
-  useEffect(() => { attentionChoiceLockedRef.current = false; }, [attentionGrid]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { attentionChoiceLockedRef.current = false; }, 350);
+    return () => window.clearTimeout(timer);
+  }, [attentionGrid]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { matchingChoiceLockedRef.current = false; }, 350);
+    return () => window.clearTimeout(timer);
+  }, [matchingRound]);
   
   // Sensorial State
   const [sensorialColor, setSensorialColor] = useState<string>('from-indigo-600 to-pink-500');
@@ -1201,6 +1209,7 @@ export default function ImportedApp() {
   // Start Attention Game
   const startAttentionGame = () => {
     playClickSound();
+    attentionChoiceLockedRef.current = false;
     setAttentionActivity('numbers');
     const { target, grid } = createNumberRound(selectedAge);
     setTargetNumber(target);
@@ -1212,6 +1221,7 @@ export default function ImportedApp() {
   };
 
   const startMatchingGame = () => {
+    matchingChoiceLockedRef.current = false;
     setAttentionActivity('matching');
     setMatchingRound(0);
     setMatchingHint(false);
@@ -1219,11 +1229,12 @@ export default function ImportedApp() {
   };
 
   const handleMatchingChoice = (choice: string) => {
-    if (attentionGameState !== 'playing' || attentionActivity !== 'matching') return;
+    if (attentionGameState !== 'playing' || attentionActivity !== 'matching' || matchingChoiceLockedRef.current) return;
     if (choice !== MATCH_ROUNDS[matchingRound].answer) {
       setMatchingHint(true);
       return;
     }
+    matchingChoiceLockedRef.current = true;
     setMatchingHint(false);
     playSuccessSound();
     if (matchingRound === MATCH_ROUNDS.length - 1) {
