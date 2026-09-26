@@ -53,6 +53,7 @@ interface Patient {
   stars: number;
   unlockedAchievements: string[];
   completedRoutineTasks: string[];
+  rewardedRoutineTasks?: string[];
   routineDay?: string;
   routineTasks?: RoutineSchedule;
   emotionJournal: { date: string; emotion: string; note: string }[];
@@ -274,7 +275,6 @@ export default function ImportedApp() {
   const [timerDuration, setTimerDuration] = useState<number>(0);
   const [timerIsActive, setTimerIsActive] = useState<boolean>(false);
   const timerOwnerIdRef = useRef<string | null>(null);
-  const rewardedTimerRef = useRef<string | null>(null);
 
   // Comunicar (AAC Pictograms) States
   const [constructedPhrase, setConstructedPhrase] = useState<{ id: string, word: string, emoji: string }[]>([]);
@@ -291,6 +291,8 @@ export default function ImportedApp() {
   const [newRoutineName, setNewRoutineName] = useState('');
   const [newRoutineEmoji, setNewRoutineEmoji] = useState('⭐');
   const [completedRoutineTasks, setCompletedRoutineTasks] = useState<string[]>([]);
+  const [rewardedRoutineTasks, setRewardedRoutineTasks] = useState<string[]>([]);
+  const rewardedRoutineTasksRef = useRef<Set<string>>(new Set());
   const [routineDay, setRoutineDay] = useState(localDayKey);
   const [todayKey, setTodayKey] = useState(localDayKey);
   
@@ -446,6 +448,10 @@ export default function ImportedApp() {
       setRoutineDay(activePatient.routineDay || localDayKey());
       setCompletedRoutineTasks(activePatient.routineDay && activePatient.routineDay !== localDayKey()
         ? [] : (activePatient.completedRoutineTasks || []));
+      const rewarded = activePatient.routineDay && activePatient.routineDay !== localDayKey()
+        ? [] : (activePatient.rewardedRoutineTasks || activePatient.completedRoutineTasks || []);
+      rewardedRoutineTasksRef.current = new Set(rewarded);
+      setRewardedRoutineTasks(rewarded);
       setRoutineTasks(readRoutineTasks(activePatient.routineTasks));
       setActiveTimerTask(null);
       setEmotionJournal(activePatient.emotionJournal || []);
@@ -471,6 +477,8 @@ export default function ImportedApp() {
     if (!activePatientId || loadedPatientId !== activePatientId || routineDay === todayKey) return;
     setRoutineDay(todayKey);
     setCompletedRoutineTasks([]);
+    rewardedRoutineTasksRef.current = new Set();
+    setRewardedRoutineTasks([]);
     setActiveRoutineTab(currentRoutineTab());
     setTimerIsActive(false);
     setActiveTimerTask(null);
@@ -491,6 +499,7 @@ export default function ImportedApp() {
         (current.attentionHighScore || 0) !== attentionHighScore ||
         JSON.stringify(current.unlockedAchievements) !== JSON.stringify(unlockedAchievements) ||
         JSON.stringify(current.completedRoutineTasks) !== JSON.stringify(completedRoutineTasks) ||
+        JSON.stringify(current.rewardedRoutineTasks || []) !== JSON.stringify(rewardedRoutineTasks) ||
         current.routineDay !== routineDay ||
         JSON.stringify(readRoutineTasks(current.routineTasks)) !== JSON.stringify(routineTasks) ||
         JSON.stringify(current.emotionJournal) !== JSON.stringify(emotionJournal) ||
@@ -507,6 +516,7 @@ export default function ImportedApp() {
         attentionHighScore,
         unlockedAchievements,
         completedRoutineTasks,
+        rewardedRoutineTasks,
         routineDay,
         routineTasks,
         emotionJournal,
@@ -516,7 +526,7 @@ export default function ImportedApp() {
       
       return updatedPatients;
     });
-  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
+  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
 
   
   // Attention Game State
@@ -716,11 +726,9 @@ export default function ImportedApp() {
     setActiveTimerTask(null);
     if (timerOwnerIdRef.current !== activePatientId) return;
 
-    const rewardKey = `${activePatientId}:${routineDay}:${activeTimerTask.id}`;
-    if (completedRoutineTasks.includes(activeTimerTask.id) || rewardedTimerRef.current === rewardKey) return;
-    rewardedTimerRef.current = rewardKey;
+    if (completedRoutineTasks.includes(activeTimerTask.id)) return;
     setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
-    awardStars(12, 'Guardián de Rutinas');
+    rewardRoutineTask(activeTimerTask.id, 12, 'Guardián de Rutinas');
   }, [timerIsActive, timerSecondsLeft, activeTimerTask, activePatientId, completedRoutineTasks]);
 
   // Sound effects with adaptive sensory controls
@@ -902,6 +910,29 @@ export default function ImportedApp() {
     if (achievementName && !unlockedAchievements.includes(achievementName)) {
       setUnlockedAchievements(prev => [...prev, achievementName]);
     }
+  };
+
+  const rewardRoutineTask = (taskId: string, amount: number, achievementName?: string) => {
+    if (rewardedRoutineTasksRef.current.has(taskId)) return;
+    rewardedRoutineTasksRef.current.add(taskId);
+    setRewardedRoutineTasks([...rewardedRoutineTasksRef.current]);
+    awardStars(amount, achievementName);
+  };
+
+  const toggleRoutineTask = (task: RoutineTask, tasks: RoutineTask[]) => {
+    if (completedRoutineTasks.includes(task.id)) {
+      playClickSound();
+      setCompletedRoutineTasks(prev => prev.filter(id => id !== task.id));
+      return;
+    }
+    setCompletedRoutineTasks(prev => prev.includes(task.id) ? prev : [...prev, task.id]);
+    if (rewardedRoutineTasksRef.current.has(task.id)) {
+      playSuccessSound();
+      return;
+    }
+    const completedAfter = [...completedRoutineTasks, task.id];
+    const allDone = tasks.every(item => completedAfter.includes(item.id));
+    rewardRoutineTask(task.id, allDone ? 15 : 3, allDone ? 'Guardián de Rutinas' : undefined);
   };
 
   // Trigger breathing loops
@@ -2642,12 +2673,8 @@ export default function ImportedApp() {
                           onClick={() => {
                             setTimerIsActive(false);
                             if (timerOwnerIdRef.current === activePatientId && !completedRoutineTasks.includes(activeTimerTask.id)) {
-                              const rewardKey = `${activePatientId}:${routineDay}:${activeTimerTask.id}`;
-                              if (rewardedTimerRef.current !== rewardKey) {
-                                rewardedTimerRef.current = rewardKey;
-                                setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
-                                awardStars(12, 'Guardián de Rutinas');
-                              }
+                              setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
+                              rewardRoutineTask(activeTimerTask.id, 12, 'Guardián de Rutinas');
                             }
                             setActiveTimerTask(null);
                           }}
@@ -2714,24 +2741,7 @@ export default function ImportedApp() {
                         >
                           {/* Left: Complete toggle Area */}
                           <button
-                            onClick={() => {
-                              if (isDone) {
-                                playClickSound();
-                                setCompletedRoutineTasks(prev => prev.filter(id => id !== task.id));
-                              } else {
-                                playSuccessSound();
-                                setCompletedRoutineTasks(prev => [...prev, task.id]);
-                                
-                                // Check routine milestone
-                                const updatedDone = [...completedRoutineTasks, task.id];
-                                const allDone = currentTasks.every(t => updatedDone.includes(t.id));
-                                if (allDone) {
-                                  awardStars(15, 'Guardián de Rutinas');
-                                } else {
-                                  setStars(s => s + 3);
-                                }
-                              }
-                            }}
+                            onClick={() => toggleRoutineTask(task, currentTasks)}
                             className="flex-1 flex items-center gap-3 text-left py-2 px-1.5 focus:outline-none"
                             aria-pressed={isDone}
                           >
@@ -2764,23 +2774,7 @@ export default function ImportedApp() {
 
                             {/* Standard Check box */}
                             <button
-                              onClick={() => {
-                                if (isDone) {
-                                  playClickSound();
-                                  setCompletedRoutineTasks(prev => prev.filter(id => id !== task.id));
-                                } else {
-                                  playSuccessSound();
-                                  setCompletedRoutineTasks(prev => [...prev, task.id]);
-                                  
-                                  const updatedDone = [...completedRoutineTasks, task.id];
-                                  const allDone = currentTasks.every(t => updatedDone.includes(t.id));
-                                  if (allDone) {
-                                    awardStars(15, 'Guardián de Rutinas');
-                                  } else {
-                                    setStars(s => s + 3);
-                                  }
-                                }
-                              }}
+                              onClick={() => toggleRoutineTask(task, currentTasks)}
                               aria-label={`${isDone ? 'Marcar pendiente' : 'Marcar completada'}: ${task.name}`}
                               aria-pressed={isDone}
                               className={`w-11 h-11 rounded-lg flex items-center justify-center border-2 transition-all shrink-0 ${
