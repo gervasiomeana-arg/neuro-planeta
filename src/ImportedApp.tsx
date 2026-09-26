@@ -3222,7 +3222,7 @@ export default function ImportedApp() {
                   </div>
                 </div>
                 <button 
-                  onClick={() => { playClickSound(); setShowParentsMode(false); }}
+                  onClick={() => { playClickSound(); setShowParentsMode(false); setParentsAuthenticated(false); }}
                   className="text-slate-400 hover:text-white font-bold p-1 hover:bg-slate-800 rounded"
                 >
                   ✖️
@@ -4030,7 +4030,7 @@ export default function ImportedApp() {
                               {[
                                 { id: 'soft', label: '🌱 Suave / Calmo', desc: 'Tonos graves amortiguados y envolventes.' },
                                 { id: 'silent', label: '🔇 Silencio Total', desc: 'Silencia la app para momentos de sobrecarga.' },
-                                { id: 'masking', label: '🌊 Ruido Marrón', desc: 'Zumbido bajo para bloquear ruidos externos.' }
+                                { id: 'masking', label: '🌊 Ruido Marrón', desc: 'Sonido de fondo constante. Probalo primero a volumen bajo.' }
                               ].map(mode => (
                                 <button
                                   key={mode.id}
@@ -4246,6 +4246,7 @@ export default function ImportedApp() {
                     <button
                       onClick={() => {
                         playClickSound();
+                        setShowParentsMode(false);
                         setParentsAuthenticated(false);
                         generateParentsMath();
                       }}
@@ -4292,7 +4293,7 @@ export default function ImportedApp() {
           <button
             type="button"
             aria-label="Abrir ejercicio SOS Calma"
-            onClick={() => { setCalmStep(0); setCurrentTab('inicio'); setActiveModule('sos'); }}
+            onClick={() => { setShowParentsMode(false); setParentsAuthenticated(false); setCalmStep(0); setCurrentTab('inicio'); setActiveModule('sos'); }}
             className={`flex flex-col items-center gap-1 py-1.5 px-2 rounded-2xl transition-colors cursor-pointer ${
               activeModule === 'sos'
                 ? 'text-rose-400 bg-rose-500/10 border border-rose-500/30 font-bold'
