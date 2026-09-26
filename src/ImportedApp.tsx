@@ -3226,9 +3226,9 @@ export default function ImportedApp() {
                           <span>Para usar IA, confirmo que no incluí datos personales y autorizo enviar solo esta situación al proveedor de IA.</span>
                         </label>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || loadedPatientId !== activePatientId}
+                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || loadedPatientId !== activePatientId || window.location.hostname.endsWith('.github.io')}
                             className="min-h-12 rounded-xl bg-teal-700 px-3 font-bold text-white disabled:opacity-50">
-                            {storyGenerating ? 'Creando con IA…' : 'Crear con IA'}
+                            {storyGenerating ? 'Creando con IA…' : window.location.hostname.endsWith('.github.io') ? 'IA disponible con servidor' : 'Crear con IA'}
                           </button>
                           <button type="button" onClick={createGuidedDraft} disabled={storyGenerating || loadedPatientId !== activePatientId}
                             className="min-h-12 rounded-xl border border-teal-600 bg-teal-950 px-3 font-bold text-teal-200 disabled:opacity-50">
