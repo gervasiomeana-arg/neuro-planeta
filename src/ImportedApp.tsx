@@ -53,6 +53,7 @@ interface Patient {
   stars: number;
   unlockedAchievements: string[];
   completedRoutineTasks: string[];
+  routineDay?: string;
   routineTasks?: RoutineSchedule;
   emotionJournal: { date: string; emotion: string; note: string }[];
   customPictogramImages: Record<string, string>;
@@ -69,6 +70,10 @@ const EMPTY_PROFILE: Patient = {
 };
 
 type RoutineTab = 'Mañana' | 'Tarde' | 'Noche';
+const localDayKey = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
 type RoutineTask = { id: string; name: string; emoji: string };
 type RoutineSchedule = Record<RoutineTab, RoutineTask[]>;
 
@@ -286,6 +291,8 @@ export default function ImportedApp() {
   const [newRoutineName, setNewRoutineName] = useState('');
   const [newRoutineEmoji, setNewRoutineEmoji] = useState('⭐');
   const [completedRoutineTasks, setCompletedRoutineTasks] = useState<string[]>([]);
+  const [routineDay, setRoutineDay] = useState(localDayKey);
+  const [todayKey, setTodayKey] = useState(localDayKey);
   
   // Settings & Parents Mode with Sensory Sound Engine & ARASAAC Integration
   const [sensoryAudioMode, setSensoryAudioMode] = useState<'soft' | 'silent' | 'masking'>(() => {
@@ -435,7 +442,10 @@ export default function ImportedApp() {
       setStars(activePatient.stars);
       setAttentionHighScore(activePatient.attentionHighScore || 0);
       setUnlockedAchievements(activePatient.unlockedAchievements || []);
-      setCompletedRoutineTasks(activePatient.completedRoutineTasks || []);
+      // Existing profiles without a date keep today's progress during migration.
+      setRoutineDay(activePatient.routineDay || localDayKey());
+      setCompletedRoutineTasks(activePatient.routineDay && activePatient.routineDay !== localDayKey()
+        ? [] : (activePatient.completedRoutineTasks || []));
       setRoutineTasks(readRoutineTasks(activePatient.routineTasks));
       setActiveTimerTask(null);
       setEmotionJournal(activePatient.emotionJournal || []);
@@ -444,6 +454,28 @@ export default function ImportedApp() {
       setLoadedPatientId(activePatientId);
     }
   }, [activePatientId]);
+
+  useEffect(() => {
+    const updateDay = () => setTodayKey(localDayKey());
+    const interval = window.setInterval(updateDay, 15_000);
+    window.addEventListener('focus', updateDay);
+    document.addEventListener('visibilitychange', updateDay);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', updateDay);
+      document.removeEventListener('visibilitychange', updateDay);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activePatientId || loadedPatientId !== activePatientId || routineDay === todayKey) return;
+    setRoutineDay(todayKey);
+    setCompletedRoutineTasks([]);
+    setActiveRoutineTab(currentRoutineTab());
+    setTimerIsActive(false);
+    setActiveTimerTask(null);
+    timerOwnerIdRef.current = null;
+  }, [activePatientId, loadedPatientId, routineDay, todayKey]);
 
   // --- Sync individual state updates TO patients array and localStorage ---
   useEffect(() => {
@@ -459,6 +491,7 @@ export default function ImportedApp() {
         (current.attentionHighScore || 0) !== attentionHighScore ||
         JSON.stringify(current.unlockedAchievements) !== JSON.stringify(unlockedAchievements) ||
         JSON.stringify(current.completedRoutineTasks) !== JSON.stringify(completedRoutineTasks) ||
+        current.routineDay !== routineDay ||
         JSON.stringify(readRoutineTasks(current.routineTasks)) !== JSON.stringify(routineTasks) ||
         JSON.stringify(current.emotionJournal) !== JSON.stringify(emotionJournal) ||
         JSON.stringify(current.customPictogramImages) !== JSON.stringify(customPictogramImages) ||
@@ -474,6 +507,7 @@ export default function ImportedApp() {
         attentionHighScore,
         unlockedAchievements,
         completedRoutineTasks,
+        routineDay,
         routineTasks,
         emotionJournal,
         customPictogramImages,
@@ -482,7 +516,7 @@ export default function ImportedApp() {
       
       return updatedPatients;
     });
-  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
+  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices]);
 
   
   // Attention Game State
@@ -682,7 +716,7 @@ export default function ImportedApp() {
     setActiveTimerTask(null);
     if (timerOwnerIdRef.current !== activePatientId) return;
 
-    const rewardKey = `${activePatientId}:${activeTimerTask.id}`;
+    const rewardKey = `${activePatientId}:${routineDay}:${activeTimerTask.id}`;
     if (completedRoutineTasks.includes(activeTimerTask.id) || rewardedTimerRef.current === rewardKey) return;
     rewardedTimerRef.current = rewardKey;
     setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
@@ -2608,7 +2642,7 @@ export default function ImportedApp() {
                           onClick={() => {
                             setTimerIsActive(false);
                             if (timerOwnerIdRef.current === activePatientId && !completedRoutineTasks.includes(activeTimerTask.id)) {
-                              const rewardKey = `${activePatientId}:${activeTimerTask.id}`;
+                              const rewardKey = `${activePatientId}:${routineDay}:${activeTimerTask.id}`;
                               if (rewardedTimerRef.current !== rewardKey) {
                                 rewardedTimerRef.current = rewardKey;
                                 setCompletedRoutineTasks(current => current.includes(activeTimerTask.id) ? current : [...current, activeTimerTask.id]);
@@ -2775,6 +2809,7 @@ export default function ImportedApp() {
                       Reiniciar Rutina de la {activeRoutineTab}
                     </button>
                   </div>
+                  <p className="text-xs text-slate-400 text-center">Las tareas completadas se reinician cada día. Tus estrellas se conservan.</p>
                 </div>
               );
             })()}
