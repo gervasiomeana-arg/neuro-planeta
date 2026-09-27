@@ -4174,7 +4174,7 @@ export default function ImportedApp() {
                                   : 'bg-[#111827] border-slate-800 text-slate-300 hover:border-slate-700'
                               }`}
                             >
-                              <div className="flex items-center justify-between gap-2">
+                              <div className={`flex gap-2 ${appDeviceMode === 'movil' ? 'flex-col items-stretch' : 'items-center justify-between'}`}>
                                 {/* Left: Complete toggle Area */}
                                 <button
                                   type="button"
@@ -4196,7 +4196,7 @@ export default function ImportedApp() {
                                 </button>
 
                                 {/* Right: Actions */}
-                                <div className="flex items-center gap-1.5 shrink-0">
+                                <div className="flex items-center justify-end gap-1.5 shrink-0">
                                   {/* Micro-steps toggle button if available */}
                                   {steps.length > 0 && (
                                     <button
