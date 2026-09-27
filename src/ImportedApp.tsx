@@ -511,12 +511,12 @@ export default function ImportedApp() {
   const [rewardsStore, setRewardsStore] = useState<RewardItem[]>(() => DEFAULT_REWARDS_STORE);
   const [redeemedRewards, setRedeemedRewards] = useState<RedeemedReward[]>([]);
   const [logrosSubTab, setLogrosSubTab] = useState<'canjear' | 'insignias'>('canjear');
+  const [redeemedModalReward, setRedeemedModalReward] = useState<RewardItem | null>(null);
   const [pendingReward, setPendingReward] = useState<RewardItem | null>(null);
   const [redeemQuestion, setRedeemQuestion] = useState<{ q: string; a: number }>({ q: '', a: 0 });
   const [redeemAnswer, setRedeemAnswer] = useState('');
   const [redeemFeedback, setRedeemFeedback] = useState('');
   useEffect(() => { setPendingReward(null); setRedeemedModalReward(null); }, [activePatientId]);
-  const [redeemedModalReward, setRedeemedModalReward] = useState<RewardItem | null>(null);
   const [newRewardName, setNewRewardName] = useState<string>('');
   const [newRewardCost, setNewRewardCost] = useState<number>(10);
   const [newRewardEmoji, setNewRewardEmoji] = useState<string>('🎁');
@@ -1442,6 +1442,7 @@ export default function ImportedApp() {
       setUnlockedAchievements(prev => [...prev, achievementName]);
     }
   };
+
   // El niño solicita el canje; una persona adulta confirma antes de gastar estrellas.
   const requestRedeemReward = (reward: RewardItem) => {
     if (stars < reward.cost) return;
@@ -1452,7 +1453,6 @@ export default function ImportedApp() {
     setRedeemFeedback('');
     setPendingReward(reward);
   };
-
 
   // Token economy: Canjear recompensa real pactada en el hogar
   const handleRedeemReward = (reward: RewardItem) => {
@@ -4596,6 +4596,7 @@ export default function ImportedApp() {
                     </div>
                   );
                 })}
+              </div>
             )}
 
             {/* Confirmación adulta: cancelar no modifica el saldo ni el historial. */}
@@ -4627,7 +4628,6 @@ export default function ImportedApp() {
                     <button type="button" onClick={() => handleRedeemReward(pendingReward)} disabled={stars < pendingReward.cost} className="flex-1 rounded-xl bg-amber-400 disabled:opacity-50 px-4 py-3 text-slate-950 font-black">Confirmar canje</button>
                   </div>
                 </div>
-              </div>
               </div>
             )}
 
