@@ -511,6 +511,11 @@ export default function ImportedApp() {
   const [rewardsStore, setRewardsStore] = useState<RewardItem[]>(() => DEFAULT_REWARDS_STORE);
   const [redeemedRewards, setRedeemedRewards] = useState<RedeemedReward[]>([]);
   const [logrosSubTab, setLogrosSubTab] = useState<'canjear' | 'insignias'>('canjear');
+  const [pendingReward, setPendingReward] = useState<RewardItem | null>(null);
+  const [redeemQuestion, setRedeemQuestion] = useState<{ q: string; a: number }>({ q: '', a: 0 });
+  const [redeemAnswer, setRedeemAnswer] = useState('');
+  const [redeemFeedback, setRedeemFeedback] = useState('');
+  useEffect(() => { setPendingReward(null); setRedeemedModalReward(null); }, [activePatientId]);
   const [redeemedModalReward, setRedeemedModalReward] = useState<RewardItem | null>(null);
   const [newRewardName, setNewRewardName] = useState<string>('');
   const [newRewardCost, setNewRewardCost] = useState<number>(10);
@@ -1437,10 +1442,27 @@ export default function ImportedApp() {
       setUnlockedAchievements(prev => [...prev, achievementName]);
     }
   };
+  // El niño solicita el canje; una persona adulta confirma antes de gastar estrellas.
+  const requestRedeemReward = (reward: RewardItem) => {
+    if (stars < reward.cost) return;
+    const a = Math.floor(Math.random() * 8) + 3;
+    const b = Math.floor(Math.random() * 8) + 3;
+    setRedeemQuestion({ q: `${a} × ${b}`, a: a * b });
+    setRedeemAnswer('');
+    setRedeemFeedback('');
+    setPendingReward(reward);
+  };
+
 
   // Token economy: Canjear recompensa real pactada en el hogar
   const handleRedeemReward = (reward: RewardItem) => {
-    if (stars < reward.cost) return;
+    if (stars < reward.cost || !pendingReward || pendingReward.id !== reward.id) return;
+    if (!parentsAuthenticated && (redeemAnswer.trim() === '' || Number(redeemAnswer) !== redeemQuestion.a)) {
+      setRedeemFeedback('La respuesta no coincide. Pedile ayuda a una persona adulta.');
+      setRedeemAnswer('');
+      return;
+    }
+    setPendingReward(null);
     playSuccessSound();
     setStars(prev => Math.max(0, prev - reward.cost));
     const newRedeemedItem: RedeemedReward = {
@@ -2726,22 +2748,22 @@ export default function ImportedApp() {
                         )}
                       </div>
 
-                      {/* ALERTA DE DESBORDE SI INTENSIDAD ES 3 */}
+                      {/* Ayuda opcional cuando se selecciona intensidad 3 */}
                       {selectedIntensity === 3 && (
-                        <div className="p-3.5 rounded-2xl bg-rose-950/70 border-2 border-rose-500/80 text-rose-200 space-y-2 animate-bounce">
+                        <div className="p-3.5 rounded-2xl bg-rose-950/70 border-2 border-rose-500/80 text-rose-200 space-y-2">
                           <div className="flex items-center gap-2 font-black text-xs text-rose-300">
                             <span className="text-lg">🛑</span>
-                            <span>¡ALERTA DE DESBORDE DETECTADA!</span>
+                            <span>Marcaste una intensidad alta</span>
                           </div>
                           <p className="text-[11px] text-rose-100 leading-relaxed">
-                            Tu cuerpo siente una sobrecarga muy intensa. No tienes que exigirte nada ahora mismo. Respira y busca un lugar seguro.
+                            Si te sentís incómodo, podés hacer una pausa y pedir ayuda a una persona de confianza.
                           </p>
                           <button
                             type="button"
                             onClick={() => { setCalmStep(0); setActiveModule('sos'); }}
                             className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
                           >
-                            <span>🛡️ Abrir Ejercicio SOS Calma Inmediato</span>
+                            <span>🛡️ Abrir ejercicio de calma</span>
                           </button>
                         </div>
                       )}
@@ -2752,17 +2774,17 @@ export default function ImportedApp() {
                           ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
                           : selectedIntensity === 2
                           ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
-                          : 'bg-rose-950/60 border-rose-500/80 text-rose-200 animate-pulse'
+                          : 'bg-rose-950/60 border-rose-500/80 text-rose-200'
                       }`}>
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 font-extrabold text-xs">
                             <span>{selectedIntensity === 1 ? '🌱' : selectedIntensity === 2 ? '⚡' : '🌋'}</span>
                             <span>
                               {selectedIntensity === 1
-                                ? 'Paso de Regulación 1: Pausa Preventiva Breve'
+                                ? 'Nivel 1: una pausa breve'
                                 : selectedIntensity === 2
-                                ? 'Paso de Regulación 2: Co-Regulación Activa'
-                                : 'Paso de Regulación 3: Protocolo de Contención de Crisis'}
+                                ? 'Nivel 2: buscar compañía'
+                                : 'Nivel 3: pedir ayuda y descansar'}
                             </span>
                           </div>
 
@@ -2773,10 +2795,10 @@ export default function ImportedApp() {
                             onClick={() => {
                               playClickSound();
                               const msg = selectedIntensity === 1
-                                ? 'Estás en intensidad uno. Una pausa breve, tomar agua y estirar los brazos te ayudará a seguir genial.'
+                                ? 'Marcaste intensidad uno. Si querés, podés hacer una pausa breve, tomar agua o estirarte.'
                                 : selectedIntensity === 2
-                                ? 'Intensidad dos. Vamos a hacer una pausa activa. Respira despacio con la estrella y siente tus pies firmes en el suelo.'
-                                : 'Sobrecarga alta en nivel tres. Todo se detiene ahora. No te preocupes por nada. Busca un lugar tranquilo y respira a tu ritmo.';
+                                ? 'Marcaste intensidad dos. Si te ayuda, hacé una pausa y respirá a tu ritmo con alguien de confianza.'
+                                : 'Marcaste intensidad tres. Podés pedir ayuda a una persona adulta y buscar un espacio cómodo.';
                               speakTherapeuticText(msg);
                             }}
                             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer shrink-0"
@@ -2787,13 +2809,13 @@ export default function ImportedApp() {
 
                         <p className="text-[11px] leading-relaxed font-medium">
                           {selectedIntensity === 1 && (
-                            'Tu energía está cambiando levemente. No necesitas parar todo: basta con beber un vaso de agua fresca, hacer 3 respiraciones profundas y relajar los hombros.'
+                            'Marcaste una intensidad baja. Si te resulta agradable, probá tomar agua o hacer una pausa breve.'
                           )}
                           {selectedIntensity === 2 && (
-                            'Tu cuerpo siente acumulación de energía o tensión. Conviene hacer una pausa activa de 3 a 5 minutos, usar respiración guiada 4x4 o compresión propioceptiva en los brazos.'
+                            'Marcaste una intensidad media. Podés elegir una pausa, respirar a tu ritmo o buscar compañía.'
                           )}
                           {selectedIntensity === 3 && (
-                            '¡Sobrecarga o desborde sensorial detectado! Se deben pausar todas las demandas externas de inmediato. Reducir ruidos y luces, y permitir un espacio seguro sin exigencias verbales.'
+                            'Marcaste una intensidad alta. Si querés, descansá en un lugar cómodo y pedí ayuda a alguien de confianza.'
                           )}
                         </p>
                       </div>
@@ -2805,7 +2827,7 @@ export default function ImportedApp() {
                             🛠️ Estrategias graduadas para tu nivel {selectedIntensity}:
                           </span>
                           <span className="text-[9.5px] text-teal-300 font-bold">
-                            {selectedIntensity === 1 ? 'Baja intervención' : selectedIntensity === 2 ? 'Intervención media' : 'Máxima contención'}
+                            {selectedIntensity === 1 ? 'Ideas suaves' : selectedIntensity === 2 ? 'Ideas para una pausa' : 'Ayuda y descanso'}
                           </span>
                         </div>
 
@@ -4488,14 +4510,14 @@ export default function ImportedApp() {
                           <button
                             type="button"
                             disabled={!canAfford}
-                            onClick={() => handleRedeemReward(reward)}
+                            onClick={() => requestRedeemReward(reward)}
                             className={`w-full py-2.5 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                               canAfford
                                 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-lg active:scale-95'
                                 : 'bg-slate-800/60 text-slate-500 cursor-not-allowed border border-slate-700/50'
                             }`}
                           >
-                            <span>{canAfford ? '🚀 ¡Canjear este premio!' : `Necesitas ${reward.cost} ⭐`}</span>
+                            <span>{canAfford ? '🚀 Pedir canje a un adulto' : `Necesitas ${reward.cost} ⭐`}</span>
                           </button>
                         </div>
                       </div>
@@ -4574,6 +4596,38 @@ export default function ImportedApp() {
                     </div>
                   );
                 })}
+            )}
+
+            {/* Confirmación adulta: cancelar no modifica el saldo ni el historial. */}
+            {pendingReward && (
+              <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-reward-title">
+                <div className="bg-[#0B0F19] border border-amber-400/50 rounded-3xl p-6 w-full max-w-sm text-center space-y-4 shadow-xl">
+                  <span className="text-5xl block" aria-hidden="true">{pendingReward.emoji}</span>
+                  <h3 id="confirm-reward-title" className="text-lg font-black text-white">Confirmar canje con una persona adulta</h3>
+                  <p className="text-sm text-slate-200">{pendingReward.name} cuesta {pendingReward.cost} estrellas. Tenés {stars} estrellas.</p>
+                  <p className="text-xs text-slate-300">La recompensa se acuerda con la familia. Las estrellas se descuentan solo después de confirmar.</p>
+                  {!parentsAuthenticated && (
+                    <div className="space-y-2">
+                      <label htmlFor="redeem-answer" className="block text-sm font-bold text-white">Para la persona adulta: ¿cuánto es {redeemQuestion.q}?</label>
+                      <input
+                        id="redeem-answer"
+                        type="number"
+                        inputMode="numeric"
+                        value={redeemAnswer}
+                        onChange={e => { setRedeemAnswer(e.target.value); setRedeemFeedback(''); }}
+                        className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-center text-white"
+                        autoFocus
+                      />
+                      <p className="text-[11px] text-slate-400">La cuenta solo dificulta un canje accidental; no verifica la identidad.</p>
+                    </div>
+                  )}
+                  {redeemFeedback && <p role="alert" className="text-xs text-rose-300">{redeemFeedback}</p>}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button type="button" onClick={() => setPendingReward(null)} className="flex-1 rounded-xl border border-slate-500 px-4 py-3 text-white font-bold">Cancelar</button>
+                    <button type="button" onClick={() => handleRedeemReward(pendingReward)} disabled={stars < pendingReward.cost} className="flex-1 rounded-xl bg-amber-400 disabled:opacity-50 px-4 py-3 text-slate-950 font-black">Confirmar canje</button>
+                  </div>
+                </div>
+              </div>
               </div>
             )}
 
