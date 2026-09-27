@@ -676,6 +676,7 @@ export default function ImportedApp() {
   // Active patient profile helper
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0] || EMPTY_PROFILE;
   const openedCustomStory = socialStories.find(story => story.id === selectedStoryId);
+  const regulationEntries = emotionJournal.filter(entry => entry.intensity != null || !!entry.trigger);
   const allRoutineTasks = routineTabs.flatMap(tab => routineTasks[tab]);
   const completedRoutineCount = allRoutineTasks.filter(task => completedRoutineTasks.includes(task.id)).length;
   const nextRoutineTasks = routineTasks[activeRoutineTab].filter(task => !completedRoutineTasks.includes(task.id)).slice(0, 2);
@@ -771,7 +772,7 @@ export default function ImportedApp() {
       setRoutineTasks(readRoutineTasks(activePatient.routineTasks));
       setActiveTimerTask(null);
       setEmotionJournal(activePatient.emotionJournal || []);
-      setRewardsStore(activePatient.rewardsStore && activePatient.rewardsStore.length > 0 ? activePatient.rewardsStore : DEFAULT_REWARDS_STORE);
+      setRewardsStore(activePatient.rewardsStore ?? DEFAULT_REWARDS_STORE);
       setRedeemedRewards(activePatient.redeemedRewards || []);
       setRoutineSupportLevel(activePatient.routineSupportLevel || 'detallado');
       setCustomPictogramImages(activePatient.customPictogramImages || {});
@@ -1463,7 +1464,7 @@ export default function ImportedApp() {
     };
 
     setEmotionJournal(prev => [newEntry, ...prev]);
-    awardStars(3, 'Zona de Regulación');
+    rewardRoutineTask('zone_regulation', 3, 'Zona de Regulación');
     setRegisteredZoneFeedback(`¡Registro guardado! Intensidad: ${intensityObj.label}. Motivo: ${triggerLabel}.`);
   };
 
@@ -2012,6 +2013,11 @@ export default function ImportedApp() {
         </div>
       </div>
     );
+  }
+
+  // Avoid showing or accepting actions with another profile's state before hydration.
+  if (activePatientId && loadedPatientId !== activePatientId) {
+    return <div className="np-theme min-h-dvh stitch-grid flex items-center justify-center text-[#293b3a]" role="status">Preparando el espacio de {activePatient.name.split(' (')[0]}…</div>;
   }
 
   // CORE APP RENDER
@@ -2703,7 +2709,7 @@ export default function ImportedApp() {
                           onClick={() => handleRegisterZone(activeZone)}
                           className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
-                          <span>💾 Registrar en mi Diario Emocional (+3 ⭐)</span>
+                          <span>{rewardedRoutineTasks.includes('zone_regulation') ? '💾 Guardar nuevo registro' : '💾 Registrar en mi Diario Emocional (+3 ⭐)'}</span>
                         </button>
                         {registeredZoneFeedback && (
                           <span className="text-[10.5px] text-emerald-300 font-bold animate-fade-in text-center sm:text-right">
@@ -3824,7 +3830,7 @@ export default function ImportedApp() {
                           onClick={() => {
                             playSuccessSound();
                             setIsFirstCompleted(true);
-                            awardStars(5, 'Primero y Después');
+                            rewardRoutineTask('first_then', 5, 'Primero y Después');
                           }}
                           className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-lg hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
@@ -3832,7 +3838,7 @@ export default function ImportedApp() {
                         </button>
                       ) : (
                         <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-center font-extrabold text-xs">
-                          🎉 ¡Completado con éxito! ⭐ +5 estrellas
+                          🎉 ¡Completado con éxito!
                         </div>
                       )}
                     </div>
@@ -5867,62 +5873,49 @@ export default function ImportedApp() {
                                 <span>📊</span> 3. Registro de Detonantes (Triggers) y Análisis de Intensidad
                               </h3>
                               <span className="text-[8px] font-bold text-slate-500 uppercase bg-slate-100 px-2 py-0.5 rounded">
-                                Total registros: {emotionJournal.length}
+                                Registros del semáforo: {regulationEntries.length}
                               </span>
                             </div>
 
                             {/* Trigger frequency calculation & graphical chart */}
                             {(() => {
-                              // Tally triggers from journal entries or fallback if empty
+                              // Count only explicit semáforo answers, never welcome messages or diary notes.
                               const triggerCounts: Record<string, { label: string; emoji: string; count: number; color: string }> = {
                                 'ruido': { label: 'Sobrecarga Sensorial (Ruido / Luces)', emoji: '🔊', count: 0, color: 'bg-purple-500' },
                                 'cambio': { label: 'Transición / Cambio de planes', emoji: '🔄', count: 0, color: 'bg-amber-500' },
                                 'cansancio': { label: 'Fatiga / Falta de sueño', emoji: '😴', count: 0, color: 'bg-blue-500' },
                                 'hambre': { label: 'Hambre o Sed', emoji: '🍎', count: 0, color: 'bg-emerald-500' },
                                 'frustracion': { label: 'Frustración con tareas difíciles', emoji: '📝', count: 0, color: 'bg-rose-500' },
-                                'espera': { label: 'Espera prolongada / Aburrimiento', emoji: '⏳', count: 0, color: 'bg-indigo-500' }
+                                'espera': { label: 'Espera prolongada / Aburrimiento', emoji: '⏳', count: 0, color: 'bg-indigo-500' },
+                                'otro': { label: 'Otro o sin motivo indicado', emoji: '🤷', count: 0, color: 'bg-slate-500' }
                               };
 
                               let intensityCounts = { 1: 0, 2: 0, 3: 0 };
-                              let totalEvaluated = 0;
+                              const totalEvaluated = regulationEntries.length;
 
-                              emotionJournal.forEach(entry => {
-                                totalEvaluated++;
+                              regulationEntries.forEach(entry => {
                                 if (entry.intensity && (entry.intensity === 1 || entry.intensity === 2 || entry.intensity === 3)) {
                                   intensityCounts[entry.intensity]++;
-                                } else {
-                                  intensityCounts[1]++;
                                 }
 
-                                const noteLow = (entry.note || '').toLowerCase();
                                 const trigLow = (entry.trigger || '').toLowerCase();
-                                if (trigLow.includes('ruido') || trigLow.includes('luces') || noteLow.includes('ruido')) triggerCounts['ruido'].count++;
-                                else if (trigLow.includes('cambio') || trigLow.includes('sorpresa') || noteLow.includes('cambio')) triggerCounts['cambio'].count++;
-                                else if (trigLow.includes('cansancio') || trigLow.includes('sueño') || noteLow.includes('cansancio')) triggerCounts['cansancio'].count++;
-                                else if (trigLow.includes('hambre') || trigLow.includes('sed') || noteLow.includes('hambre')) triggerCounts['hambre'].count++;
-                                else if (trigLow.includes('frustraci') || trigLow.includes('difícil') || noteLow.includes('tarea')) triggerCounts['frustracion'].count++;
-                                else if (trigLow.includes('espera') || noteLow.includes('espera')) triggerCounts['espera'].count++;
-                                else {
-                                  // Spread across most common if general entry
-                                  triggerCounts['ruido'].count++;
-                                }
+                                if (trigLow.includes('ruido') || trigLow.includes('luces')) triggerCounts['ruido'].count++;
+                                else if (trigLow.includes('cambio') || trigLow.includes('sorpresa')) triggerCounts['cambio'].count++;
+                                else if (trigLow.includes('cansancio') || trigLow.includes('sueño')) triggerCounts['cansancio'].count++;
+                                else if (trigLow.includes('hambre') || trigLow.includes('sed')) triggerCounts['hambre'].count++;
+                                else if (trigLow.includes('frustraci') || trigLow.includes('difícil') || trigLow.includes('tarea')) triggerCounts['frustracion'].count++;
+                                else if (trigLow.includes('espera')) triggerCounts['espera'].count++;
+                                else triggerCounts['otro'].count++;
                               });
-
-                              // If empty, provide an initial baseline demo distribution
-                              if (totalEvaluated === 0) {
-                                totalEvaluated = 6;
-                                triggerCounts['ruido'].count = 3;
-                                triggerCounts['cambio'].count = 2;
-                                triggerCounts['frustracion'].count = 1;
-                                intensityCounts = { 1: 2, 2: 3, 3: 1 };
-                              }
 
                               const sortedTriggers = Object.values(triggerCounts).sort((a, b) => b.count - a.count);
                               const topTrigger = sortedTriggers[0];
 
                               return (
                                 <div className="space-y-3">
+                                  {totalEvaluated === 0 && <p className="text-[9px] text-slate-600">Todavía no hay registros del semáforo. El saludo inicial y las notas libres no se incluyen en este gráfico.</p>}
                                   {/* Visual Bar Chart of Triggers */}
+                                  {totalEvaluated > 0 && (
                                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
                                     <div className="flex justify-between items-center text-[9px] font-bold text-slate-700">
                                       <span>Distribución de Causas de Desregulación (Triggers):</span>
@@ -5944,7 +5937,7 @@ export default function ImportedApp() {
                                             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                                               <div
                                                 className={`h-full rounded-full transition-all duration-500 ${trig.color}`}
-                                                style={{ width: `${Math.max(4, pct)}%` }}
+                                                style={{ width: `${pct}%` }}
                                               ></div>
                                             </div>
                                           </div>
@@ -5952,8 +5945,10 @@ export default function ImportedApp() {
                                       })}
                                     </div>
                                   </div>
+                                  )}
 
                                   {/* Intensity Breakdown & Clinical Pautas */}
+                                  {totalEvaluated > 0 && (
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {/* Intensity Breakdown */}
                                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
@@ -5971,22 +5966,23 @@ export default function ImportedApp() {
                                         </div>
                                         <div className="bg-rose-50 border border-rose-200 p-1 rounded">
                                           <div className="text-[11px] font-black text-rose-700">{intensityCounts[3]}</div>
-                                          <div className="text-[7px] text-rose-800 font-bold">Nivel 3 (Crisis)</div>
+                                          <div className="text-[7px] text-rose-800 font-bold">Nivel 3 (Intenso)</div>
                                         </div>
                                       </div>
                                     </div>
 
-                                    {/* Actionable Clinical Recommendation */}
+                                    {/* Descriptive summary of the child's selected cause. */}
                                     <div className="bg-blue-50/70 p-2.5 rounded-xl border border-blue-200 space-y-1">
                                       <span className="text-[8.5px] font-black uppercase text-blue-900 block">
-                                        💡 Conclusión Clínica Preventiva
+                                        💡 Resumen orientativo de registros
                                       </span>
                                       <p className="text-[8px] text-blue-950 leading-relaxed">
-                                        Detonante predominante: <strong>{topTrigger.label}</strong> ({Math.round((topTrigger.count / totalEvaluated) * 100)}%).
-                                        Se recomienda anticipar pausas sensoriales programadas y apoyos visuales 5 minutos antes de transiciones.
+                                        Motivo más registrado: <strong>{topTrigger.label}</strong> ({Math.round((topTrigger.count / totalEvaluated) * 100)}%).
+                                        Estos datos reflejan lo elegido en esta app; revisalos junto con el niño antes de sacar conclusiones.
                                       </p>
                                     </div>
                                   </div>
+                                  )}
 
                                   {/* Detailed Journal Log Table */}
                                   <div className="space-y-1">
