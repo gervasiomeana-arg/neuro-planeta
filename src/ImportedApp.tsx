@@ -1500,6 +1500,9 @@ export default function ImportedApp() {
     setEmotionJournal(prev => [newEntry, ...prev]);
     rewardRoutineTask('zone_regulation', 3, 'Zona de Regulación');
     setRegisteredZoneFeedback(`¡Registro guardado! Intensidad: ${intensityObj.label}. Situación previa: ${triggerLabel}.`);
+    // Cada nuevo registro requiere una selección nueva; evita duplicados accidentales.
+    setSelectedIntensity(null);
+    setSelectedTrigger(null);
   };
 
   const rewardRoutineTask = (taskId: string, amount: number, achievementName?: string) => {
