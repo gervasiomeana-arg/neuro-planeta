@@ -929,7 +929,6 @@ export default function ImportedApp() {
     setShowFirstPicker(false);
     setShowThenPicker(false);
     setExpandedTaskId(null);
-    setCompletedMicroSteps({});
     setJournalNote('');
     setBreathingPhase('idle');
     setBreathingCycles(0);
