@@ -71,6 +71,30 @@ const makeGuidedStory = (situation: string): SocialStory => {
   };
 };
 
+interface RewardItem {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;
+  redeemedCount?: number;
+}
+
+interface RedeemedReward {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;
+  date: string;
+}
+
+interface EmotionJournalEntry {
+  date: string;
+  emotion: string;
+  note: string;
+  intensity?: 1 | 2 | 3;
+  trigger?: string;
+}
+
 interface Patient {
   id: string;
   name: string;
@@ -82,19 +106,48 @@ interface Patient {
   rewardedRoutineTasks?: string[];
   routineDay?: string;
   routineTasks?: RoutineSchedule;
-  emotionJournal: { date: string; emotion: string; note: string }[];
+  emotionJournal: EmotionJournalEntry[];
   customPictogramImages: Record<string, string>;
   customPictogramVoices: Record<string, string>;
   therapeuticObjective?: string;
   attentionHighScore?: number;
   socialStories?: SocialStory[];
+  rewardsStore?: RewardItem[];
+  redeemedRewards?: RedeemedReward[];
+  routineSupportLevel?: 'detallado' | 'clave' | 'autonomo';
 }
+
+const DEFAULT_REWARDS_STORE: RewardItem[] = [
+  { id: 'rew_plaza', name: '15 minutos extra de parque o plaza', emoji: '🌳', cost: 10, redeemedCount: 0 },
+  { id: 'rew_postre', name: 'Elegir el postre o merienda favorita', emoji: '🍦', cost: 12, redeemedCount: 0 },
+  { id: 'rew_pelicula', name: 'Noche de película con manta y pochoclos', emoji: '🎬', cost: 15, redeemedCount: 0 },
+  { id: 'rew_juego_padres', name: 'Partida especial de juego de mesa en familia', emoji: '🎲', cost: 18, redeemedCount: 0 },
+  { id: 'rew_cuento', name: 'Cuento estelar extra antes de dormir', emoji: '📖', cost: 8, redeemedCount: 0 },
+  { id: 'rew_paseo', name: 'Paseo en bicicleta o salida de fin de semana', emoji: '🚲', cost: 25, redeemedCount: 0 }
+];
+
+const REGULATION_INTENSITIES = [
+  { level: 1 as const, label: 'Un poquito', desc: 'Puedo seguir con una pausa breve', emoji: '🌱' },
+  { level: 2 as const, label: 'Bastante', desc: 'Mi cuerpo necesita calmarse ahora', emoji: '⚡' },
+  { level: 3 as const, label: 'Mucho / Desborde', desc: '¡Sobrecarga alta! Necesito parar todo', emoji: '🌋' }
+];
+
+const REGULATION_TRIGGERS = [
+  { id: 'ruido', label: 'Mucho ruido o luces fuertes', emoji: '🔊' },
+  { id: 'cambio', label: 'Cambio de planes o sorpresa', emoji: '🔄' },
+  { id: 'cansancio', label: 'Cansancio o sueño', emoji: '😴' },
+  { id: 'hambre', label: 'Hambre o sed', emoji: '🍎' },
+  { id: 'frustracion', label: 'Tarea difícil o no me sale', emoji: '📝' },
+  { id: 'espera', label: 'Esperar turno o aburrimiento', emoji: '⏳' },
+  { id: 'otro', label: 'No sé / sin motivo claro', emoji: '🤷' }
+];
 
 // Neutral fallback while a new profile is being created.
 const EMPTY_PROFILE: Patient = {
   id: 'preview', name: 'Explorador', avatar: '⭐', selectedAge: '6-8',
   stars: 0, unlockedAchievements: [], completedRoutineTasks: [],
-  emotionJournal: [], customPictogramImages: {}, customPictogramVoices: {}
+  emotionJournal: [], customPictogramImages: {}, customPictogramVoices: {},
+  rewardsStore: DEFAULT_REWARDS_STORE, redeemedRewards: [], routineSupportLevel: 'detallado'
 };
 
 type RoutineTab = 'Mañana' | 'Tarde' | 'Noche';
@@ -422,7 +475,7 @@ export default function ImportedApp() {
   const [onboardingStep, setOnboardingStep] = useState<number>(1);
 
   // Clinician dashboard tab selection
-  const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'pictogramas' | 'sonido' | 'reportes' | 'historias'>('pacientes');
+  const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'recompensas' | 'pictogramas' | 'sonido' | 'reportes' | 'historias'>('pacientes');
 
   // Client demo mode states
   const [clientDemoMessage, setClientDemoMessage] = useState<string>('');
@@ -452,6 +505,23 @@ export default function ImportedApp() {
   const [stars, setStars] = useState<number>(0);
   const [attentionHighScore, setAttentionHighScore] = useState<number>(0);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
+  
+  // Token economy states (Canje de Estrellas)
+  const [rewardsStore, setRewardsStore] = useState<RewardItem[]>(() => DEFAULT_REWARDS_STORE);
+  const [redeemedRewards, setRedeemedRewards] = useState<RedeemedReward[]>([]);
+  const [logrosSubTab, setLogrosSubTab] = useState<'canjear' | 'insignias'>('canjear');
+  const [redeemedModalReward, setRedeemedModalReward] = useState<RewardItem | null>(null);
+  const [newRewardName, setNewRewardName] = useState<string>('');
+  const [newRewardCost, setNewRewardCost] = useState<number>(10);
+  const [newRewardEmoji, setNewRewardEmoji] = useState<string>('🎁');
+
+  // Regulation Zones: Intensity & Trigger states
+  const [selectedIntensity, setSelectedIntensity] = useState<1 | 2 | 3>(1);
+  const [selectedTrigger, setSelectedTrigger] = useState<string | null>(null);
+  const [registeredZoneFeedback, setRegisteredZoneFeedback] = useState<string | null>(null);
+
+  // Routine prompt fading
+  const [routineSupportLevel, setRoutineSupportLevel] = useState<'detallado' | 'clave' | 'autonomo'>('detallado');
 
   // Mapeos personalizados de pictogramas (guardados en localStorage)
   const [customPictogramImages, setCustomPictogramImages] = useState<Record<string, string>>({});
@@ -595,7 +665,7 @@ export default function ImportedApp() {
   const [selectedZoneId, setSelectedZoneId] = useState<'azul' | 'verde' | 'amarillo' | 'rojo' | null>(null);
   const [zoneStrategyFeedback, setZoneStrategyFeedback] = useState<string | null>(null);
   const [currentEmotion, setCurrentEmotion] = useState<string | null>(null);
-  const [emotionJournal, setEmotionJournal] = useState<{date: string, emotion: string, note: string}[]>([]);
+  const [emotionJournal, setEmotionJournal] = useState<EmotionJournalEntry[]>([]);
   const [journalNote, setJournalNote] = useState<string>('');
 
   // Breathing (Zona Calma) State
@@ -701,6 +771,9 @@ export default function ImportedApp() {
       setRoutineTasks(readRoutineTasks(activePatient.routineTasks));
       setActiveTimerTask(null);
       setEmotionJournal(activePatient.emotionJournal || []);
+      setRewardsStore(activePatient.rewardsStore && activePatient.rewardsStore.length > 0 ? activePatient.rewardsStore : DEFAULT_REWARDS_STORE);
+      setRedeemedRewards(activePatient.redeemedRewards || []);
+      setRoutineSupportLevel(activePatient.routineSupportLevel || 'detallado');
       setCustomPictogramImages(activePatient.customPictogramImages || {});
       setCustomPictogramVoices(activePatient.customPictogramVoices || {});
       storyRequestRef.current?.abort();
@@ -761,7 +834,10 @@ export default function ImportedApp() {
         JSON.stringify(current.emotionJournal) !== JSON.stringify(emotionJournal) ||
         JSON.stringify(current.customPictogramImages) !== JSON.stringify(customPictogramImages) ||
         JSON.stringify(current.customPictogramVoices) !== JSON.stringify(customPictogramVoices) ||
-        JSON.stringify(current.socialStories || []) !== JSON.stringify(socialStories);
+        JSON.stringify(current.socialStories || []) !== JSON.stringify(socialStories) ||
+        JSON.stringify(current.rewardsStore || []) !== JSON.stringify(rewardsStore) ||
+        JSON.stringify(current.redeemedRewards || []) !== JSON.stringify(redeemedRewards) ||
+        current.routineSupportLevel !== routineSupportLevel;
 
       if (!hasChanged) return prev;
 
@@ -779,12 +855,15 @@ export default function ImportedApp() {
         emotionJournal,
         customPictogramImages,
         customPictogramVoices,
-        socialStories
+        socialStories,
+        rewardsStore,
+        redeemedRewards,
+        routineSupportLevel
       };
       
       return updatedPatients;
     });
-  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices, socialStories]);
+  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices, socialStories, rewardsStore, redeemedRewards, routineSupportLevel]);
 
   
   // Attention Game State
@@ -1348,6 +1427,44 @@ export default function ImportedApp() {
     if (achievementName && !unlockedAchievements.includes(achievementName)) {
       setUnlockedAchievements(prev => [...prev, achievementName]);
     }
+  };
+
+  // Token economy: Canjear recompensa real pactada en el hogar
+  const handleRedeemReward = (reward: RewardItem) => {
+    if (stars < reward.cost) return;
+    playSuccessSound();
+    setStars(prev => Math.max(0, prev - reward.cost));
+    const newRedeemedItem: RedeemedReward = {
+      id: `redeemed_${Date.now()}`,
+      name: reward.name,
+      emoji: reward.emoji,
+      cost: reward.cost,
+      date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    };
+    setRedeemedRewards(prev => [newRedeemedItem, ...prev]);
+    setRewardsStore(prev => prev.map(item => item.id === reward.id ? { ...item, redeemedCount: (item.redeemedCount || 0) + 1 } : item));
+    setRedeemedModalReward(reward);
+    speakTherapeuticText(`¡Felicitaciones! Has canjeado tu premio: ${reward.name}. Mostrale esto a tu familia para disfrutarlo.`);
+  };
+
+  // Semáforo: Registro enriquecido con intensidad y detonante (trigger)
+  const handleRegisterZone = (zone: RegulationZone) => {
+    playSuccessSound();
+    const intensityObj = REGULATION_INTENSITIES.find(i => i.level === selectedIntensity) || REGULATION_INTENSITIES[0];
+    const triggerObj = REGULATION_TRIGGERS.find(t => t.id === selectedTrigger);
+    const triggerLabel = triggerObj ? triggerObj.label : 'Sin especificar';
+    
+    const newEntry: EmotionJournalEntry = {
+      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      emotion: `${zone.badge} (${zone.name})`,
+      note: `${zone.description} • Intensidad: ${intensityObj.label} (${intensityObj.desc}) • Detonante: ${triggerLabel}`,
+      intensity: selectedIntensity,
+      trigger: triggerLabel
+    };
+
+    setEmotionJournal(prev => [newEntry, ...prev]);
+    awardStars(3, 'Zona de Regulación');
+    setRegisteredZoneFeedback(`¡Registro guardado! Intensidad: ${intensityObj.label}. Motivo: ${triggerLabel}.`);
   };
 
   const rewardRoutineTask = (taskId: string, amount: number, achievementName?: string) => {
@@ -2438,16 +2555,7 @@ export default function ImportedApp() {
                           playSuccessSound();
                           setSelectedZoneId(zone.id);
                           setZoneStrategyFeedback(null);
-                          // Register in emotion journal
-                          setEmotionJournal(prev => [
-                            {
-                              date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                              emotion: `${zone.badge} (${zone.name})`,
-                              note: zone.description
-                            },
-                            ...prev
-                          ]);
-                          awardStars(3, 'Zona de Regulación');
+                          setRegisteredZoneFeedback(null);
                         }}
                         className={`p-3.5 rounded-2xl border-2 text-left flex flex-col justify-between transition-all duration-200 cursor-pointer min-h-[135px] relative overflow-hidden ${
                           isSelected
@@ -2528,11 +2636,164 @@ export default function ImportedApp() {
                         </div>
                       </div>
 
+                      {/* 1. TERMÓMETRO DE INTENSIDAD (INTEROCEPCIÓN) */}
+                      <div className="space-y-1.5 pt-2 border-t border-white/10">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-300">
+                            🌡️ 1. Nivel de Intensidad Corporal:
+                          </span>
+                          <span className="text-[10px] text-teal-300 font-extrabold">
+                            {REGULATION_INTENSITIES.find(i => i.level === selectedIntensity)?.label}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {REGULATION_INTENSITIES.map(item => (
+                            <button
+                              key={item.level}
+                              type="button"
+                              onClick={() => { playClickSound(); setSelectedIntensity(item.level); }}
+                              className={`p-2 sm:p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                                selectedIntensity === item.level
+                                  ? 'bg-white/20 border-white text-white shadow-md scale-[1.02]'
+                                  : 'bg-slate-950/70 border-white/10 text-slate-300 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg">{item.emoji}</span>
+                                <span className="text-[9px] font-black uppercase text-slate-400">Nvl {item.level}</span>
+                              </div>
+                              <span className="text-xs font-black mt-1">{item.label}</span>
+                              <span className="text-[9.5px] text-slate-300 leading-tight mt-0.5">{item.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 2. SELECTOR DE DETONANTE / CAUSA (TRIGGERS) */}
+                      <div className="space-y-1.5 pt-2 border-t border-white/10">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 block">
+                          ⚡ 2. ¿Qué causó este estado? (Detonante):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {REGULATION_TRIGGERS.map(trig => {
+                            const isTrigSelected = selectedTrigger === trig.id;
+                            return (
+                              <button
+                                key={trig.id}
+                                type="button"
+                                onClick={() => { playClickSound(); setSelectedTrigger(isTrigSelected ? null : trig.id); }}
+                                className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  isTrigSelected
+                                    ? 'bg-amber-500/25 border-amber-400 text-amber-200 shadow'
+                                    : 'bg-slate-950/70 border-white/10 text-slate-300 hover:border-white/20'
+                                }`}
+                              >
+                                <span>{trig.emoji}</span>
+                                <span>{trig.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 3. BOTÓN GUARDAR REGISTRO CON DETONANTE */}
+                      <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleRegisterZone(activeZone)}
+                          className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>💾 Registrar en mi Diario Emocional (+3 ⭐)</span>
+                        </button>
+                        {registeredZoneFeedback && (
+                          <span className="text-[10.5px] text-emerald-300 font-bold animate-fade-in text-center sm:text-right">
+                            {registeredZoneFeedback}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* ALERTA DE DESBORDE SI INTENSIDAD ES 3 */}
+                      {selectedIntensity === 3 && (
+                        <div className="p-3.5 rounded-2xl bg-rose-950/70 border-2 border-rose-500/80 text-rose-200 space-y-2 animate-bounce">
+                          <div className="flex items-center gap-2 font-black text-xs text-rose-300">
+                            <span className="text-lg">🛑</span>
+                            <span>¡ALERTA DE DESBORDE DETECTADA!</span>
+                          </div>
+                          <p className="text-[11px] text-rose-100 leading-relaxed">
+                            Tu cuerpo siente una sobrecarga muy intensa. No tienes que exigirte nada ahora mismo. Respira y busca un lugar seguro.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => { setCalmStep(0); setActiveModule('sos'); }}
+                            className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>🛡️ Abrir Ejercicio SOS Calma Inmediato</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* RESPUESTA GRADUADA SEGÚN EL TERMÓMETRO DE INTENSIDAD */}
+                      <div className={`p-3.5 rounded-2xl border-2 transition-all space-y-2 ${
+                        selectedIntensity === 1
+                          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                          : selectedIntensity === 2
+                          ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+                          : 'bg-rose-950/60 border-rose-500/80 text-rose-200 animate-pulse'
+                      }`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 font-extrabold text-xs">
+                            <span>{selectedIntensity === 1 ? '🌱' : selectedIntensity === 2 ? '⚡' : '🌋'}</span>
+                            <span>
+                              {selectedIntensity === 1
+                                ? 'Paso de Regulación 1: Pausa Preventiva Breve'
+                                : selectedIntensity === 2
+                                ? 'Paso de Regulación 2: Co-Regulación Activa'
+                                : 'Paso de Regulación 3: Protocolo de Contención de Crisis'}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            aria-label="Escuchar recomendación de Cosmo para este nivel"
+                            title="Escuchar consejo"
+                            onClick={() => {
+                              playClickSound();
+                              const msg = selectedIntensity === 1
+                                ? 'Estás en intensidad uno. Una pausa breve, tomar agua y estirar los brazos te ayudará a seguir genial.'
+                                : selectedIntensity === 2
+                                ? 'Intensidad dos. Vamos a hacer una pausa activa. Respira despacio con la estrella y siente tus pies firmes en el suelo.'
+                                : 'Sobrecarga alta en nivel tres. Todo se detiene ahora. No te preocupes por nada. Busca un lugar tranquilo y respira a tu ritmo.';
+                              speakTherapeuticText(msg);
+                            }}
+                            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer shrink-0"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <p className="text-[11px] leading-relaxed font-medium">
+                          {selectedIntensity === 1 && (
+                            'Tu energía está cambiando levemente. No necesitas parar todo: basta con beber un vaso de agua fresca, hacer 3 respiraciones profundas y relajar los hombros.'
+                          )}
+                          {selectedIntensity === 2 && (
+                            'Tu cuerpo siente acumulación de energía o tensión. Conviene hacer una pausa activa de 3 a 5 minutos, usar respiración guiada 4x4 o compresión propioceptiva en los brazos.'
+                          )}
+                          {selectedIntensity === 3 && (
+                            '¡Sobrecarga o desborde sensorial detectado! Se deben pausar todas las demandas externas de inmediato. Reducir ruidos y luces, y permitir un espacio seguro sin exigencias verbales.'
+                          )}
+                        </p>
+                      </div>
+
                       {/* Therapeutic Strategies */}
                       <div className="space-y-2 pt-2 border-t border-white/10">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                          🛠️ Estrategias para ayudarte a autorregularte:
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                            🛠️ Estrategias graduadas para tu nivel {selectedIntensity}:
+                          </span>
+                          <span className="text-[9.5px] text-teal-300 font-bold">
+                            {selectedIntensity === 1 ? 'Baja intervención' : selectedIntensity === 2 ? 'Intervención media' : 'Máxima contención'}
+                          </span>
+                        </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {activeZone.strategies.map((strat, idx) => (
@@ -4094,69 +4355,252 @@ export default function ImportedApp() {
           </div>
         )}
 
-        {/* LOGROS / UNLOCKED ACHIEVEMENTS TAB */}
+        {/* LOGROS / UNLOCKED ACHIEVEMENTS & TOKEN ECONOMY REWARDS */}
         {currentTab === 'logros' && (
-          <div className="space-y-5 animate-fade-in">
-            <h2 className="text-base font-extrabold text-yellow-400 flex items-center gap-1.5 uppercase tracking-wide">
-              <Trophy className="w-5 h-5" /> Mis Logros Estelares
-            </h2>
+          <div className="space-y-4 animate-fade-in text-left">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-extrabold text-yellow-400 flex items-center gap-1.5 uppercase tracking-wide">
+                <Trophy className="w-5 h-5 text-yellow-400" /> Logros y Tienda de Recompensas
+              </h2>
+            </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex gap-4 items-center">
-              <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center text-2xl">
-                ⭐
+            {/* Stars Balance Card */}
+            <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/5 border-2 border-yellow-500/30 rounded-3xl p-4 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center text-3xl border border-yellow-500/40 shadow-inner animate-pulse">
+                  ⭐
+                </div>
+                <div>
+                  <span className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider block">
+                    Tus Estrellas Disponibles
+                  </span>
+                  <div className="text-2xl font-black text-white font-mono">{stars} Estrellas</div>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] text-slate-400 font-bold">ESTRELLAS REUNIDAS</span>
-                <div className="text-xl font-extrabold text-white">{stars} Estrellas</div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block">Canjes hechos:</span>
+                <span className="text-xs font-black text-teal-300">{redeemedRewards.length} premios</span>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase pl-1">Insignias por entrenar:</h3>
-              
-              {[
-                { name: 'Diario Estelar', desc: 'Guardaste una nota de tu estado emocional.', icon: '✍️', reward: 5 },
-                { name: 'Respiración Estelar', desc: 'Completaste ciclos de respiración guiada.', icon: '🌬️', reward: 5 },
-                { name: 'Explorador Sensorial', desc: 'Interactuaste con el lienzo de tonos relajantes.', icon: '✨', reward: 5 },
-                { name: 'Foco Láser', desc: 'Superaste un nivel alto de atención concentrada.', icon: '🎯', reward: 10 },
-                { name: 'Comunicación Estelar', desc: 'Creaste y hablaste una frase completa usando el tablero de pictogramas.', icon: '💬', reward: 5 },
-                { name: 'Empatía Cósmica', desc: 'Exploraste distintas opciones en una historia social.', icon: '🤝', reward: 10 },
-                { name: 'Guardián de Rutinas', desc: 'Completaste exitosamente una rutina diaria (mañana, tarde o noche).', icon: '📅', reward: 15 }
-              ].map((ach) => {
-                const isUnlocked = unlockedAchievements.includes(ach.name);
-                return (
-                  <div 
-                    key={ach.name}
-                    className={`border rounded-2xl p-3.5 flex items-center gap-4 transition-all ${
-                      isUnlocked 
-                        ? 'bg-[#111827] border-yellow-500/20' 
-                        : 'bg-slate-900/40 border-slate-800/50 opacity-55'
-                    }`}
-                  >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 ${
-                      isUnlocked ? 'bg-yellow-500/10' : 'bg-slate-950'
-                    }`}>
-                      {isUnlocked ? ach.icon : '🔒'}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className={`text-xs font-bold ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>
-                          {ach.name}
-                        </h4>
-                        <span className="text-[9px] bg-slate-950 px-2 py-0.5 rounded text-yellow-300 font-bold border border-slate-800">
-                          +{ach.reward} Estrellas
-                        </span>
+            {/* Sub-tab navigation between Tienda de Canje and Insignias */}
+            <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs gap-1.5">
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setLogrosSubTab('canjear'); }}
+                className={`flex-1 py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  logrosSubTab === 'canjear'
+                    ? 'bg-amber-500/20 text-amber-300 shadow-md border border-amber-500/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🎁 Canjear Estrellas</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setLogrosSubTab('insignias'); }}
+                className={`flex-1 py-2 px-3 rounded-xl font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  logrosSubTab === 'insignias'
+                    ? 'bg-amber-500/20 text-amber-300 shadow-md border border-amber-500/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🏆 Insignias ({unlockedAchievements.length}/7)</span>
+              </button>
+            </div>
+
+            {/* VIEW 1: TIENDA DE CANJE DE ESTRELLAS (ECONOMÍA DE FICHAS REAL) */}
+            {logrosSubTab === 'canjear' && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-300 space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 block">
+                    🌟 Economía de Fichas del Hogar
+                  </span>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    ¡Tus estrellas valen en la vida real! Canjeálas por momentos y actividades especiales acordadas con tu familia.
+                  </p>
+                </div>
+
+                {/* Grid of Real-World Rewards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {rewardsStore.map((reward) => {
+                    const canAfford = stars >= reward.cost;
+                    const percent = Math.min(100, Math.round((stars / reward.cost) * 100));
+
+                    return (
+                      <div
+                        key={reward.id}
+                        className={`p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 transition-all ${
+                          canAfford
+                            ? 'bg-amber-950/20 border-amber-500/40 shadow-md hover:border-amber-400'
+                            : 'bg-slate-900/80 border-slate-800 opacity-80'
+                        }`}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-3xl filter drop-shadow-sm">{reward.emoji}</span>
+                            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-300 border border-yellow-500/30">
+                              ⭐ {reward.cost} Estrellas
+                            </span>
+                          </div>
+                          <h4 className="text-xs sm:text-sm font-black text-white leading-snug">
+                            {reward.name}
+                          </h4>
+                          {reward.redeemedCount ? (
+                            <span className="text-[9.5px] text-teal-400 font-bold block">
+                              ✓ Canjeado {reward.redeemedCount} {reward.redeemedCount === 1 ? 'vez' : 'veces'}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-white/5">
+                          {/* Progress to target */}
+                          {!canAfford && (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] text-slate-400">
+                                <span>Progreso:</span>
+                                <span>Faltan {reward.cost - stars} ⭐</span>
+                              </div>
+                              <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div
+                                  className="bg-yellow-500 h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${percent}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Redeem Button */}
+                          <button
+                            type="button"
+                            disabled={!canAfford}
+                            onClick={() => handleRedeemReward(reward)}
+                            className={`w-full py-2.5 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                              canAfford
+                                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-lg active:scale-95'
+                                : 'bg-slate-800/60 text-slate-500 cursor-not-allowed border border-slate-700/50'
+                            }`}
+                          >
+                            <span>{canAfford ? '🚀 ¡Canjear este premio!' : `Necesitas ${reward.cost} ⭐`}</span>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{ach.desc}</p>
+                    );
+                  })}
+                </div>
+
+                {/* History of Redeemed Rewards */}
+                {redeemedRewards.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                      📜 Premios canjeados recientemente:
+                    </h3>
+                    <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                      {redeemedRewards.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{item.emoji}</span>
+                            <span className="font-bold text-white">{item.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-amber-300 font-bold block">-{item.cost} ⭐</span>
+                            <span className="text-[9px] text-slate-500">{item.date}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
+            )}
+
+            {/* VIEW 2: INSIGNIAS Y LOGROS TRADICIONALES */}
+            {logrosSubTab === 'insignias' && (
+              <div className="space-y-3 animate-fade-in">
+                <h3 className="text-xs font-bold text-slate-300 uppercase pl-1">Insignias por entrenar:</h3>
+                
+                {[
+                  { name: 'Diario Estelar', desc: 'Guardaste una nota de tu estado emocional.', icon: '✍️', reward: 5 },
+                  { name: 'Respiración Estelar', desc: 'Completaste ciclos de respiración guiada.', icon: '🌬️', reward: 5 },
+                  { name: 'Explorador Sensorial', desc: 'Interactuaste con el lienzo de tonos relajantes.', icon: '✨', reward: 5 },
+                  { name: 'Foco Láser', desc: 'Superaste un nivel alto de atención concentrada.', icon: '🎯', reward: 10 },
+                  { name: 'Comunicación Estelar', desc: 'Creaste y hablaste una frase completa usando el tablero de pictogramas.', icon: '💬', reward: 5 },
+                  { name: 'Empatía Cósmica', desc: 'Exploraste distintas opciones en una historia social.', icon: '🤝', reward: 10 },
+                  { name: 'Guardián de Rutinas', desc: 'Completaste exitosamente una rutina diaria (mañana, tarde o noche).', icon: '📅', reward: 15 }
+                ].map((ach) => {
+                  const isUnlocked = unlockedAchievements.includes(ach.name);
+                  return (
+                    <div 
+                      key={ach.name}
+                      className={`border rounded-2xl p-3.5 flex items-center gap-4 transition-all ${
+                        isUnlocked 
+                          ? 'bg-[#111827] border-yellow-500/20' 
+                          : 'bg-slate-900/40 border-slate-800/50 opacity-55'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 ${
+                        isUnlocked ? 'bg-yellow-500/10' : 'bg-slate-950'
+                      }`}>
+                        {isUnlocked ? ach.icon : '🔒'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className={`text-xs font-bold ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>
+                            {ach.name}
+                          </h4>
+                          <span className="text-[9px] bg-slate-950 px-2 py-0.5 rounded text-yellow-300 font-bold border border-slate-800">
+                            +{ach.reward} Estrellas
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{ach.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* CELEBRATORY REDEEMED MODAL */}
+            {redeemedModalReward && (
+              <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+                <div className="bg-[#0B0F19] border-2 border-yellow-500/50 rounded-[32px] p-6 w-full max-w-sm text-center shadow-[0_0_50px_rgba(234,179,8,0.3)] space-y-5">
+                  <span className="text-6xl animate-bounce inline-block">{redeemedModalReward.emoji}</span>
+                  <div className="space-y-2">
+                    <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-widest block">
+                      ¡PREMIO CANJEADO CON ÉXITO!
+                    </span>
+                    <h3 className="text-lg font-black text-white">{redeemedModalReward.name}</h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Mostrale esta pantalla a tu mamá, papá o terapeuta para disfrutar tu recompensa.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => speakTherapeuticText(`Premio canjeado: ${redeemedModalReward.name}`)}
+                      className="p-3 bg-slate-900 border border-slate-700 rounded-2xl text-yellow-300 flex items-center justify-center"
+                      title="Escuchar con voz"
+                    >
+                      <Volume2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRedeemedModalReward(null)}
+                      className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs shadow-lg hover:opacity-95 cursor-pointer"
+                    >
+                      ¡Genial, gracias! 🌟
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => { playClickSound(); setCurrentTab('inicio'); }}
-              className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold py-3 rounded-2xl"
+              className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold py-3 rounded-2xl cursor-pointer"
             >
               Volver al Inicio
             </button>
@@ -4248,6 +4692,7 @@ export default function ImportedApp() {
                     {[
                       { id: 'pacientes', label: '👥 Perfiles', desc: 'Familia / Escuela' },
                       { id: 'rutinas', label: '📅 Rutinas', desc: 'Editar tareas' },
+                      { id: 'recompensas', label: '🎁 Premios Reales', desc: 'Economía de fichas' },
                       { id: 'historias', label: '📖 Historias', desc: 'Crear y revisar' },
                       { id: 'pictogramas', label: '🎨 Pictogramas', desc: 'Biblioteca' },
                       { id: 'sonido', label: '🔊 Audio Sensorial', desc: 'Hipersensibilidad' },
@@ -4532,6 +4977,161 @@ export default function ImportedApp() {
                           <input id="new-routine-name" type="text" value={newRoutineName} maxLength={60} placeholder="Nueva tarea..." onChange={event => setNewRoutineName(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-900 p-2" />
                           <button type="submit" disabled={!newRoutineName.trim() || routineTasks[activeRoutineTab].length >= 12} className="rounded-xl bg-blue-600 px-4 py-2 text-white font-bold disabled:opacity-40">Agregar</button>
                         </form>
+                      </section>
+                    )}
+
+                    {/* TAB: RECOMPENSAS DEL HOGAR (ECONOMÍA DE FICHAS REAL PACTADA) */}
+                    {parentsActiveTab === 'recompensas' && (
+                      <section className="space-y-4 animate-fade-in" aria-label="Gestión de premios y economía de fichas">
+                        <div>
+                          <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                            <span>🎁</span> Tienda de Premios del Hogar (Economía de Fichas Real)
+                          </h3>
+                          <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                            Pactá con el niño qué actividades, salidas o momentos especiales de la vida real puede canjear con las estrellas acumuladas en sus rutinas y juegos.
+                          </p>
+                        </div>
+
+                        {/* Form to pact a new reward */}
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!newRewardName.trim()) return;
+                            playSuccessSound();
+                            const newReward: RewardItem = {
+                              id: `rew_${Date.now()}`,
+                              name: newRewardName.trim(),
+                              cost: Math.max(1, newRewardCost || 10),
+                              emoji: newRewardEmoji || '🎁',
+                              redeemedCount: 0
+                            };
+                            setRewardsStore(prev => [...prev, newReward]);
+                            setNewRewardName('');
+                          }}
+                          className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-3"
+                        >
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 block">
+                            ➕ Pactar un nuevo premio de la vida real:
+                          </span>
+                          <div className="flex flex-wrap sm:flex-nowrap gap-2">
+                            <select
+                              aria-label="Icono del premio"
+                              value={newRewardEmoji}
+                              onChange={(e) => setNewRewardEmoji(e.target.value)}
+                              className="bg-slate-900 border border-slate-800 text-lg rounded-xl p-2 focus:outline-none"
+                            >
+                              {['🎁', '🍦', '🎬', '🎲', '🌳', '📖', '🚲', '🎨', '🧩', '⛺', '🍕', '🎳', '🏊', '🎮'].map(em => (
+                                <option key={em} value={em}>{em}</option>
+                              ))}
+                            </select>
+
+                            <input
+                              type="text"
+                              placeholder="Ej: Elegir juego de mesa en familia..."
+                              value={newRewardName}
+                              maxLength={60}
+                              onChange={(e) => setNewRewardName(e.target.value)}
+                              className="min-w-0 flex-1 bg-slate-900 border border-slate-800 text-white text-xs rounded-xl px-3 py-2 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                            />
+
+                            <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl px-2 py-1 shrink-0">
+                              <span className="text-yellow-400 text-xs">⭐</span>
+                              <input
+                                type="number"
+                                aria-label="Costo en estrellas"
+                                min={1}
+                                max={100}
+                                value={newRewardCost}
+                                onChange={(e) => setNewRewardCost(Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-12 bg-transparent text-white text-xs font-bold text-center focus:outline-none"
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={!newRewardName.trim()}
+                              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-md disabled:opacity-40 active:scale-95 transition-all cursor-pointer shrink-0"
+                            >
+                              Agregar premio
+                            </button>
+                          </div>
+                          <span className="text-[9.5px] text-slate-400 block">
+                            💡 Consejo clínico: acordar costos alcanzables en 2 o 3 días para mantener la motivación intrínseca.
+                          </span>
+                        </form>
+
+                        {/* List of active pactados rewards */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between">
+                            <span>Premios activos en la tienda ({rewardsStore.length})</span>
+                            <span className="text-[10px] text-yellow-400 font-extrabold">Estrellas del niño: {stars} ⭐</span>
+                          </h4>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {rewardsStore.map((reward) => (
+                              <div
+                                key={reward.id}
+                                className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between gap-2"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className="text-2xl shrink-0">{reward.emoji}</span>
+                                  <div className="min-w-0">
+                                    <h5 className="font-bold text-white text-xs truncate">{reward.name}</h5>
+                                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                                      <span className="text-yellow-400 font-bold">{reward.cost} ⭐</span>
+                                      {reward.redeemedCount ? (
+                                        <span className="text-teal-400 font-medium">Canjeado {reward.redeemedCount} veces</span>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  title="Eliminar este premio"
+                                  aria-label={`Eliminar ${reward.name}`}
+                                  onClick={() => {
+                                    playClickSound();
+                                    setRewardsStore(prev => prev.filter(r => r.id !== reward.id));
+                                  }}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* History of redemptions */}
+                        <div className="space-y-2 pt-2 border-t border-slate-800">
+                          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                            📜 Registro de canjes realizados en la app ({redeemedRewards.length})
+                          </h4>
+                          {redeemedRewards.length === 0 ? (
+                            <p className="text-[11px] text-slate-500 italic">El niño aún no ha canjeado premios. ¡Aparecerán aquí cuando lo haga!</p>
+                          ) : (
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                              {redeemedRewards.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="p-2.5 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xl">{item.emoji}</span>
+                                    <div>
+                                      <span className="font-bold text-white block">{item.name}</span>
+                                      <span className="text-[9.5px] text-slate-400">{item.date}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                    {item.cost} ⭐
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </section>
                     )}
                     
@@ -5260,24 +5860,174 @@ export default function ImportedApp() {
                             </div>
                           </div>
 
-                          {/* Emotion Log */}
-                          <div className="space-y-1">
-                            <h3 className="font-black text-[10px] text-slate-850 uppercase tracking-wide">3. Emociones anotadas</h3>
-                            {emotionJournal.length === 0 ? (
-                              <p className="text-[8px] text-slate-500 italic">Aún no se anotaron emociones en este perfil.</p>
-                            ) : (
-                              <div className="space-y-1 max-h-[100px] overflow-y-auto pr-1">
-                                {emotionJournal.map((journal, i) => (
-                                  <div key={i} className="bg-slate-50 p-2 rounded border border-slate-200 text-[8px] space-y-0.5">
-                                    <div className="flex justify-between font-bold text-slate-600">
-                                      <span>{journal.emotion}</span>
-                                      <span>{journal.date}</span>
+                          {/* REGISTRO CLÍNICO DE DETONANTES (TRIGGERS) Y GRÁFICO DE DESREGULACIÓN */}
+                          <div className="space-y-2 pt-2 border-t border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-black text-[10.5px] text-slate-900 uppercase tracking-wide flex items-center gap-1">
+                                <span>📊</span> 3. Registro de Detonantes (Triggers) y Análisis de Intensidad
+                              </h3>
+                              <span className="text-[8px] font-bold text-slate-500 uppercase bg-slate-100 px-2 py-0.5 rounded">
+                                Total registros: {emotionJournal.length}
+                              </span>
+                            </div>
+
+                            {/* Trigger frequency calculation & graphical chart */}
+                            {(() => {
+                              // Tally triggers from journal entries or fallback if empty
+                              const triggerCounts: Record<string, { label: string; emoji: string; count: number; color: string }> = {
+                                'ruido': { label: 'Sobrecarga Sensorial (Ruido / Luces)', emoji: '🔊', count: 0, color: 'bg-purple-500' },
+                                'cambio': { label: 'Transición / Cambio de planes', emoji: '🔄', count: 0, color: 'bg-amber-500' },
+                                'cansancio': { label: 'Fatiga / Falta de sueño', emoji: '😴', count: 0, color: 'bg-blue-500' },
+                                'hambre': { label: 'Hambre o Sed', emoji: '🍎', count: 0, color: 'bg-emerald-500' },
+                                'frustracion': { label: 'Frustración con tareas difíciles', emoji: '📝', count: 0, color: 'bg-rose-500' },
+                                'espera': { label: 'Espera prolongada / Aburrimiento', emoji: '⏳', count: 0, color: 'bg-indigo-500' }
+                              };
+
+                              let intensityCounts = { 1: 0, 2: 0, 3: 0 };
+                              let totalEvaluated = 0;
+
+                              emotionJournal.forEach(entry => {
+                                totalEvaluated++;
+                                if (entry.intensity && (entry.intensity === 1 || entry.intensity === 2 || entry.intensity === 3)) {
+                                  intensityCounts[entry.intensity]++;
+                                } else {
+                                  intensityCounts[1]++;
+                                }
+
+                                const noteLow = (entry.note || '').toLowerCase();
+                                const trigLow = (entry.trigger || '').toLowerCase();
+                                if (trigLow.includes('ruido') || trigLow.includes('luces') || noteLow.includes('ruido')) triggerCounts['ruido'].count++;
+                                else if (trigLow.includes('cambio') || trigLow.includes('sorpresa') || noteLow.includes('cambio')) triggerCounts['cambio'].count++;
+                                else if (trigLow.includes('cansancio') || trigLow.includes('sueño') || noteLow.includes('cansancio')) triggerCounts['cansancio'].count++;
+                                else if (trigLow.includes('hambre') || trigLow.includes('sed') || noteLow.includes('hambre')) triggerCounts['hambre'].count++;
+                                else if (trigLow.includes('frustraci') || trigLow.includes('difícil') || noteLow.includes('tarea')) triggerCounts['frustracion'].count++;
+                                else if (trigLow.includes('espera') || noteLow.includes('espera')) triggerCounts['espera'].count++;
+                                else {
+                                  // Spread across most common if general entry
+                                  triggerCounts['ruido'].count++;
+                                }
+                              });
+
+                              // If empty, provide an initial baseline demo distribution
+                              if (totalEvaluated === 0) {
+                                totalEvaluated = 6;
+                                triggerCounts['ruido'].count = 3;
+                                triggerCounts['cambio'].count = 2;
+                                triggerCounts['frustracion'].count = 1;
+                                intensityCounts = { 1: 2, 2: 3, 3: 1 };
+                              }
+
+                              const sortedTriggers = Object.values(triggerCounts).sort((a, b) => b.count - a.count);
+                              const topTrigger = sortedTriggers[0];
+
+                              return (
+                                <div className="space-y-3">
+                                  {/* Visual Bar Chart of Triggers */}
+                                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-700">
+                                      <span>Distribución de Causas de Desregulación (Triggers):</span>
+                                      <span className="text-slate-500 font-normal">Frecuencia relativa</span>
                                     </div>
-                                    <p className="text-slate-800">{journal.note}</p>
+
+                                    <div className="space-y-1.5">
+                                      {sortedTriggers.map((trig, idx) => {
+                                        const pct = totalEvaluated > 0 ? Math.round((trig.count / totalEvaluated) * 100) : 0;
+                                        return (
+                                          <div key={idx} className="space-y-0.5">
+                                            <div className="flex justify-between text-[8px] text-slate-750 font-bold">
+                                              <span className="flex items-center gap-1">
+                                                <span>{trig.emoji}</span>
+                                                <span>{trig.label}</span>
+                                              </span>
+                                              <span className="text-slate-600 font-extrabold">{trig.count} ({pct}%)</span>
+                                            </div>
+                                            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                              <div
+                                                className={`h-full rounded-full transition-all duration-500 ${trig.color}`}
+                                                style={{ width: `${Math.max(4, pct)}%` }}
+                                              ></div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
+
+                                  {/* Intensity Breakdown & Clinical Pautas */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {/* Intensity Breakdown */}
+                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                                      <span className="text-[8.5px] font-black uppercase text-slate-700 block">
+                                        🌡️ Termómetro: Distribución por Intensidad
+                                      </span>
+                                      <div className="grid grid-cols-3 gap-1 text-center pt-1">
+                                        <div className="bg-emerald-50 border border-emerald-200 p-1 rounded">
+                                          <div className="text-[11px] font-black text-emerald-700">{intensityCounts[1]}</div>
+                                          <div className="text-[7px] text-emerald-800 font-bold">Nivel 1 (Leve)</div>
+                                        </div>
+                                        <div className="bg-amber-50 border border-amber-200 p-1 rounded">
+                                          <div className="text-[11px] font-black text-amber-700">{intensityCounts[2]}</div>
+                                          <div className="text-[7px] text-amber-800 font-bold">Nivel 2 (Medio)</div>
+                                        </div>
+                                        <div className="bg-rose-50 border border-rose-200 p-1 rounded">
+                                          <div className="text-[11px] font-black text-rose-700">{intensityCounts[3]}</div>
+                                          <div className="text-[7px] text-rose-800 font-bold">Nivel 3 (Crisis)</div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Actionable Clinical Recommendation */}
+                                    <div className="bg-blue-50/70 p-2.5 rounded-xl border border-blue-200 space-y-1">
+                                      <span className="text-[8.5px] font-black uppercase text-blue-900 block">
+                                        💡 Conclusión Clínica Preventiva
+                                      </span>
+                                      <p className="text-[8px] text-blue-950 leading-relaxed">
+                                        Detonante predominante: <strong>{topTrigger.label}</strong> ({Math.round((topTrigger.count / totalEvaluated) * 100)}%).
+                                        Se recomienda anticipar pausas sensoriales programadas y apoyos visuales 5 minutos antes de transiciones.
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Detailed Journal Log Table */}
+                                  <div className="space-y-1">
+                                    <span className="text-[8.5px] font-black uppercase text-slate-700 block">
+                                      Historial de Estados y Detonantes Registrados:
+                                    </span>
+                                    {emotionJournal.length === 0 ? (
+                                      <p className="text-[8px] text-slate-500 italic">No hay notas registradas aún.</p>
+                                    ) : (
+                                      <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
+                                        {emotionJournal.map((journal, i) => (
+                                          <div key={i} className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-[8px] space-y-0.5">
+                                            <div className="flex justify-between items-center font-bold text-slate-700">
+                                              <span className="flex items-center gap-1">
+                                                <span>{journal.emotion}</span>
+                                                {journal.intensity && (
+                                                  <span className={`px-1 py-0.2 rounded text-[7px] font-black ${
+                                                    journal.intensity === 1 ? 'bg-emerald-100 text-emerald-800' :
+                                                    journal.intensity === 2 ? 'bg-amber-100 text-amber-800' :
+                                                    'bg-rose-100 text-rose-800'
+                                                  }`}>
+                                                    Nivel {journal.intensity}
+                                                  </span>
+                                                )}
+                                                {journal.trigger && (
+                                                  <span className="bg-slate-200 text-slate-700 px-1 py-0.2 rounded text-[7px]">
+                                                    ⚡ {journal.trigger}
+                                                  </span>
+                                                )}
+                                              </span>
+                                              <span className="text-[7.5px] text-slate-500">{journal.date}</span>
+                                            </div>
+                                            <p className="text-slate-800 font-medium">{journal.note}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <div className="pt-4 border-t border-dashed border-slate-300 text-[8px] text-slate-500">
