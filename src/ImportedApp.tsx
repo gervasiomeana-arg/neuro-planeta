@@ -129,8 +129,8 @@ const DEFAULT_REWARDS_STORE: RewardItem[] = [
 
 const REGULATION_INTENSITIES = [
   { level: 1 as const, label: 'Un poquito', desc: 'Puedo seguir con una pausa breve', emoji: '🌱' },
-  { level: 2 as const, label: 'Bastante', desc: 'Mi cuerpo necesita calmarse ahora', emoji: '⚡' },
-  { level: 3 as const, label: 'Mucho / Desborde', desc: '¡Sobrecarga alta! Necesito parar todo', emoji: '🌋' }
+  { level: 2 as const, label: 'Bastante', desc: 'Me gustaría hacer una pausa', emoji: '⚡' },
+  { level: 3 as const, label: 'Mucho', desc: 'Me gustaría pedir ayuda o descansar', emoji: '🌋' }
 ];
 
 const REGULATION_TRIGGERS = [
@@ -140,7 +140,7 @@ const REGULATION_TRIGGERS = [
   { id: 'hambre', label: 'Hambre o sed', emoji: '🍎' },
   { id: 'frustracion', label: 'Tarea difícil o no me sale', emoji: '📝' },
   { id: 'espera', label: 'Esperar turno o aburrimiento', emoji: '⏳' },
-  { id: 'otro', label: 'No sé / sin motivo claro', emoji: '🤷' }
+  { id: 'otro', label: 'No sé qué pasó antes', emoji: '🤷' }
 ];
 
 // Neutral fallback while a new profile is being created.
@@ -303,7 +303,7 @@ const REGULATION_ZONES: RegulationZone[] = [
     cardColor: 'bg-amber-950/40 border-amber-500/30',
     buttonBorder: 'border-amber-500/40 hover:border-amber-400',
     textColor: 'text-amber-400',
-    description: 'Empiezas a sentir que pierdes el control: nervios, frustración o cuerpo muy inquieto.',
+    description: 'Quizás sentís nervios, frustración o el cuerpo inquieto. Podés elegir una pausa si te ayuda.',
     feelings: ['Inquieto', 'Frustrado', 'Nervioso', 'Euforia', 'Preocupado'],
     strategies: [
       { title: 'Respiración tranquila', desc: 'Acompañar el círculo estelar que crece y se achica.', icon: '🌬️', action: 'respirar' },
@@ -315,14 +315,14 @@ const REGULATION_ZONES: RegulationZone[] = [
   {
     id: 'rojo',
     name: 'Zona Roja',
-    badge: 'Sobrecarga / Desborde',
-    energyLabel: 'Desborde • Fuera de control',
+    badge: 'Energía muy alta',
+    energyLabel: 'Mucha intensidad • Necesito una pausa',
     emojis: '🛑 🌋 😠',
     cardColor: 'bg-rose-950/40 border-rose-500/30',
     buttonBorder: 'border-rose-500/40 hover:border-rose-400',
     textColor: 'text-rose-400',
-    description: 'Sensación de sobrecarga extrema: enojo muy grande, miedo intenso o necesidad de parar todo.',
-    feelings: ['Muy enojado', 'Asustado', 'Sobrecargado', 'Fuera de control', 'Bloqueado'],
+    description: 'A veces la energía se siente muy intensa. Si lo necesitás, podés parar y pedir compañía.',
+    feelings: ['Muy enojado', 'Asustado', 'Sobrecargado', 'Necesito ayuda', 'Bloqueado'],
     strategies: [
       { title: 'Botón SOS Calma', desc: 'Hacer el ejercicio de conexión a tierra paso a paso.', icon: '🛡️', action: 'sos' },
       { title: 'Espacio tranquilo', desc: 'Ir a un rincón seguro sin ruidos ni luces fuertes.', icon: '⛺' },
@@ -522,7 +522,7 @@ export default function ImportedApp() {
   const [newRewardEmoji, setNewRewardEmoji] = useState<string>('🎁');
 
   // Regulation Zones: Intensity & Trigger states
-  const [selectedIntensity, setSelectedIntensity] = useState<1 | 2 | 3>(1);
+  const [selectedIntensity, setSelectedIntensity] = useState<1 | 2 | 3 | null>(null);
   const [selectedTrigger, setSelectedTrigger] = useState<string | null>(null);
   const [registeredZoneFeedback, setRegisteredZoneFeedback] = useState<string | null>(null);
 
@@ -782,6 +782,9 @@ export default function ImportedApp() {
       setRoutineTasks(readRoutineTasks(activePatient.routineTasks));
       setActiveTimerTask(null);
       setEmotionJournal(activePatient.emotionJournal || []);
+      setSelectedIntensity(null);
+      setSelectedTrigger(null);
+      setRegisteredZoneFeedback(null);
       setRewardsStore(activePatient.rewardsStore ?? DEFAULT_REWARDS_STORE);
       setRedeemedRewards(activePatient.redeemedRewards || []);
       setRoutineSupportLevel(activePatient.routineSupportLevel || 'detallado');
@@ -1478,24 +1481,25 @@ export default function ImportedApp() {
     speakTherapeuticText(`¡Felicitaciones! Has canjeado tu premio: ${reward.name}. Mostrale esto a tu familia para disfrutarlo.`);
   };
 
-  // Semáforo: Registro enriquecido con intensidad y detonante (trigger)
+  // Semáforo: intensidad elegida por el usuario y situación previa opcional.
   const handleRegisterZone = (zone: RegulationZone) => {
+    if (selectedIntensity === null) return;
     playSuccessSound();
-    const intensityObj = REGULATION_INTENSITIES.find(i => i.level === selectedIntensity) || REGULATION_INTENSITIES[0];
+    const intensityObj = REGULATION_INTENSITIES.find(i => i.level === selectedIntensity)!;
     const triggerObj = REGULATION_TRIGGERS.find(t => t.id === selectedTrigger);
     const triggerLabel = triggerObj ? triggerObj.label : 'Sin especificar';
     
     const newEntry: EmotionJournalEntry = {
       date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       emotion: `${zone.badge} (${zone.name})`,
-      note: `${zone.description} • Intensidad: ${intensityObj.label} (${intensityObj.desc}) • Detonante: ${triggerLabel}`,
+      note: `${zone.description} • Intensidad elegida: ${intensityObj.label} (${intensityObj.desc}) • Situación previa: ${triggerLabel}`,
       intensity: selectedIntensity,
       trigger: triggerLabel
     };
 
     setEmotionJournal(prev => [newEntry, ...prev]);
     rewardRoutineTask('zone_regulation', 3, 'Zona de Regulación');
-    setRegisteredZoneFeedback(`¡Registro guardado! Intensidad: ${intensityObj.label}. Motivo: ${triggerLabel}.`);
+    setRegisteredZoneFeedback(`¡Registro guardado! Intensidad: ${intensityObj.label}. Situación previa: ${triggerLabel}.`);
   };
 
   const rewardRoutineTask = (taskId: string, amount: number, achievementName?: string) => {
@@ -2590,6 +2594,8 @@ export default function ImportedApp() {
                         onClick={() => {
                           playSuccessSound();
                           setSelectedZoneId(zone.id);
+                          setSelectedIntensity(null);
+                          setSelectedTrigger(null);
                           setZoneStrategyFeedback(null);
                           setRegisteredZoneFeedback(null);
                         }}
@@ -2679,7 +2685,7 @@ export default function ImportedApp() {
                             🌡️ 1. Nivel de Intensidad Corporal:
                           </span>
                           <span className="text-[10px] text-teal-300 font-extrabold">
-                            {REGULATION_INTENSITIES.find(i => i.level === selectedIntensity)?.label}
+                            {selectedIntensity === null ? 'Elegí una opción' : REGULATION_INTENSITIES.find(i => i.level === selectedIntensity)?.label}
                           </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
@@ -2687,6 +2693,7 @@ export default function ImportedApp() {
                             <button
                               key={item.level}
                               type="button"
+                              aria-pressed={selectedIntensity === item.level}
                               onClick={() => { playClickSound(); setSelectedIntensity(item.level); }}
                               className={`p-2 sm:p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                                 selectedIntensity === item.level
@@ -2705,10 +2712,10 @@ export default function ImportedApp() {
                         </div>
                       </div>
 
-                      {/* 2. SELECTOR DE DETONANTE / CAUSA (TRIGGERS) */}
+                      {/* 2. Situación previa opcional: la app no infiere causalidad. */}
                       <div className="space-y-1.5 pt-2 border-t border-white/10">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 block">
-                          ⚡ 2. ¿Qué causó este estado? (Detonante):
+                          ⚡ 2. ¿Notaste algo antes? (Opcional)
                         </span>
                         <div className="flex flex-wrap gap-1.5">
                           {REGULATION_TRIGGERS.map(trig => {
@@ -2717,6 +2724,7 @@ export default function ImportedApp() {
                               <button
                                 key={trig.id}
                                 type="button"
+                                aria-pressed={isTrigSelected}
                                 onClick={() => { playClickSound(); setSelectedTrigger(isTrigSelected ? null : trig.id); }}
                                 className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                                   isTrigSelected
@@ -2736,10 +2744,11 @@ export default function ImportedApp() {
                       <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
                         <button
                           type="button"
+                          disabled={selectedIntensity === null}
                           onClick={() => handleRegisterZone(activeZone)}
-                          className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <span>{rewardedRoutineTasks.includes('zone_regulation') ? '💾 Guardar nuevo registro' : '💾 Registrar en mi Diario Emocional (+3 ⭐)'}</span>
+                          <span>{selectedIntensity === null ? 'Elegí una intensidad para guardar' : rewardedRoutineTasks.includes('zone_regulation') ? '💾 Guardar nuevo registro' : '💾 Registrar en mi Diario Emocional (+3 ⭐)'}</span>
                         </button>
                         {registeredZoneFeedback && (
                           <span className="text-[10.5px] text-emerald-300 font-bold animate-fade-in text-center sm:text-right">
@@ -2769,7 +2778,7 @@ export default function ImportedApp() {
                       )}
 
                       {/* RESPUESTA GRADUADA SEGÚN EL TERMÓMETRO DE INTENSIDAD */}
-                      <div className={`p-3.5 rounded-2xl border-2 transition-all space-y-2 ${
+                      {selectedIntensity !== null && <div className={`p-3.5 rounded-2xl border-2 transition-all space-y-2 ${
                         selectedIntensity === 1
                           ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
                           : selectedIntensity === 2
@@ -2818,16 +2827,16 @@ export default function ImportedApp() {
                             'Marcaste una intensidad alta. Si querés, descansá en un lugar cómodo y pedí ayuda a alguien de confianza.'
                           )}
                         </p>
-                      </div>
+                      </div>}
 
                       {/* Therapeutic Strategies */}
                       <div className="space-y-2 pt-2 border-t border-white/10">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                            🛠️ Estrategias graduadas para tu nivel {selectedIntensity}:
+                            🛠️ {selectedIntensity === null ? 'Estrategias que podés probar:' : `Estrategias para el nivel ${selectedIntensity}:`}
                           </span>
                           <span className="text-[9.5px] text-teal-300 font-bold">
-                            {selectedIntensity === 1 ? 'Ideas suaves' : selectedIntensity === 2 ? 'Ideas para una pausa' : 'Ayuda y descanso'}
+                            {selectedIntensity === null ? 'Elegí tu intensidad' : selectedIntensity === 1 ? 'Ideas suaves' : selectedIntensity === 2 ? 'Ideas para una pausa' : 'Ayuda y descanso'}
                           </span>
                         </div>
 
@@ -5933,7 +5942,7 @@ export default function ImportedApp() {
                           <div className="space-y-2 pt-2 border-t border-slate-200">
                             <div className="flex items-center justify-between">
                               <h3 className="font-black text-[10.5px] text-slate-900 uppercase tracking-wide flex items-center gap-1">
-                                <span>📊</span> 3. Registro de Detonantes (Triggers) y Análisis de Intensidad
+                                <span>📊</span> 3. Situaciones señaladas e intensidad elegida
                               </h3>
                               <span className="text-[8px] font-bold text-slate-500 uppercase bg-slate-100 px-2 py-0.5 rounded">
                                 Registros del semáforo: {regulationEntries.length}
@@ -5944,13 +5953,13 @@ export default function ImportedApp() {
                             {(() => {
                               // Count only explicit semáforo answers, never welcome messages or diary notes.
                               const triggerCounts: Record<string, { label: string; emoji: string; count: number; color: string }> = {
-                                'ruido': { label: 'Sobrecarga Sensorial (Ruido / Luces)', emoji: '🔊', count: 0, color: 'bg-purple-500' },
-                                'cambio': { label: 'Transición / Cambio de planes', emoji: '🔄', count: 0, color: 'bg-amber-500' },
-                                'cansancio': { label: 'Fatiga / Falta de sueño', emoji: '😴', count: 0, color: 'bg-blue-500' },
+                                'ruido': { label: 'Ruido o luces fuertes', emoji: '🔊', count: 0, color: 'bg-purple-500' },
+                                'cambio': { label: 'Cambio de planes', emoji: '🔄', count: 0, color: 'bg-amber-500' },
+                                'cansancio': { label: 'Cansancio o sueño', emoji: '😴', count: 0, color: 'bg-blue-500' },
                                 'hambre': { label: 'Hambre o Sed', emoji: '🍎', count: 0, color: 'bg-emerald-500' },
-                                'frustracion': { label: 'Frustración con tareas difíciles', emoji: '📝', count: 0, color: 'bg-rose-500' },
-                                'espera': { label: 'Espera prolongada / Aburrimiento', emoji: '⏳', count: 0, color: 'bg-indigo-500' },
-                                'otro': { label: 'Otro o sin motivo indicado', emoji: '🤷', count: 0, color: 'bg-slate-500' }
+                                'frustracion': { label: 'Tarea difícil', emoji: '📝', count: 0, color: 'bg-rose-500' },
+                                'espera': { label: 'Espera o aburrimiento', emoji: '⏳', count: 0, color: 'bg-indigo-500' },
+                                'otro': { label: 'No sé qué pasó antes', emoji: '🤷', count: 0, color: 'bg-slate-500' }
                               };
 
                               let intensityCounts = { 1: 0, 2: 0, 3: 0 };
@@ -5962,6 +5971,7 @@ export default function ImportedApp() {
                                 }
 
                                 const trigLow = (entry.trigger || '').toLowerCase();
+                                if (!trigLow || trigLow === 'sin especificar') return;
                                 if (trigLow.includes('ruido') || trigLow.includes('luces')) triggerCounts['ruido'].count++;
                                 else if (trigLow.includes('cambio') || trigLow.includes('sorpresa')) triggerCounts['cambio'].count++;
                                 else if (trigLow.includes('cansancio') || trigLow.includes('sueño')) triggerCounts['cansancio'].count++;
@@ -5973,21 +5983,23 @@ export default function ImportedApp() {
 
                               const sortedTriggers = Object.values(triggerCounts).sort((a, b) => b.count - a.count);
                               const topTrigger = sortedTriggers[0];
+                              const totalSituations = sortedTriggers.reduce((sum, item) => sum + item.count, 0);
 
                               return (
                                 <div className="space-y-3">
                                   {totalEvaluated === 0 && <p className="text-[9px] text-slate-600">Todavía no hay registros del semáforo. El saludo inicial y las notas libres no se incluyen en este gráfico.</p>}
+                                  {totalEvaluated > 0 && totalSituations === 0 && <p className="text-[9px] text-slate-600">Hay registros de intensidad, pero todavía nadie señaló una situación previa. Este gráfico no atribuye causas.</p>}
                                   {/* Visual Bar Chart of Triggers */}
-                                  {totalEvaluated > 0 && (
+                                  {totalSituations > 0 && (
                                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
                                     <div className="flex justify-between items-center text-[9px] font-bold text-slate-700">
-                                      <span>Distribución de Causas de Desregulación (Triggers):</span>
-                                      <span className="text-slate-500 font-normal">Frecuencia relativa</span>
+                                      <span>Situaciones señaladas por el niño:</span>
+                                      <span className="text-slate-500 font-normal">Sobre {totalSituations} respuestas</span>
                                     </div>
 
                                     <div className="space-y-1.5">
                                       {sortedTriggers.map((trig, idx) => {
-                                        const pct = totalEvaluated > 0 ? Math.round((trig.count / totalEvaluated) * 100) : 0;
+                                        const pct = Math.round((trig.count / totalSituations) * 100);
                                         return (
                                           <div key={idx} className="space-y-0.5">
                                             <div className="flex justify-between text-[8px] text-slate-750 font-bold">
@@ -6034,14 +6046,14 @@ export default function ImportedApp() {
                                       </div>
                                     </div>
 
-                                    {/* Descriptive summary of the child's selected cause. */}
+                                    {/* Resumen descriptivo solo de situaciones elegidas. */}
                                     <div className="bg-blue-50/70 p-2.5 rounded-xl border border-blue-200 space-y-1">
                                       <span className="text-[8.5px] font-black uppercase text-blue-900 block">
                                         💡 Resumen orientativo de registros
                                       </span>
                                       <p className="text-[8px] text-blue-950 leading-relaxed">
-                                        Motivo más registrado: <strong>{topTrigger.label}</strong> ({Math.round((topTrigger.count / totalEvaluated) * 100)}%).
-                                        Estos datos reflejan lo elegido en esta app; revisalos junto con el niño antes de sacar conclusiones.
+                                        {totalSituations > 0 ? <>Situación más señalada: <strong>{topTrigger.label}</strong> ({Math.round((topTrigger.count / totalSituations) * 100)}% de las respuestas con situación).</> : 'Aún no hay situaciones señaladas.'}
+                                        {' '}Estos datos reflejan respuestas elegidas en la app y no establecen causas; conversalos con el niño si corresponde.
                                       </p>
                                     </div>
                                   </div>
@@ -6050,7 +6062,7 @@ export default function ImportedApp() {
                                   {/* Detailed Journal Log Table */}
                                   <div className="space-y-1">
                                     <span className="text-[8.5px] font-black uppercase text-slate-700 block">
-                                      Historial de Estados y Detonantes Registrados:
+                                      Historial de registros del semáforo:
                                     </span>
                                     {emotionJournal.length === 0 ? (
                                       <p className="text-[8px] text-slate-500 italic">No hay notas registradas aún.</p>
