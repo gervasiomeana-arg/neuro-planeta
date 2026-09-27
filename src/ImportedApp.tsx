@@ -103,6 +103,7 @@ interface Patient {
   stars: number;
   unlockedAchievements: string[];
   completedRoutineTasks: string[];
+  completedMicroSteps?: Record<string, number[]>;
   rewardedRoutineTasks?: string[];
   routineDay?: string;
   routineTasks?: RoutineSchedule;
@@ -765,6 +766,10 @@ export default function ImportedApp() {
       setRoutineDay(activePatient.routineDay || localDayKey());
       setCompletedRoutineTasks(activePatient.routineDay && activePatient.routineDay !== localDayKey()
         ? [] : (activePatient.completedRoutineTasks || []));
+      setCompletedMicroSteps(activePatient.routineDay && activePatient.routineDay !== localDayKey()
+        ? {} : (activePatient.completedMicroSteps || {}));
+      setExpandedTaskId(null);
+      setIsFirstCompleted(false);
       const rewarded = activePatient.routineDay && activePatient.routineDay !== localDayKey()
         ? [] : (activePatient.rewardedRoutineTasks || activePatient.completedRoutineTasks || []);
       rewardedRoutineTasksRef.current = new Set(rewarded);
@@ -807,6 +812,8 @@ export default function ImportedApp() {
     if (!activePatientId || loadedPatientId !== activePatientId || routineDay === todayKey) return;
     setRoutineDay(todayKey);
     setCompletedRoutineTasks([]);
+    setCompletedMicroSteps({});
+    setIsFirstCompleted(false);
     rewardedRoutineTasksRef.current = new Set();
     setRewardedRoutineTasks([]);
     setActiveRoutineTab(currentRoutineTab());
@@ -829,6 +836,7 @@ export default function ImportedApp() {
         (current.attentionHighScore || 0) !== attentionHighScore ||
         JSON.stringify(current.unlockedAchievements) !== JSON.stringify(unlockedAchievements) ||
         JSON.stringify(current.completedRoutineTasks) !== JSON.stringify(completedRoutineTasks) ||
+        JSON.stringify(current.completedMicroSteps || {}) !== JSON.stringify(completedMicroSteps) ||
         JSON.stringify(current.rewardedRoutineTasks || []) !== JSON.stringify(rewardedRoutineTasks) ||
         current.routineDay !== routineDay ||
         JSON.stringify(readRoutineTasks(current.routineTasks)) !== JSON.stringify(routineTasks) ||
@@ -850,6 +858,7 @@ export default function ImportedApp() {
         attentionHighScore,
         unlockedAchievements,
         completedRoutineTasks,
+        completedMicroSteps,
         rewardedRoutineTasks,
         routineDay,
         routineTasks,
@@ -864,7 +873,7 @@ export default function ImportedApp() {
       
       return updatedPatients;
     });
-  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices, socialStories, rewardsStore, redeemedRewards, routineSupportLevel]);
+  }, [activePatientId, loadedPatientId, selectedAge, stars, attentionHighScore, unlockedAchievements, completedRoutineTasks, completedMicroSteps, rewardedRoutineTasks, routineDay, routineTasks, emotionJournal, customPictogramImages, customPictogramVoices, socialStories, rewardsStore, redeemedRewards, routineSupportLevel]);
 
   
   // Attention Game State
@@ -4883,6 +4892,7 @@ export default function ImportedApp() {
                                 onClick={() => {
                                   setRoutineTasks(prev => ({ ...prev, [activeRoutineTab]: prev[activeRoutineTab].filter(item => item.id !== task.id) }));
                                   setCompletedRoutineTasks(prev => prev.filter(id => id !== task.id));
+                                  setCompletedMicroSteps(prev => { const next = { ...prev }; delete next[task.id]; return next; });
                                   if (activeTimerTask?.id === task.id) { setActiveTimerTask(null); setTimerIsActive(false); }
                                 }} className="rounded-lg bg-rose-950/40 px-2 py-2 text-rose-300">Eliminar</button>
 
