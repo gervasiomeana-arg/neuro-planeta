@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ActivityCard from './ActivityCard';
 import { 
   Heart, 
   Brain, 
@@ -1725,8 +1726,8 @@ export default function ImportedApp() {
             <div className="space-y-5 animate-fade-in text-left">
               <div className="text-center">
                 <span className="text-4xl animate-pulse inline-block">🚀</span>
-                <h2 className="text-xl font-extrabold text-white mt-3">¡Bienvenidos a NeuroPlaneta!</h2>
-                <p className="text-xs text-slate-400 mt-1">Tu espacio estelar de aprendizaje, calma y comunicación adaptada.</p>
+                <h2 className="text-xl font-extrabold text-white mt-3">Bienvenidos a NeuroPlaneta</h2>
+                <p className="text-xs text-slate-400 mt-1">Un lugar para jugar, expresarse y hacer una pausa.</p>
               </div>
 
               {/* Selector de modo de pantalla / dispositivo */}
@@ -2065,18 +2066,18 @@ export default function ImportedApp() {
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] ambient-glow-cyan rounded-full opacity-35"></div>
       <div className="absolute top-1/3 right-1/3 w-72 h-72 ambient-glow-pink rounded-full opacity-30"></div>
 
-      <div id="neuroplaneta-workspace" className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
+      <div id="neuroplaneta-workspace" data-device={appDeviceMode} className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
       
       {/* HEADER SECTION (Like the screenshot) */}
       <header className="px-4 sm:px-6 py-3 sm:py-5 bg-[#03060E]/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0">
-        <div className="min-w-0">
+        <div className="min-w-0 np-header-identity">
+          <p className="np-wordmark">NeuroPlaneta</p>
           <div className="flex items-center gap-1.5">
             <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-white">Hola, {activePatient.name.split(' (')[0]}!</h1>
-            <span className="animate-bounce text-sm">✨</span>
           </div>
           
           <div className="flex items-center gap-1 text-xs mt-0.5">
-            <span className="text-slate-400">Nivel:</span>
+            <span className="text-slate-400">Actividades para</span>
             <button 
               onClick={() => { playClickSound(); setShowAgeSelector(true); }}
               className="font-bold text-yellow-400 underline hover:text-yellow-300 transition-colors flex items-center gap-0.5 cursor-pointer"
@@ -2100,22 +2101,14 @@ export default function ImportedApp() {
           </button>
           {/* LOGROS HEADS-UP DISPLAY */}
           <button 
-            onClick={() => { playClickSound(); setCurrentTab('logros'); }}
-            className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-3 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
+            onClick={() => { playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
+            className="np-star-balance bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-3 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
           >
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
-            <span className="text-xs font-bold text-yellow-300">{stars} logros</span>
+            <span className="text-xs font-bold text-yellow-300">{stars} estrellas</span>
           </button>
-          {/* BOTÓN SALIDA DE LA APP (SIEMPRE VISIBLE EN MÓVIL Y ESCRITORIO) */}
-          <button
-            type="button"
-            aria-label="Salir de la aplicación al menú de acceso"
-            title="Salir al acceso principal"
-            onClick={handleExitApp}
-            className="min-h-11 px-3 rounded-full border border-rose-500/40 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <LogOut className="w-4 h-4 text-rose-300" />
-            <span className="text-xs font-bold text-rose-200">Salir</span>
+          <button type="button" aria-label="Abrir espacio de adultos" title="Espacio de adultos" onClick={() => { setShowParentsMode(true); if (!parentsAuthenticated) generateParentsMath(); }} className="np-adult-shortcut">
+            <Lock className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -2133,7 +2126,7 @@ export default function ImportedApp() {
               <span className="text-5xl animate-pulse block">🚀</span>
               <h3 className="font-extrabold text-lg text-white tracking-wide">¡Espacio Personalizado Listo!</h3>
               <div className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] text-blue-400 font-extrabold uppercase tracking-wider">
-                🌌 Demo de NeuroPlanet
+                🌌 Demo de NeuroPlaneta
               </div>
             </div>
 
@@ -2226,58 +2219,38 @@ export default function ImportedApp() {
       <main className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto pb-24">
         
         {currentTab === 'inicio' && !activeModule && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="np-home space-y-5 animate-fade-in">
             
-            {/* COSMO INTERACTIVE ROBOT ASSISTANT */}
-            <div className="bg-[#111827]/80 border border-slate-800 rounded-2xl p-4 flex gap-4 items-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-1.5 opacity-20">
-                <Brain className="w-12 h-12 text-blue-500" />
-              </div>
-              
-              {/* Animated Floating Planet */}
-              <button type="button" aria-label="Saludar a Cosmo" className="shrink-0 w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center border border-slate-800 shadow-inner relative group cursor-pointer"
-                onClick={() => {
-                  playCalmSound();
-                  setCosmoGreeted(true);
-                }}
-              >
-                <span className="text-3xl animate-pulse">🪐</span>
-                {/* Floating orbital glow */}
-                <div className="absolute inset-0 rounded-full border border-dashed border-blue-500/30 animate-spin-slow"></div>
+            <section className="np-welcome" aria-labelledby="welcome-title">
+              <button type="button" aria-label="Saludar a Cosmo" className="np-cosmo" onClick={() => { playCalmSound(); setCosmoGreeted(true); }}>
+                <span aria-hidden="true">🪐</span>
               </button>
-
-              {/* Cosmo speech bubble */}
-              <div className="flex-1 bg-white text-slate-900 p-3.5 rounded-2xl rounded-tl-none relative shadow-md">
-                <div className="absolute left-0 top-0 -ml-2 w-0 h-0 border-t-[8px] border-t-white border-l-[8px] border-l-transparent"></div>
-                <p className="text-xs font-bold leading-relaxed">
-                  {cosmoGreeted ? `¡Hola, ${activePatient.name.split(' (')[0]}! Elegí lo que más te guste para empezar.` : activeAgeConfig.characterMsg}
-                </p>
-                <div className="text-[9px] text-blue-600 font-bold mt-1 text-right animate-pulse">
-                  {cosmoGreeted ? '¡Gracias por saludarme!' : '¡Tócame para saludar!'}
-                </div>
+              <div>
+                <p className="np-eyebrow">Tu espacio, a tu ritmo</p>
+                <h2 id="welcome-title">¿Qué te gustaría hacer?</h2>
+                <p className="np-welcome-message" aria-live="polite">{cosmoGreeted ? `¡Hola, ${activePatient.name.split(' (')[0]}! Soy Cosmo. Te acompaño.` : 'Podés jugar, comunicarte o hacer una pausa.'}</p>
               </div>
-            </div>
+            </section>
 
-            {/* AGE INDICATOR BANNER (matching screenshot) */}
-            <div className={`bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between shadow-sm relative overflow-hidden`}>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🪐</span>
-                <div>
-                  <h3 className="font-extrabold text-sm text-white">Modo {activeAgeConfig.label} activado!</h3>
-                  <p className="text-[11px] text-slate-400">Elige una actividad a tu ritmo.</p>
-                </div>
+            <section aria-labelledby="activities-title" className="np-activities-section">
+              <div className="np-section-heading">
+                <h2 id="activities-title">Elegí una actividad</h2>
+                <span>Sin apuro</span>
               </div>
-              <button 
-                onClick={() => { playClickSound(); setShowAgeSelector(true); }}
-                className="bg-slate-800 text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-slate-700 hover:text-white"
-              >
-                Cambiar
-              </button>
-            </div>
+              <div className={`np-modules ${appDeviceMode === 'tablet' ? 'np-modules-tablet' : ''}`}>
+                <ActivityCard title="Emociones" description="Contá cómo te sentís" icon={Smile} tone="amber" onClick={() => { playClickSound(); setActiveModule('emociones'); }} />
+                <ActivityCard title="Atención" description="Jugá a descubrir" icon={Brain} tone="blue" onClick={() => { playClickSound(); setActiveModule('atencion'); }} />
+                <ActivityCard title="Zona Calma" description="Una pausa para vos" icon={Wind} tone="lavender" onClick={() => { playClickSound(); setActiveModule('zona_calma'); }} />
+                <ActivityCard title="Sensorial" description="Explorá a tu manera" icon={Sparkles} tone="rose" onClick={() => { playClickSound(); setActiveModule('sensorial'); }} />
+                <ActivityCard title="Comunicar" description="Decilo con imágenes" icon={MessageSquare} tone="aqua" onClick={() => { playClickSound(); setActiveModule('comunicar'); }} />
+                <ActivityCard title="Social" description="Historias para anticipar" icon={Handshake} tone="peach" onClick={() => { playClickSound(); setActiveModule('social'); setSelectedStoryId(null); setStoryStep('intro'); }} />
+                <ActivityCard title="Rutinas" description="Un paso por vez" icon={ClipboardList} tone="sage" onClick={() => { playClickSound(); setActiveModule('rutinas'); }} />
+              </div>
+            </section>
 
             {/* MAIN 4 CORE THERAPEUTIC MODULES GRID */}
-            <section aria-labelledby="next-steps-title" className="rounded-2xl border border-[#b9ccc1] bg-[#e8f0e8] p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
+            <section aria-labelledby="next-steps-title" className="np-routine-preview rounded-2xl border border-[#b9ccc1] bg-[#e8f0e8] p-4 space-y-3">
+              <div className="np-section-heading flex items-center justify-between gap-3">
                 <h2 id="next-steps-title" className="font-extrabold text-base text-[#27665e]">Mi rutina: {activeRoutineTab}</h2>
                 <div className="flex items-center gap-2">
                   <button 
@@ -2351,6 +2324,9 @@ export default function ImportedApp() {
                     onClick={() => {
                       playSuccessSound();
                       setSelectedZoneId(zone.id);
+                      setSelectedIntensity(null);
+                      setSelectedTrigger(null);
+                      setRegisteredZoneFeedback(null);
                       setEmotionSubTab('semaforo');
                       setActiveModule('emociones');
                     }}
@@ -2367,157 +2343,6 @@ export default function ImportedApp() {
               </div>
             </section>
 
-            <div className={`np-modules grid gap-3 sm:gap-4 ${appDeviceMode === 'tablet' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
-              
-              {/* Emociones (Mood and Emotional Regulation) */}
-              <button
-                onClick={() => { playClickSound(); setActiveModule('emociones'); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-amber-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '6-8' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-amber-500/10 text-amber-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-amber-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-amber-500/20 shadow-[0_0_15px_rgba(217,119,6,0.15)]">
-                  <Smile className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-amber-400 tracking-wide">Emociones</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Reconoce cómo te sientes en el día</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all duration-300"></div>
-              </button>
-
-              {/* Atencion (Attention, Focus, Prefrontal Training) */}
-              <button
-                onClick={() => { setAttentionGameState('idle'); setAttentionActivity(null); setActiveModule('atencion'); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-blue-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '9-10' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-blue-500/10 text-blue-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-blue-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                  <Brain className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-blue-400 tracking-wide">Atención</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Busca números y juega a observar</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all duration-300"></div>
-              </button>
-
-              {/* Zona Calma (Guided Breathing & Self-Regulation) */}
-              <button
-                onClick={() => { playClickSound(); setActiveModule('zona_calma'); setBreathingPhase('idle'); setBreathingCycles(0); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-purple-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '3-5' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-purple-500/10 text-purple-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-purple-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-purple-500/20 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
-                  <Wind className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-purple-400 tracking-wide">Zona Calma</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Respira hondo y equilibra tu mente</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-purple-500/5 rounded-full blur-xl group-hover:bg-purple-500/10 transition-all duration-300"></div>
-              </button>
-
-              {/* Sensorial (Sensory Regulation, Color, Sound Therapy) */}
-              <button
-                onClick={() => { playClickSound(); setActiveModule('sensorial'); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-pink-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '3-5' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-pink-500/10 text-pink-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-pink-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-pink-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.15)]">
-                  <Sparkles className="w-5 h-5 text-pink-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-pink-400 tracking-wide">Sensorial</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Explora colores y sonidos suaves</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-pink-500/5 rounded-full blur-xl group-hover:bg-pink-500/10 transition-all duration-300"></div>
-              </button>
-
-              {/* Comunicar (AAC Pictograms) */}
-              <button
-                onClick={() => { playClickSound(); setActiveModule('comunicar'); setConstructedPhrase([]); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-sky-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '3-5' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-sky-500/10 text-sky-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-sky-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-sky-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-sky-500/20 shadow-[0_0_15px_rgba(56,189,248,0.15)]">
-                  <MessageSquare className="w-5 h-5 text-sky-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-sky-400 tracking-wide">Comunicar</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Forma frases con pictogramas</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-sky-500/5 rounded-full blur-xl group-hover:bg-sky-500/10 transition-all duration-300"></div>
-              </button>
-
-              {/* Social (Social Stories and Situations) */}
-              <button
-                onClick={() => { playClickSound(); setActiveModule('social'); setSelectedStoryId(null); setStoryStep('intro'); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-rose-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '9-10' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-rose-500/10 text-rose-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-rose-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-[#F43F5E]/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
-                  <Handshake className="w-5 h-5 text-rose-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-rose-400 tracking-wide">Social</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Practica situaciones del día a día</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-rose-500/5 rounded-full blur-xl group-hover:bg-rose-500/10 transition-all duration-300"></div>
-              </button>
-
-              {/* Rutinas (Visual Scheduler) */}
-              <button
-                onClick={() => { playClickSound(); setActiveModule('rutinas'); }}
-                className="bg-[#0B0F19]/80 border border-white/5 hover:border-emerald-500/30 text-left p-5 rounded-[24px] relative group overflow-hidden transition-all hover:scale-[1.03] shadow-lg flex flex-col justify-between min-h-[155px] cursor-pointer"
-              >
-                {selectedAge === '6-8' && (
-                  <span className="absolute top-2 right-2 text-[8px] bg-emerald-500/10 text-emerald-400 font-extrabold uppercase px-1.5 py-0.5 rounded-full border border-emerald-500/20">
-                    ⭐ Recomendado
-                  </span>
-                )}
-                <div className="w-10 h-10 bg-[#10B981]/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-                  <ClipboardList className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-emerald-400 tracking-wide">Rutinas</h3>
-                  <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Organiza tu día y gana estrellas</p>
-                </div>
-                {/* Radial corner ambient glow */}
-                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all duration-300"></div>
-              </button>
-
-            </div>
-
             {/* ADULT / THERAPIST CONTROL SECTION */}
             <div className="pt-4">
               <button
@@ -2531,7 +2356,7 @@ export default function ImportedApp() {
                 className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-slate-300 transition-all active:scale-98"
               >
                 <Lock className="w-4 h-4 text-blue-400" />
-                <span>👨‍👩‍👧 Modo Padres / Terapeutas</span>
+                <span>Espacio de adultos · Familia y profesionales</span>
               </button>
             </div>
 
@@ -2685,7 +2510,7 @@ export default function ImportedApp() {
                       <div className="space-y-1.5 pt-2 border-t border-white/10">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-300">
-                            🌡️ 1. Nivel de Intensidad Corporal:
+                            🌡️ 1. ¿Con qué intensidad lo sentís?
                           </span>
                           <span className="text-[10px] text-teal-300 font-extrabold">
                             {selectedIntensity === null ? 'Elegí una opción' : REGULATION_INTENSITIES.find(i => i.level === selectedIntensity)?.label}
