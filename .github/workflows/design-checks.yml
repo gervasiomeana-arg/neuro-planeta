@@ -16,6 +16,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
+      - run: npm run test:security
       - run: npx playwright install --with-deps chromium
       - name: Probar versión candidata
         run: npx playwright test
