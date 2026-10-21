@@ -2066,7 +2066,7 @@ export default function ImportedApp() {
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] ambient-glow-cyan rounded-full opacity-35"></div>
       <div className="absolute top-1/3 right-1/3 w-72 h-72 ambient-glow-pink rounded-full opacity-30"></div>
 
-      <div id="neuroplaneta-workspace" className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
+      <div id="neuroplaneta-workspace" data-device={appDeviceMode} className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
       
       {/* HEADER SECTION (Like the screenshot) */}
       <header className="px-4 sm:px-6 py-3 sm:py-5 bg-[#03060E]/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0">
@@ -2102,7 +2102,7 @@ export default function ImportedApp() {
           {/* LOGROS HEADS-UP DISPLAY */}
           <button 
             onClick={() => { playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
-            className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-3 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
+            className="np-star-balance bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-3 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
           >
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
             <span className="text-xs font-bold text-yellow-300">{stars} estrellas</span>

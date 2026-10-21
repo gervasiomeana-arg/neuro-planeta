@@ -171,11 +171,14 @@
 .np-cosmo { display: grid; place-items: center; flex-shrink: 0; width: 62px; height: 62px; border-radius: 50%; background: #e1e8d5; border: 1px solid #c4d0b6; }
 .np-cosmo span { font-size: 32px; }
 .np-eyebrow { font-size: 12px; font-weight: 650; color: var(--np-teal); margin-bottom: 5px; }
-.np-welcome h2 { font-size: clamp(21px, 3vw, 28px); font-weight: 750; letter-spacing: -.6px; line-height: 1.2; }
+.np-welcome h2 { font-size: 24px; font-weight: 750; letter-spacing: -.6px; line-height: 1.2; }
 .np-welcome-message { font-size: 14px; line-height: 1.5; margin-top: 7px; color: var(--np-muted); }
 .np-wordmark { font-size: 12px; font-weight: 750; letter-spacing: .4px; color: var(--np-teal); margin-bottom: 4px; }
 .np-adult-shortcut { min-width: 44px; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--np-line); border-radius: 50%; background: var(--np-soft); color: var(--np-teal); }
 .np-header-identity { flex: 1; }
+.np-header-identity > div:last-child { flex-wrap: wrap; }
+.np-header-identity button { white-space: nowrap; }
+#neuroplaneta-workspace[data-device="movil"] .np-star-balance { display: none; }
 .np-header-identity h1 { overflow-wrap: anywhere; font-size: 18px; }
 #neuroplaneta-workspace > header { gap: 8px; }
 #neuroplaneta-workspace { box-shadow: 0 16px 64px rgb(41 59 58 / .12); }
@@ -196,7 +199,9 @@
   .np-modules-tablet { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #neuroplaneta-workspace > main { padding-inline: 32px; }
 }
+@media (max-width: 600px) { .np-star-balance { display: none; } }
 @media (max-width: 380px) {
+  .np-welcome h2 { font-size: 21px; }
   .np-modules { gap: 10px; }
   .np-modules > .np-activity-card { padding: 14px; min-height: 144px; }
   .np-activity-title { font-size: 16px; }

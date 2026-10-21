@@ -17,6 +17,7 @@ for (const width of [360, 768, 1280]) {
   test(`inicio legible y accesible a ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
+    if (width >= 768) await page.getByRole('button', { name: /Tablet Vista amplia/ }).click();
     await page.getByRole('button', { name: /Prueba de diseño/ }).click();
     await expect(page.locator('.np-activity-card')).toHaveCount(7);
     const bounds = await page.locator('.np-activity-card').evaluateAll(nodes => nodes.map(node => {
