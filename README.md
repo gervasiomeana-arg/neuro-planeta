@@ -29,3 +29,6 @@ En «Modo Padres / Terapeutas» → «Historias», el adulto describe una situac
 
 
 Seguridad: ver [auditoría y pendientes](docs/seguridad-2026-10-21.md). Las imágenes personalizadas de tableros se limitan a formatos raster locales o URLs de pictogramas de ARASAAC. Las imágenes remotas antiguas no admitidas permanecen guardadas, pero se muestran con el pictograma predeterminado; no se solicitan a servidores externos. Las fotos nuevas se reducen y recodifican antes de guardarse, eliminando los metadatos originales.
+
+
+Recuperación local: [copias cifradas, restauración y límites](docs/recuperacion-local.md).
