@@ -389,7 +389,12 @@ const readRoutineTasks = (value: unknown): RoutineSchedule => {
     if (Array.isArray(saved[tab])) {
       defaults[tab] = saved[tab].filter((task): task is RoutineTask =>
         !!task && typeof task.id === 'string' && typeof task.name === 'string' && typeof task.emoji === 'string'
-      ).slice(0, 12).map(task => ({ id: task.id, name: task.name.slice(0, 60), emoji: task.emoji.slice(0, 8) }));
+      ).slice(0, 12).map(task => ({
+        id: task.id, name: task.name.slice(0, 60), emoji: task.emoji.slice(0, 8),
+        ...(Array.isArray(task.steps) ? { steps: task.steps
+          .filter((step): step is string => typeof step === 'string' && !!step.trim())
+          .slice(0, 20).map(step => step.slice(0, 180)) } : {})
+      }));
     }
   }
   return defaults;
@@ -426,6 +431,14 @@ const ALL_DEFAULT_PICTOGRAMS = [
   { id: 'mis_auriculares', category: 'objetos', fitzgerald: 'Objeto', word: 'Mis Auriculares', emoji: '🎧', color: 'border-2 border-orange-500 bg-orange-500/5 hover:border-orange-400 text-sky-400 shadow-[0_0_12px_rgba(249,115,22,0.1)]' },
   { id: 'mis_colores', category: 'objetos', fitzgerald: 'Objeto', word: 'Mis Colores', emoji: '✏️', color: 'border-2 border-orange-500 bg-orange-500/5 hover:border-orange-400 text-lime-400 shadow-[0_0_12px_rgba(249,115,22,0.1)]' }
 ];
+
+// Familiar search terms point to the existing card without changing its spoken phrase.
+const PICTOGRAM_SEARCH_TERMS: Record<string, string> = {
+  tengo_sed: 'agua beber tomar bebida',
+  tengo_hambre: 'comer comida alimento',
+  ir_al_banio: 'baño bano sanitario aseo pipí pis',
+  tengo_suenio: 'dormir sueño sueno descansar',
+};
 
 export default function ImportedApp() {
   // --- NeuroPlaneta Enterprise Multi-Patient State Architecture ---
@@ -2368,7 +2381,7 @@ export default function ImportedApp() {
           <div className="space-y-4 animate-fade-in text-left">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <button 
+                <button aria-label="Volver al inicio"
                   onClick={() => { playClickSound(); setActiveModule(null); }}
                   className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
                 >
@@ -2827,7 +2840,7 @@ export default function ImportedApp() {
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <button 
+                <button aria-label="Volver al inicio"
                   onClick={() => { playClickSound(); setActiveModule(null); }}
                   className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
                 >
@@ -2926,7 +2939,7 @@ export default function ImportedApp() {
         {activeModule === 'zona_calma' && (
           <div className="space-y-5 animate-fade-in text-center">
             <div className="flex items-center gap-2 text-left">
-              <button 
+              <button aria-label="Volver al inicio"
                 onClick={() => { playClickSound(); setActiveModule(null); }}
                 className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
               >
@@ -3000,7 +3013,7 @@ export default function ImportedApp() {
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <button 
+                <button aria-label="Volver al inicio"
                   onClick={() => { playClickSound(); setActiveModule(null); }}
                   className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
                 >
@@ -3075,7 +3088,7 @@ export default function ImportedApp() {
         {activeModule === 'comunicar' && (
           <div className="space-y-4 animate-fade-in text-left">
             <div className="flex items-center gap-2">
-              <button 
+              <button aria-label="Volver al inicio"
                 onClick={() => { playClickSound(); setActiveModule(null); }}
                 className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
               >
@@ -3243,7 +3256,8 @@ export default function ImportedApp() {
               {(() => {
                 const filteredPics = ALL_DEFAULT_PICTOGRAMS.filter(pic => {
                   if (pictogramSearchQuery) {
-                    return pic.word.toLowerCase().includes(pictogramSearchQuery.toLowerCase());
+                    const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+                    return normalize(`${pic.word} ${PICTOGRAM_SEARCH_TERMS[pic.id] || ''}`).includes(normalize(pictogramSearchQuery));
                   }
                   return pic.category === activePictogramCategory;
                 });
@@ -3305,7 +3319,7 @@ export default function ImportedApp() {
         {activeModule === 'social' && (
           <div className="space-y-4 animate-fade-in text-left">
             <div className="flex items-center gap-2">
-              <button 
+              <button aria-label="Volver al inicio"
                 onClick={() => { playClickSound(); setActiveModule(null); }}
                 className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
               >
@@ -3530,7 +3544,7 @@ export default function ImportedApp() {
         {activeModule === 'rutinas' && (
           <div className="space-y-4 animate-fade-in text-left">
             <div className="flex items-center gap-2">
-              <button 
+              <button aria-label="Volver al inicio"
                 onClick={() => { playClickSound(); setActiveModule(null); }}
                 className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
               >
