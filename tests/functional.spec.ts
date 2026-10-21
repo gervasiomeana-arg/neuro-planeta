@@ -137,7 +137,7 @@ test('comunicar: búsqueda, agregar palabras, quitar palabra y borrar frase', as
   await enter(page, 'Comunicar');
   const search = page.getByPlaceholder(/Buscar pictograma/);
   await search.fill('agua');
-  const pic = page.locator('main button').filter({ hasText: /Agua/ }).last();
+  const pic = page.locator('main button').filter({ hasText: /Tengo Sed/i }).last();
   await pic.click(); await search.fill('');
   await expect(page.getByRole('button', { name: 'Borrar', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: /Sonido desactivado/ })).toBeDisabled();
@@ -151,10 +151,10 @@ test('rutina: micro-pasos sobreviven recarga y están aislados por perfil', asyn
   await page.getByRole('button', { name: /Buscar mochila/ }).click();
   await expect.poll(async () => Object.values((await readProfile(page)).completedMicroSteps).flat().length).toBe(1);
   await page.reload(); await portal(page); await enter(page, 'Rutinas');
-  await expect(page.getByText('1/3 pasos', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 de 3 pasos', { exact: true })).toBeVisible();
   await page.getByRole('navigation').getByRole('button', { name: /Salir/ }).click();
   await portal(page, 'Segundo ficticio'); await enter(page, 'Rutinas');
-  await expect(page.getByText('0/3 pasos', { exact: true })).toBeVisible();
+  await expect(page.getByText('0 de 3 pasos', { exact: true })).toBeVisible();
 });
 
 test('temporizador permite pausar, reanudar y cancelar', async ({ page }) => {
@@ -164,6 +164,20 @@ test('temporizador permite pausar, reanudar y cancelar', async ({ page }) => {
   await page.getByRole('button', { name: /Reanudar/ }).click();
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Iniciar temporizador para Preparar mochila de prueba' })).toBeVisible();
+});
+
+test('completar micro-pasos termina la tarea sin duplicar estrellas al volver a marcar', async ({ page }) => {
+  await enter(page, 'Rutinas');
+  await page.getByRole('button', { name: 'Ver micro-pasos de Preparar mochila de prueba' }).click();
+  for (const step of ['Buscar mochila', 'Guardar cuaderno', 'Cerrar mochila']) {
+    await page.getByRole('button', { name: new RegExp(step) }).click();
+  }
+  await expect.poll(async () => (await readProfile(page)).completedRoutineTasks.length).toBe(1);
+  const stars = (await readProfile(page)).stars;
+  expect(stars).toBe(27);
+  const task = page.locator('main').getByRole('button', { name: /Preparar mochila de prueba/ }).first();
+  await task.click(); await task.click();
+  expect((await readProfile(page)).stars).toBe(stars);
 });
 
 test('tienda: cancelar no descuenta, confirmación descuenta exactamente y persiste', async ({ page }) => {
@@ -184,6 +198,25 @@ test('tienda: cancelar no descuenta, confirmación descuenta exactamente y persi
   await page.reload(); await portal(page);
   const profile = await readProfile(page);
   expect(profile.stars).toBe(2); expect(profile.redeemedRewards).toHaveLength(1);
+});
+
+test('primero/después: reiniciar el tablero no permite repetir el bonus diario', async ({ page }) => {
+  await enter(page, 'Rutinas');
+  await page.getByRole('button', { name: /Tablero Primero/ }).click();
+  await page.getByRole('button', { name: /Terminé el PRIMERO/ }).click();
+  await expect.poll(async () => (await readProfile(page)).stars).toBe(17);
+  await page.getByRole('button', { name: /Reiniciar Tablero/ }).click();
+  await page.getByRole('button', { name: /Terminé el PRIMERO/ }).click();
+  expect((await readProfile(page)).stars).toBe(17);
+});
+
+test('caritas y diario permiten guardar una nota ficticia', async ({ page }) => {
+  await enter(page, 'Emociones');
+  await page.getByRole('button', { name: /Caritas y Diario/ }).click();
+  await page.getByRole('button', { name: /Feliz/ }).click();
+  await page.getByPlaceholder('Ej: Hoy dormí genial...').fill('Nota de prueba sin datos personales');
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect.poll(async () => (await readProfile(page)).emotionJournal.some((e: any) => e.note === 'Nota de prueba sin datos personales')).toBe(true);
 });
 
 test('panel adulto: siete secciones, historia revisada, guardado y cinco pasos para el niño', async ({ page }) => {
