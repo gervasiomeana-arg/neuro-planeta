@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
+import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource } from './security/imports';
 import { 
   Heart, 
   Brain, 
@@ -1212,7 +1213,7 @@ export default function ImportedApp() {
         body: JSON.stringify({ situation })
       });
       if (!response.ok) throw new Error(response.status === 503
-        ? 'La IA no está configurada en este servidor. Podés crear un borrador guiado.'
+        ? 'La IA no está habilitada con acceso seguro en este servidor. Podés crear un borrador guiado.'
         : 'No se pudo generar con IA. Probá de nuevo o usá el borrador guiado.');
       const data = await response.json();
       if (storyPatientRef.current !== requestPatientId || controller.signal.aborted) return;
@@ -1349,7 +1350,7 @@ export default function ImportedApp() {
     try {
       // Build a full Open Board Format (OBF) compliant representation of the client's current pictograms
       const obfButtons = ALL_DEFAULT_PICTOGRAMS.map((pic) => {
-        const customImg = customPictogramImages[pic.id];
+        const customImg = safeImageSource(customPictogramImages[pic.id]);
         const colorHex = pic.color.includes('green') ? '#22c55e' :
                          pic.color.includes('orange') ? '#f97316' :
                          pic.color.includes('pink') ? '#ec4899' : '#eab308';
@@ -1358,7 +1359,7 @@ export default function ImportedApp() {
           label: pic.word,
           border_color: colorHex,
           bg_color: `${colorHex}22`,
-          image_url: customImg || `https://api.arasaac.org/api/pictograms/${pic.id}`,
+          image_url: customImg,
           vocalize_text: pic.word,
           fitzgerald_key: pic.fitzgerald,
           emoji: pic.emoji
@@ -1391,33 +1392,21 @@ export default function ImportedApp() {
     }
   };
 
-  const handleImportAsTeRICS_OBF = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportAsTeRICS_OBF = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (parsed.format === 'open-board-v1' && Array.isArray(parsed.buttons)) {
-          // Import custom image configurations back into state
-          const importedImages: Record<string, string> = {};
-          parsed.buttons.forEach((btn: any) => {
-            if (btn.image_url && (btn.image_url.startsWith('data:image') || btn.image_url.startsWith('http'))) {
-              importedImages[btn.id] = btn.image_url;
-            }
-          });
-          setCustomPictogramImages(prev => ({ ...prev, ...importedImages }));
-          playSuccessSound();
-          alert("¡Tablero OBF de AsTeRICS importado con éxito! Se han restaurado las configuraciones de pictograma.");
-        } else {
-          alert("El archivo no parece ser un formato Open Board (.obf) de AsTeRICS válido.");
-        }
-      } catch (err) {
-        alert("Error al leer el archivo JSON/OBF.");
-      }
-    };
-    reader.readAsText(file);
+    e.target.value = '';
+    if (!file || loadedPatientId !== activePatientId) return;
+    const profileId = activePatientId;
+    try {
+      if (file.size > MAX_BOARD_BYTES) throw new Error('El tablero supera el límite de 2 MB.');
+      const images = parseBoardImages(await file.text(), ALL_DEFAULT_PICTOGRAMS.map(pic => pic.id));
+      if (storyPatientRef.current !== profileId) return;
+      setCustomPictogramImages(prev => ({ ...prev, ...images }));
+      playSuccessSound();
+      alert('Tablero importado. Se conservaron las configuraciones existentes.');
+    } catch (error) {
+      if (storyPatientRef.current === profileId) alert(error instanceof Error ? error.message : 'No se pudo importar el tablero.');
+    }
   };
 
   // Age group definitions
@@ -3137,8 +3126,8 @@ export default function ImportedApp() {
                     }}
                     className="flex items-center gap-1.5 bg-[#111827] border border-sky-500/30 text-white rounded-xl px-2.5 py-1.5 text-xs font-black shadow-md animate-scale-up hover:border-red-500 transition-all"
                   >
-                    {customPictogramImages[item.id] ? (
-                      <img src={customPictogramImages[item.id]} alt={item.word} className="w-5 h-5 rounded object-cover border border-slate-800" />
+                    {safeImageSource(customPictogramImages[item.id]) ? (
+                      <img src={safeImageSource(customPictogramImages[item.id])} alt={item.word} className="w-5 h-5 rounded object-cover border border-slate-800" />
                     ) : (
                       <span className="text-lg">{item.emoji}</span>
                     )}
@@ -3271,7 +3260,7 @@ export default function ImportedApp() {
                 }
 
                 return filteredPics.map((pic) => {
-                  const customImg = customPictogramImages[pic.id];
+                  const customImg = safeImageSource(customPictogramImages[pic.id]);
                   const customVoice = customPictogramVoices[pic.id];
                   return (
                     <button
@@ -4656,9 +4645,9 @@ export default function ImportedApp() {
                           <span>Para usar IA, confirmo que no incluí datos personales y autorizo enviar solo esta situación al proveedor de IA.</span>
                         </label>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || !!editingStoryId || loadedPatientId !== activePatientId || window.location.hostname.endsWith('.github.io')}
+                          <button type="button" onClick={generateAiStory} disabled={storyGenerating || !!editingStoryId || loadedPatientId !== activePatientId || (import.meta.env.PROD || !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname))}
                             className="min-h-12 rounded-xl bg-teal-700 px-3 font-bold text-white disabled:opacity-50">
-                            {storyGenerating ? 'Creando con IA…' : window.location.hostname.endsWith('.github.io') ? 'IA disponible con servidor' : 'Crear con IA'}
+                            {storyGenerating ? 'Creando con IA…' : (import.meta.env.PROD || !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) ? 'IA pendiente de acceso seguro' : 'Crear con IA'}
                           </button>
                           <button type="button" onClick={createGuidedDraft} disabled={storyGenerating || !!editingStoryId || loadedPatientId !== activePatientId}
                             className="min-h-12 rounded-xl border border-teal-600 bg-teal-950 px-3 font-bold text-teal-200 disabled:opacity-50">
@@ -5323,8 +5312,8 @@ export default function ImportedApp() {
                                     
                                     <div className="flex items-center justify-center py-2">
                                       <div className="w-16 h-16 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden relative shadow-inner">
-                                        {customPictogramImages[selectedPicToCustomize] ? (
-                                          <img src={customPictogramImages[selectedPicToCustomize]} alt="custom-upload" className="w-full h-full object-cover" />
+                                        {safeImageSource(customPictogramImages[selectedPicToCustomize]) ? (
+                                          <img src={safeImageSource(customPictogramImages[selectedPicToCustomize])} alt="custom-upload" className="w-full h-full object-cover" />
                                         ) : (
                                           <span className="text-3xl">{activePicObj.emoji}</span>
                                         )}
@@ -5342,20 +5331,21 @@ export default function ImportedApp() {
                                     <input
                                       id="custom-img-upload-enterprise"
                                       type="file"
-                                      accept="image/*"
+                                      accept="image/png,image/jpeg,image/webp,image/gif"
                                       capture="environment"
-                                      onChange={(e) => {
+                                      onChange={async (e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) {
-                                          const reader = new FileReader();
-                                          reader.onloadend = () => {
-                                            const base64 = reader.result as string;
-                                            setCustomPictogramImages(prev => {
-                                              return { ...prev, [selectedPicToCustomize]: base64 };
-                                            });
-                                            playSuccessSound();
-                                          };
-                                          reader.readAsDataURL(file);
+                                        e.target.value = '';
+                                        if (!file || loadedPatientId !== activePatientId) return;
+                                        const profileId = activePatientId;
+                                        const pictogramId = selectedPicToCustomize;
+                                        try {
+                                          const image = await prepareLocalImage(file);
+                                          if (storyPatientRef.current !== profileId) return;
+                                          setCustomPictogramImages(prev => ({ ...prev, [pictogramId]: image }));
+                                          playSuccessSound();
+                                        } catch (error) {
+                                          if (storyPatientRef.current === profileId) alert(error instanceof Error ? error.message : 'No se pudo preparar la imagen.');
                                         }
                                       }}
                                       className="hidden"
