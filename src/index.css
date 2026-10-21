@@ -11,9 +11,9 @@
   color-scheme: light;
   --np-ink: #293b3a;
   --np-muted: #566765;
-  --np-line: #d5d9ce;
-  --np-page: #f2efe5;
-  --np-card: #fcf7ed;
+  --np-line: #ccd7cb;
+  --np-page: #edf1e9;
+  --np-card: #fff9ef;
   --np-soft: #e5eadf;
   --np-teal: #27665e;
   --np-blue: #355f80;
@@ -29,9 +29,7 @@
 }
 
 .stitch-grid {
-  background: #e8ebe2;
-  background-image: radial-gradient(#d9ded3 .7px, transparent .7px);
-  background-size: 32px 32px;
+  background: #dfe8de;
 }
 
 .ambient-glow-violet, .ambient-glow-cyan, .ambient-glow-pink {
@@ -41,12 +39,12 @@
 
 #neuroplaneta-workspace > header,
 #neuroplaneta-workspace > nav {
-  background: #efe7d8;
+  background: var(--np-card);
   border-color: var(--np-line);
 }
 
 #neuroplaneta-workspace > main {
-  background: #f1f0e8;
+  background: var(--np-page);
   scrollbar-color: #aabbb0 transparent;
   padding-bottom: 7rem;
 }
@@ -142,26 +140,70 @@
 #neuroplaneta-onboarding-wrapper [class~="text-[10.5px]"] { font-size: .8125rem; }
 #neuroplaneta-onboarding-wrapper button { min-height: 44px; }
 
-.np-modules > button {
-  background: var(--np-card) !important;
-  border: 1px solid var(--np-line) !important;
-  box-shadow: 0 4px 14px rgb(57 77 59 / .05) !important;
-  min-height: 160px;
-  padding: 1rem;
-  transform: none !important;
+/* A shared activity card keeps the same affordance across all seven modules. */
+.np-modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.np-modules > .np-activity-card {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: flex-start; gap: 14px; min-height: 152px; padding: 18px;
+  border: 1px solid var(--np-line) !important; border-radius: 24px;
+  box-shadow: 0 2px 3px rgb(41 59 58 / .025) !important;
+  text-align: left; color: var(--np-ink); transform: none !important;
+  transition: border-color .15s, box-shadow .15s; cursor: pointer;
 }
-.np-modules > button:hover { border-color: #87aaa0 !important; box-shadow: 0 6px 18px rgb(57 77 59 / .09) !important; }
-.np-modules > button:nth-child(7n + 1) { background: #f8ebd9 !important; }
-.np-modules > button:nth-child(7n + 2) { background: #e5eef1 !important; }
-.np-modules > button:nth-child(7n + 3) { background: #eee7f1 !important; }
-.np-modules > button:nth-child(7n + 4) { background: #f5e8ed !important; }
-.np-modules > button:nth-child(7n + 5) { background: #e4eff0 !important; }
-.np-modules > button:nth-child(7n + 6) { background: #f5e9e1 !important; }
-.np-modules > button:nth-child(7n) { background: #e7efe4 !important; }
-.np-modules > button h3 { font-size: 1rem; letter-spacing: normal; }
-.np-modules > button p { line-height: 1.4; }
-.np-modules > button > div:first-of-type { width: 3rem; height: 3rem; margin-bottom: .75rem; box-shadow: none; }
-.np-modules > button > div:last-child[class*="absolute"] { display: none; }
+.np-modules > .np-activity-card:hover { border-color: var(--np-teal) !important; box-shadow: 0 4px 12px rgb(41 59 58 / .08) !important; }
+.np-modules > [data-tone="amber"] { background: #f6e9d3 !important; --np-module-accent: #7a5424; }
+.np-modules > [data-tone="blue"] { background: #e0ecf0 !important; --np-module-accent: #355f80; }
+.np-modules > [data-tone="lavender"] { background: #eae4f1 !important; --np-module-accent: #68517e; }
+.np-modules > [data-tone="rose"] { background: #f4e4e8 !important; --np-module-accent: #914558; }
+.np-modules > [data-tone="aqua"] { background: #dceceb !important; --np-module-accent: #236761; }
+.np-modules > [data-tone="peach"] { background: #f3e5d9 !important; --np-module-accent: #835535; }
+.np-modules > [data-tone="sage"] { background: #deeadc !important; --np-module-accent: #42623e; }
+.np-activity-icon { display: inline-flex; padding: 10px; background: rgb(255 255 255 / .5); border-radius: 16px; color: var(--np-module-accent); }
+.np-activity-icon svg { width: 26px; height: 26px; stroke-width: 1.8; }
+.np-activity-copy { display: flex; flex-direction: column; gap: 5px; }
+.np-activity-title { font-size: 17px; font-weight: 750; line-height: 1.25; color: var(--np-module-accent); }
+.np-activity-description { font-size: 13px; line-height: 1.4; color: #435956; }
+.np-activity-arrow { position: absolute; right: 14px; top: 23px; width: 18px; height: 18px; color: var(--np-module-accent); }
+.np-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.np-section-heading h2 { font-size: 17px; font-weight: 750; color: var(--np-ink); }
+.np-section-heading > span { font-size: 13px; color: var(--np-muted); }
+.np-welcome { display: flex; gap: 16px; align-items: center; padding: 24px 0 8px; }
+.np-cosmo { display: grid; place-items: center; flex-shrink: 0; width: 62px; height: 62px; border-radius: 50%; background: #e1e8d5; border: 1px solid #c4d0b6; }
+.np-cosmo span { font-size: 32px; }
+.np-eyebrow { font-size: 12px; font-weight: 650; color: var(--np-teal); margin-bottom: 5px; }
+.np-welcome h2 { font-size: clamp(21px, 3vw, 28px); font-weight: 750; letter-spacing: -.6px; line-height: 1.2; }
+.np-welcome-message { font-size: 14px; line-height: 1.5; margin-top: 7px; color: var(--np-muted); }
+.np-wordmark { font-size: 12px; font-weight: 750; letter-spacing: .4px; color: var(--np-teal); margin-bottom: 4px; }
+.np-adult-shortcut { min-width: 44px; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--np-line); border-radius: 50%; background: var(--np-soft); color: var(--np-teal); }
+.np-header-identity { flex: 1; }
+.np-header-identity h1 { overflow-wrap: anywhere; font-size: 18px; }
+#neuroplaneta-workspace > header { gap: 8px; }
+#neuroplaneta-workspace { box-shadow: 0 16px 64px rgb(41 59 58 / .12); }
+#neuroplaneta-workspace > main { padding: 0 20px 100px; }
+.np-home { padding-bottom: 12px; }
+.np-routine-preview .np-section-heading { flex-wrap: wrap; }
+.np-routine-preview .np-section-heading > div { flex-wrap: wrap; }
+.np-home > section:not(.np-welcome):not(.np-activities-section) { box-shadow: none; border-radius: 24px; }
+.np-theme :is(input, select, textarea) { font-size: 16px; min-height: 44px; }
+.np-theme main :is([class~="text-[9px]"], [class~="text-[9.5px]"], [class~="text-[10px]"], [class~="text-[10.5px]"], [class~="text-[11px]"]) { font-size: 13px; line-height: 1.5; }
+.np-theme #adult-panel-dialog :is([class*="text-[7"], [class*="text-[8"], [class*="text-[9"], [class*="text-[10"], [class*="text-[11"]) { font-size: 12px; line-height: 1.5; }
+.np-theme button[class*="bg-gradient-to-"] { background: var(--np-teal); color: #fff; box-shadow: none; }
+.np-theme [class~="shadow-lg"], .np-theme [class~="shadow-2xl"] { box-shadow: 0 4px 16px rgb(41 59 58 / .06); }
+#neuroplaneta-onboarding-wrapper > div[class*="max-w-xl"] { border-radius: 32px; box-shadow: 0 12px 50px rgb(41 59 58 / .1); }
+#neuroplaneta-onboarding-wrapper [class*="text-[9"], #neuroplaneta-onboarding-wrapper [class*="text-[10"] { font-size: 13px; line-height: 1.5; }
+#neuroplaneta-onboarding-wrapper .animate-pulse { animation: none; }
+@media (min-width: 768px) {
+  .np-modules-tablet { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #neuroplaneta-workspace > main { padding-inline: 32px; }
+}
+@media (max-width: 380px) {
+  .np-modules { gap: 10px; }
+  .np-modules > .np-activity-card { padding: 14px; min-height: 144px; }
+  .np-activity-title { font-size: 16px; }
+  #neuroplaneta-workspace > main { padding-inline: 14px; }
+  #neuroplaneta-workspace > header { padding-inline: 12px; }
+  .np-header-identity h1 { font-size: 16px; }
+}
 #neuroplaneta-workspace > nav button { min-width: 0; flex: 1 1 0; min-height: 52px; padding-inline: .5rem; }
 #neuroplaneta-workspace > nav button[class*="bg-[#186EF3]"] { background: #d8e9db; border-color: #95b5a2; }
 #neuroplaneta-workspace > header .animate-bounce,
