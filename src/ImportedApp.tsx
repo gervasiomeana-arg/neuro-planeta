@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
+import BackupPanel from './data/BackupPanel';
+import { useProfileStore } from './data/useProfileStore';
 import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource } from './security/imports';
 import { 
   Heart, 
@@ -443,14 +445,9 @@ const PICTOGRAM_SEARCH_TERMS: Record<string, string> = {
 
 export default function ImportedApp() {
   // --- NeuroPlaneta Enterprise Multi-Patient State Architecture ---
-  const [patients, setPatients] = useState<Patient[]>(() => {
-    try {
-      const saved = localStorage.getItem('np_patients');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const profileStore = useProfileStore<Patient>();
+  const patients = profileStore.profiles;
+  const setPatients = profileStore.setProfiles;
 
   const [activePatientId, setActivePatientId] = useState<string>(() => {
     try {
@@ -460,15 +457,6 @@ export default function ImportedApp() {
       return '';
     }
   });
-
-  // Save additions and profile switches even before the child earns any progress.
-  useEffect(() => {
-    try {
-      localStorage.setItem('np_patients', JSON.stringify(patients));
-    } catch (e) {
-      console.error('No se pudieron guardar los perfiles.', e);
-    }
-  }, [patients]);
 
   // Onboarding & Device selection states
   // Siempre arranca desde el principio (pantalla de acceso) al actualizar o iniciar la app
@@ -1692,6 +1680,20 @@ export default function ImportedApp() {
   };
 
   // ONBOARDING WIZARD RENDER
+  const storageNotice = profileStore.error && <div role="alert" className="np-theme border border-[#b78a49] bg-[#f6e9d3] text-[#293b3a] p-3 text-sm">
+    <p className="font-bold">{profileStore.error}</p>
+    <p>{profileStore.fatal ? 'El guardado está detenido para evitar reemplazar los datos originales.' : 'Para resguardar esta sesión: Espacio de adultos → Perfiles → Copias de seguridad.'}</p>
+    {!profileStore.fatal && <button type="button" onClick={profileStore.retry} className="underline font-bold mt-2">Reintentar guardado</button>}
+  </div>;
+  if (profileStore.fatal) return <div className="np-theme min-h-dvh bg-[#e8ede3] text-[#293b3a] p-5">
+    <div className="max-w-xl mx-auto space-y-4">
+      <h1 className="text-xl font-extrabold">Conservamos tus datos para recuperarlos</h1>
+      {storageNotice}
+      <p>No borres los datos del navegador. Si existe una copia anterior, conservá también el archivo de rescate y pedí ayuda para revisar la recuperación.</p>
+      <BackupPanel profiles={[]} recoveryRaw={profileStore.recoveryRaw} />
+    </div>
+  </div>;
+
   if (!onboardingCompleted) {
     return (
       <div id="neuroplaneta-onboarding-wrapper" className="np-theme min-h-dvh stitch-grid flex items-center justify-center p-4 relative overflow-hidden">
@@ -1701,6 +1703,11 @@ export default function ImportedApp() {
         <div className="absolute top-1/3 right-1/3 w-64 h-64 ambient-glow-pink rounded-full opacity-35"></div>
 
         <div className="max-w-xl w-full bg-[#0B0F19]/90 border border-white/10 rounded-[32px] p-6 md:p-8 shadow-2xl text-center space-y-6 relative overflow-hidden text-slate-100 font-sans backdrop-blur-xl">
+          {storageNotice}
+          {onboardingStep === 1 && patients.length === 0 && <details className="relative text-left max-h-[60vh] overflow-y-auto">
+            <summary className="cursor-pointer font-bold text-sm p-2">Adultos: recuperar una copia anterior</summary>
+            <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
+          </details>}
           {/* Subtle glowing planet in background */}
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#186EF3]/15 rounded-full blur-2xl"></div>
           <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/15 rounded-full blur-2xl"></div>
@@ -2037,7 +2044,6 @@ export default function ImportedApp() {
                     localStorage.setItem('np_onboarding_completed', 'true');
                     localStorage.setItem('np_app_device_mode', onboardingDeviceMode);
                     localStorage.setItem('np_active_patient_id', newId);
-                    localStorage.setItem('np_patients', JSON.stringify([newPatientObj, ...patients]));
                     
                     setOnboardingCompleted(true);
                     playSuccessSound();
@@ -2070,6 +2076,7 @@ export default function ImportedApp() {
 
       <div id="neuroplaneta-workspace" data-device={appDeviceMode} className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
       
+      {storageNotice}
       {/* HEADER SECTION (Like the screenshot) */}
       <header className="px-4 sm:px-6 py-3 sm:py-5 bg-[#03060E]/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0">
         <div className="min-w-0 np-header-identity">
@@ -5047,6 +5054,7 @@ export default function ImportedApp() {
                     {/* TAB 1: PATIENTS / MULTI-USER MANAGEMENT */}
                     {parentsActiveTab === 'pacientes' && (
                       <div className="space-y-4">
+                        <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Patients switcher */}
                           <div className="space-y-2">
