@@ -15,11 +15,13 @@ export default function AdultAccountPanel() {
   const running = useRef(false);
   useEffect(() => {
     mounted.current = true;
+    const signoutFailure = () => setMessage('No se pudo cerrar la sesión automáticamente. Cerrá esta pestaña antes de compartir el dispositivo.');
+    window.addEventListener('np-adult-signout-failed', signoutFailure);
     let unsubscribe: (() => void) | undefined;
     try {
       unsubscribe = onAuthStateChanged(adultAuth(), account => { if (mounted.current) { setUser(account); setReady(true); } });
     } catch { setMessage('No se pudo preparar el acceso. Revisá que el navegador permita guardar la sesión.'); }
-    return () => { mounted.current = false; unsubscribe?.(); };
+    return () => { mounted.current = false; unsubscribe?.(); window.removeEventListener('np-adult-signout-failed', signoutFailure); };
   }, []);
   async function perform(action: 'login' | 'register' | 'reset' | 'verify' | 'logout') {
     if (running.current) return;
@@ -59,6 +61,7 @@ export default function AdultAccountPanel() {
   return <section aria-label="Cuenta adulta" className="np-adult-account rounded-2xl border p-4 space-y-3 text-sm">
     <h3 className="font-bold">Cuenta adulta</h3>
     <p>Esta cuenta identifica al adulto. Los perfiles, fotos y avances de este dispositivo todavía no están vinculados a la cuenta ni se suben a Firebase. No se sincronizan entre dispositivos.</p>
+    <p>La sesión adulta se cierra tras 15 minutos sin actividad en este panel. Jugar en el espacio infantil no prolonga la sesión.</p>
     {!ready && <p role="status">Preparando acceso…</p>}
     {user ? <>
       <p>Sesión iniciada: <strong>{user.email}</strong></p>

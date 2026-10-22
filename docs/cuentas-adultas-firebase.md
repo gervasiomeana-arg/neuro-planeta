@@ -23,3 +23,11 @@ Referencias oficiales: https://firebase.google.com/docs/auth/web/password-auth y
 La recuperación muestra la misma respuesta neutral para correos existentes, inexistentes y otros errores del proveedor. Solo distingue fallos de red y exceso de intentos, sin exponer códigos internos. La contraseña se retira del formulario antes de esperar la respuesta, además de limpiarse al finalizar. Cerrar sesión también limpia el correo y la casilla de consentimiento. Esto no reemplaza la protección contra enumeración y las cuotas del proveedor, ni oculta tiempos de respuesta o llamadas inspeccionadas desde herramientas del navegador.
 
 Una prueba de navegador intercepta todas las llamadas a Auth y compara recuperación exitosa e EMAIL_NOT_FOUND, verificando que no se envíen datos infantiles. No envía correos reales.
+
+## Sesión adulta por inactividad
+
+Auth instala un único guardián independiente del montaje del formulario. Tras 15 minutos sin interacción dentro del panel adulto abierto, solicita signOut de Firebase. Las acciones del espacio infantil, el foco y volver de una pestaña oculta no renuevan el plazo. Antes de aceptar una nueva interacción comprueba que el plazo no haya vencido; volver de suspensión fuerza esa comprobación aunque los temporizadores del navegador hayan estado pausados.
+
+Se conserva únicamente la última actividad por UID en sessionStorage para que recargar la página no reinicie el plazo. Una fecha inválida, futura o un fallo de almacenamiento solicita cierre de sesión. Al cerrar o cambiar de adulto se limpia el marcador anterior; no se borran perfiles, fotos o avances. Si el SDK informa que no pudo completar signOut y el formulario está montado, se muestra una indicación para cerrar la pestaña antes de compartir el dispositivo.
+
+Este cierre es una precaución del navegador: no revoca tokens en otros dispositivos, no cifra localStorage y no sustituye las reglas de Firestore. La app sigue sin subir perfiles. Pruebas unitarias cubren interacción infantil/adulta, suspensión, recarga, manipulación del reloj/metadatos y preservación de datos; una prueba de navegador utiliza Auth completamente simulado para comprobar el cierre real del SDK sin crear cuentas ni contactar al proveedor.
