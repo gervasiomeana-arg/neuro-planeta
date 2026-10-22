@@ -19,7 +19,11 @@ export default function AdultAccountPanel() {
     window.addEventListener('np-adult-signout-failed', signoutFailure);
     let unsubscribe: (() => void) | undefined;
     try {
-      unsubscribe = onAuthStateChanged(adultAuth(), account => { if (mounted.current) { setUser(account); setReady(true); } });
+      unsubscribe = onAuthStateChanged(adultAuth(), account => {
+        if (!mounted.current) return;
+        setUser(account); setReady(true);
+        if (!account) { setEmail(''); setPassword(''); setConsent(false); }
+      });
     } catch { setMessage('No se pudo preparar el acceso. Revisá que el navegador permita guardar la sesión.'); }
     return () => { mounted.current = false; unsubscribe?.(); window.removeEventListener('np-adult-signout-failed', signoutFailure); };
   }, []);
