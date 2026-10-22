@@ -14,7 +14,7 @@ const sections: {id:AdultSection;label:string;description:string;icon:LucideIcon
 export function AdultPanelNavigation({value,onChange}:{value:AdultSection;onChange:(section:AdultSection)=>void}){
  return <div className="np-adult-navigation">
    <nav className="np-adult-desktop-menu" aria-label="Secciones del panel de adultos"><p>ACOMPAÑAR SU DÍA</p>{sections.map(({id,label,description,icon:Icon})=><button type="button" key={id} onClick={()=>onChange(id)} aria-current={value===id?'page':undefined}><Icon aria-hidden="true"/><span><strong>{label}</strong><small>{description}</small></span></button>)}</nav>
-   <label className="np-adult-mobile-menu">Sección del panel<select value={value} onChange={e=>onChange(e.target.value as AdultSection)}>{sections.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
+   <label className="np-adult-mobile-menu">Sección del panel<select aria-label="Sección del panel" value={value} onChange={e=>onChange(e.target.value as AdultSection)}>{sections.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
  </div>;
 }
 export function AdultDialog({authenticated,onClose,children}:{authenticated:boolean;onClose:()=>void;children:ReactNode}){

@@ -5021,13 +5021,14 @@ export default function ImportedApp() {
 
                           {/* Add New Profile form */}
                           <div className="bg-slate-950/60 border border-slate-850 p-3.5 rounded-2xl space-y-2">
-                            <h3 className="font-extrabold text-white text-xs">➕ Registrar Nuevo Paciente</h3>
+                            <h3 className="font-extrabold text-white text-xs">➕ Crear un perfil</h3>
                             
                             <div className="space-y-1.5">
-                              <label className="text-[9px] text-slate-400 font-bold uppercase">Nombre Completo</label>
+                              <label htmlFor="new-profile-name" className="text-[9px] text-slate-400 font-bold uppercase">Nombre o apodo</label>
                               <input
                                 type="text"
-                                placeholder="ej: Lucas Martínez"
+                                id="new-profile-name"
+                                placeholder="Ej.: Alex"
                                 value={newPatientName}
                                 onChange={(e) => setNewPatientName(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none focus:border-slate-700"
@@ -5037,7 +5038,7 @@ export default function ImportedApp() {
                             <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">
                                 <label className="text-[9px] text-slate-400 font-bold uppercase">Edad</label>
-                                <select
+                                <select aria-label="Edad del nuevo perfil"
                                   value={newPatientAge}
                                   onChange={(e) => setNewPatientAge(e.target.value)}
                                   className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none"
@@ -5049,7 +5050,7 @@ export default function ImportedApp() {
                               </div>
                               <div className="space-y-1">
                                 <label className="text-[9px] text-slate-400 font-bold uppercase">Avatar</label>
-                                <select
+                                <select aria-label="Avatar del nuevo perfil"
                                   value={newPatientAvatar}
                                   onChange={(e) => setNewPatientAvatar(e.target.value)}
                                   className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none"
@@ -5064,10 +5065,11 @@ export default function ImportedApp() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[9px] text-slate-400 font-bold uppercase">Objetivo Terapéutico</label>
+                              <label htmlFor="new-profile-objective" className="text-[9px] text-slate-400 font-bold uppercase">Objetivo de acompañamiento</label>
                               <input
                                 type="text"
-                                placeholder="ej: Reducir frustración de transiciones"
+                                id="new-profile-objective"
+                                placeholder="Ej.: anticipar cambios en la rutina"
                                 value={newPatientObjective}
                                 onChange={(e) => setNewPatientObjective(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none focus:border-slate-700"
@@ -5142,7 +5144,7 @@ export default function ImportedApp() {
                             {/* Range Selector */}
                             <div className="space-y-1">
                               <label className="text-[9px] text-blue-400 font-extrabold uppercase tracking-widest block">Rango de Edad Activo</label>
-                              <select
+                              <select aria-label="Rango de edad activo"
                                 value={selectedAge}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -5183,7 +5185,7 @@ export default function ImportedApp() {
                                 onChange={(e) => setParentsPicSearchQuery(e.target.value)}
                                 className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none"
                               />
-                              <select
+                              <select aria-label="Filtrar pictogramas por categoría"
                                 value={parentsPicCategoryFilter}
                                 onChange={(e) => setParentsPicCategoryFilter(e.target.value as any)}
                                 className="bg-slate-900 border border-slate-800 rounded-lg px-1.5 py-1 text-xs text-slate-300 focus:outline-none"

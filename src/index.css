@@ -587,3 +587,8 @@
  .np-live-shell #adult-panel-scroll [aria-label="Copias de seguridad"] { padding:17px; }
  .np-live-shell #adult-panel-scroll>div>.flex.items-center.justify-between { flex-wrap:wrap;gap:12px; }
 }
+@media screen {
+ .np-adult-desktop-menu small { color:#4e6345; }
+ .np-live-shell #adult-panel-scroll button[class~="bg-teal-950"] { background:#e3ecda;color:#29493f; }
+ .np-live-shell #adult-panel-scroll .text-yellow-600 { color:#795c24; }
+}

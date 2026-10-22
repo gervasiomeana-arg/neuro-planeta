@@ -98,6 +98,7 @@ for (const width of [360,1280]) {
 
 for(const width of [360,1280]) {
   test(`panel adulto navegable y sin desbordes a ${width}px`,async({page},info)=>{
+    test.setTimeout(90000);
     await page.setViewportSize({width,height:900});
     await page.goto('/');
     await page.getByRole('button',{name:/Prueba de diseño/}).click();
@@ -125,6 +126,7 @@ for(const width of [360,1280]) {
     }
     await info.attach('accesibilidad-adultos.json',{body:JSON.stringify(accessibility,null,2),contentType:'application/json'});
     console.log(`ACCESIBILIDAD_ADULTOS_${width}`,JSON.stringify(accessibility));
+    for(const violations of Object.values(accessibility))expect(violations).toEqual([]);
     await dialog.getByRole('button',{name:'Cerrar panel de adultos',exact:true}).focus();
     await page.keyboard.press('Shift+Tab');
     await expect(dialog.getByRole('button',{name:'Cerrar panel',exact:true})).toBeFocused();
