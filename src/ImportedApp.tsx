@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
+import { useVoiceRecording } from './audio/useVoiceRecording';
 import ActivityHeader from './ActivityHeader';
 import { AdultDialog, AdultPanelNavigation } from './AdultPanel';
 import WorkspaceNavigation from './WorkspaceNavigation';
@@ -546,8 +547,6 @@ export default function ImportedApp() {
 
   // Estados de grabación y personalización
   const [selectedPicToCustomize, setSelectedPicToCustomize] = useState<string>('tengo_hambre');
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
 
   // Estados del Temporizador Visual para Rutinas
@@ -673,6 +672,14 @@ export default function ImportedApp() {
   };
   const [showParentsMode, setShowParentsMode] = useState<boolean>(false);
   const [parentsAuthenticated, setParentsAuthenticated] = useState<boolean>(false);
+  const voiceScope = showParentsMode && parentsAuthenticated && parentsActiveTab === 'pictogramas'
+    ? JSON.stringify([activePatientId, selectedPicToCustomize]) : null;
+  const voiceRecording = useVoiceRecording(voiceScope, audio => {
+    setCustomPictogramVoices(prev => ({ ...prev, [selectedPicToCustomize]: audio }));
+    setPreviewAudioUrl(audio);
+    playSuccessSound();
+  });
+  useEffect(() => { setPreviewAudioUrl(null); }, [activePatientId, showParentsMode, parentsActiveTab]);
   const [parentsAnswer, setParentsAnswer] = useState<string>('');
   const [parentsMathQuestion, setParentsMathQuestion] = useState<{q: string, a: number}>({q: '7 x 8', a: 56});
   const [parentsFeedback, setParentsFeedback] = useState<string>('');
@@ -5295,59 +5302,15 @@ export default function ImportedApp() {
                                       📷 Tomar Foto Familiar
                                     </label>
 
-                                    {/* Voice recording Action */}
-                                    {isRecording ? (
-                                      <button
-                                        onClick={() => {
-                                          if (mediaRecorder) {
-                                            mediaRecorder.stop();
-                                            setIsRecording(false);
-                                          }
-                                        }}
-                                        className="w-full bg-rose-600 animate-pulse text-white font-extrabold text-[10px] py-1.5 px-2 rounded-lg text-center"
-                                      >
-                                        ⏹️ Detener Grabación
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                                            const recorder = new MediaRecorder(stream);
-                                            const chunks: Blob[] = [];
-                                            
-                                            recorder.ondataavailable = (e) => {
-                                              if (e.data.size > 0) chunks.push(e.data);
-                                            };
-
-                                            recorder.onstop = () => {
-                                              const blob = new Blob(chunks, { type: 'audio/webm' });
-                                              const reader = new FileReader();
-                                              reader.onloadend = () => {
-                                                const base64 = reader.result as string;
-                                                setCustomPictogramVoices(prev => {
-                                                  return { ...prev, [selectedPicToCustomize]: base64 };
-                                                });
-                                                setPreviewAudioUrl(base64);
-                                                playSuccessSound();
-                                              };
-                                              reader.readAsDataURL(blob);
-                                              stream.getTracks().forEach(t => t.stop());
-                                            };
-
-                                            recorder.start();
-                                            setMediaRecorder(recorder);
-                                            setIsRecording(true);
-                                            setPreviewAudioUrl(null);
-                                          } catch (err) {
-                                            alert("Otorga permisos de micrófono para grabar.");
-                                          }
-                                        }}
-                                        className="w-full bg-pink-600 hover:bg-pink-500 text-white font-extrabold text-[10px] py-1.5 px-2 rounded-lg text-center flex items-center justify-center gap-1"
-                                      >
-                                        🎤 Grabar Voz Familiar
-                                      </button>
-                                    )}
+                                    {/* Microphone lifetime is scoped to this adult profile and pictogram. */}
+                                    <button
+                                      onClick={voiceRecording.busy ? voiceRecording.stop : voiceRecording.start}
+                                      className="w-full bg-pink-600 hover:bg-pink-500 text-white font-extrabold text-[10px] py-1.5 px-2 rounded-lg text-center flex items-center justify-center gap-1"
+                                    >
+                                      {voiceRecording.busy ? '⏹️ Detener Grabación' : '🎤 Grabar Voz Familiar'}
+                                    </button>
+                                    <p className="text-[10px]">Hasta 30 segundos. El micrófono se apaga al salir de esta sección.</p>
+                                    {voiceRecording.error && <p role="alert">{voiceRecording.error}</p>}
 
                                     {/* Play preview or remove customized elements */}
                                     <div className="grid grid-cols-2 gap-1 mt-1">
