@@ -98,31 +98,34 @@ async function derive(password: string, salt: Uint8Array<ArrayBuffer>, usage: Ke
   const material = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: ITERATIONS, hash: 'SHA-256' }, material, { name: 'AES-GCM', length: 256 }, false, usage);
 }
-async function seal(payload: unknown, password: string) {
+function authenticatedScope(scope: string) {
+  return encoder.encode(scope ? `${FORMAT}\0${scope}` : FORMAT);
+}
+async function seal(payload: unknown, password: string, scope = '') {
   const bytes = encoder.encode(JSON.stringify(payload));
   if (bytes.length > 12_000_000) throw new Error('Los datos superan el tamaño admitido para esta copia.');
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await derive(password, salt, ['encrypt']);
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(FORMAT), tagLength: 128 }, key, bytes);
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: authenticatedScope(scope), tagLength: 128 }, key, bytes);
   return JSON.stringify({ format: FORMAT, algorithm: 'AES-256-GCM', kdf: 'PBKDF2-SHA256', iterations: ITERATIONS, salt: toBase64(salt), iv: toBase64(iv), ciphertext: toBase64(new Uint8Array(ciphertext)) });
 }
-export async function encryptBackup(profiles: unknown[], password: string) {
+export async function encryptBackup(profiles: unknown[], password: string, scope = '') {
   const snapshot: unknown = JSON.parse(JSON.stringify(profiles));
   validateProfiles(snapshot);
-  return seal({ format: 'neuroplaneta-profiles-v1', createdAt: new Date().toISOString(), profiles: snapshot }, password);
+  return seal({ format: 'neuroplaneta-profiles-v1', createdAt: new Date().toISOString(), profiles: snapshot }, password, scope);
 }
 export async function encryptRecovery(raw: string, password: string) {
   return seal({ format: 'neuroplaneta-recovery-v1', raw }, password);
 }
-export async function decryptBackup(text: string, password: string) {
+export async function decryptBackup(text: string, password: string, scope = '') {
   if (encoder.encode(text).length > MAX_BACKUP_BYTES) throw new Error('La copia supera el límite de 20 MB.');
   const envelope: unknown = JSON.parse(text);
   if (!record(envelope) || envelope.format !== FORMAT || envelope.algorithm !== 'AES-256-GCM' || envelope.kdf !== 'PBKDF2-SHA256' || envelope.iterations !== ITERATIONS) throw new Error('Formato de copia no admitido.');
   const salt = fromBase64(envelope.salt, 16), iv = fromBase64(envelope.iv, 12), ciphertext = fromBase64(envelope.ciphertext);
   const key = await derive(password, salt, ['decrypt']);
   let plain: ArrayBuffer;
-  try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(FORMAT), tagLength: 128 }, key, ciphertext); }
+  try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: authenticatedScope(scope), tagLength: 128 }, key, ciphertext); }
   catch { throw new Error('Contraseña incorrecta o copia dañada. Los perfiles actuales siguen intactos.'); }
   const payload: unknown = JSON.parse(new TextDecoder().decode(plain));
   if (!record(payload) || payload.format !== 'neuroplaneta-profiles-v1') throw new Error('Este archivo de rescate necesita revisión técnica; no se restaura automáticamente.');
