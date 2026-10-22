@@ -26,7 +26,7 @@ test('account registration requires adult consent and a long password', async ({
   await expect(account.getByRole('button', { name: 'Crear cuenta adulta', exact: true })).toBeDisabled();
   await account.getByRole('checkbox').check();
   await expect(account.getByRole('button', { name: 'Crear cuenta adulta', exact: true })).toBeEnabled();
-  await expect(account).toContainText('todavía no están vinculados');
+  await expect(account).toContainText('no se vinculan automáticamente');
 });
 
 test('failed login clears password, preserves child data, and sends only account fields', async ({ page }) => {
@@ -104,4 +104,57 @@ test('adult session signs out after inactivity while preserving local child prof
   await expect(account.getByRole('checkbox')).not.toBeChecked();
   expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
   expect(await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('np_adult_last_activity:')))).toEqual([]);
+});
+
+test('verified adult explicitly links only a minimal profile and retries without duplicates', async ({ page }) => {
+  const payload = Buffer.from(JSON.stringify({ sub: 'link_adult', user_id: 'link_adult', auth_time: Math.floor(Date.now() / 1000), iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, email: 'adulto@example.invalid', email_verified: true })).toString('base64url');
+  const token = `eyJhbGciOiJub25lIn0.${payload}.simulated`;
+  await page.route('https://identitytoolkit.googleapis.com/**', async route => {
+    if (route.request().url().includes('accounts:signInWithPassword')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ localId: 'link_adult', email: 'adulto@example.invalid', idToken: token, refreshToken: 'simulated-only', expiresIn: '3600' }) });
+    if (route.request().url().includes('accounts:lookup')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [{ localId: 'link_adult', email: 'adulto@example.invalid', emailVerified: true }] }) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ recaptchaEnforcementState: [] }) });
+  });
+  await page.route('https://securetoken.googleapis.com/**', route => route.abort());
+  const writes: any[] = [], cloud = new Map<string, any>();
+  let reads = 0;
+  await page.route('https://firestore.googleapis.com/**', async route => {
+    const url = route.request().url(), body = route.request().postDataJSON();
+    const now = '2026-10-22T12:00:00.000000Z';
+    if (url.includes(':batchGet')) {
+      reads++;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.documents.map((name: string) => cloud.has(name) ? { found: cloud.get(name), readTime: now } : { missing: name, readTime: now })) });
+    }
+    if (url.includes(':commit')) {
+      for (const write of body.writes || []) if (write.update) {
+        writes.push(write.update);
+        cloud.set(write.update.name, { ...write.update, createTime: now, updateTime: now });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ commitTime: now, writeResults: (body.writes || []).map(() => ({ updateTime: now })) }) });
+    }
+    return route.abort();
+  });
+  const account = await open(page);
+  const before = await page.evaluate(() => localStorage.getItem('np_patients'));
+  await account.getByLabel('Correo del adulto', { exact: true }).fill('adulto@example.invalid');
+  await account.getByLabel('Contraseña de la cuenta', { exact: true }).fill('Clave ficticia larga 2026');
+  await account.getByRole('button', { name: 'Ingresar a mi cuenta', exact: true }).click();
+  const link = account.getByRole('region', { name: 'Vincular perfil a mi familia', exact: true });
+  await expect(link).toBeVisible();
+  expect(reads).toBe(0); expect(writes).toHaveLength(0);
+  await link.getByRole('textbox').fill('Astro');
+  await expect(link.getByRole('button')).toBeDisabled();
+  await link.getByRole('checkbox').check();
+  await link.getByRole('button').click();
+  await expect(link.getByRole('status')).toContainText('Ficha mínima vinculada');
+  expect(writes).toHaveLength(2);
+  const child = writes.find(write => write.name.includes('/profiles/'));
+  expect(child.name).toMatch(/\/families\/link_adult\/profiles\/[a-f0-9]{64}$/);
+  expect(Object.keys(child.fields).sort()).toEqual(['ageRange', 'nickname', 'ownerUid', 'schemaVersion']);
+  expect(JSON.stringify(writes)).not.toMatch(/Cuenta ficticia|account_test|stars|emotionJournal/);
+  await link.getByRole('checkbox').check(); await link.getByRole('button').click();
+  await expect(link.getByRole('status')).toContainText('ya estaba vinculada');
+  expect(writes).toHaveLength(2);
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
+  await account.getByRole('button', { name: 'Cerrar sesión adulta', exact: true }).click();
+  await expect(account.getByRole('region', { name: 'Vincular perfil a mi familia', exact: true })).toHaveCount(0);
 });

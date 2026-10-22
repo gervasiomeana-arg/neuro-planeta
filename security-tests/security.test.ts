@@ -103,7 +103,7 @@ test('invalid or sensitive provider errors never reach client, extra output fiel
 
 test('static CSP forbids inline scripts, eval, plugins and arbitrary connections', () => {
   assert.match(browserPolicy, /script-src 'self';/); assert.doesNotMatch(browserPolicy, /unsafe-eval/);
-  assert.match(browserPolicy, /object-src 'none'/); assert.match(browserPolicy, /connect-src 'self' https:\/\/api.arasaac.org https:\/\/identitytoolkit.googleapis.com https:\/\/securetoken.googleapis.com;/);
+  assert.match(browserPolicy, /object-src 'none'/); assert.match(browserPolicy, /connect-src 'self' https:\/\/api.arasaac.org https:\/\/identitytoolkit.googleapis.com https:\/\/securetoken.googleapis.com https:\/\/firestore.googleapis.com;/);
 });
 
 test('board import permits raster and ARASAAC, rejects trackers, local-network URLs, SVG and prototype keys', () => {

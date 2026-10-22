@@ -27,6 +27,16 @@ Se prueban accesos permitidos del propietario y rechazos para otra familia, anó
 
 Las reglas deben publicarse en el proyecto correcto neuroplaneta-bdaf9, sobre Firestore Standard en modo de producción y manteniendo el plan Spark. No usar modo de prueba, no abrir permisos temporales y no activar Storage/Blaze. El despliegue de reglas requiere una sesión del propietario en Firebase; las pruebas del emulador no despliegan reglas.
 
-La app sigue sin inicializar Firestore y la CSP no habilita ese endpoint. No se sube ni se migra ningún perfil al iniciar sesión. Estas reglas no aíslan, cifran ni protegen el localStorage ya existente: los perfiles del dispositivo siguen accesibles a quien use ese navegador. Una integración futura requiere confirmación explícita de qué perfil se vincula, copias conservadas, cachés separadas por UID y descarte de estado al cambiar de cuenta. No activar escrituras infantiles hasta verificar reglas publicadas e integración de extremo a extremo. La primera etapa solo habilita un esquema mínimo de apodo y edad, no sincronización completa.
+Las reglas se publicaron en neuroplaneta-bdaf9, Firestore Standard, manteniendo Spark. Se comprobaron rechazos anónimos, de otra familia y de correo sin verificar. La integración actual inicializa Firestore Lite únicamente al confirmar el vínculo mínimo descrito abajo. No se sube ni se migra ningún perfil al iniciar sesión. Estas reglas no aíslan, cifran ni protegen el localStorage existente: los perfiles del dispositivo siguen accesibles a quien use ese navegador.
 
 Fuentes oficiales: https://firebase.google.com/docs/firestore/security/rules-conditions, https://firebase.google.com/docs/firestore/security/rules-fields y https://firebase.google.com/docs/rules/unit-tests.
+
+## Vinculación explícita de ficha mínima
+
+En Cuenta adulta, solo con correo verificado, el adulto puede escribir un apodo y confirmar el envío del apodo y rango de edad del perfil seleccionado. No se envía el nombre local ni el ID local, fotos, voces, notas, historias o avances. El perfil local original no se modifica ni se asigna silenciosamente a una familia. La ficha mínima no sincroniza el perfil completo ni protege localStorage.
+
+El repositorio deriva la ruta de la identidad autenticada, comprueba la verificación del token y usa un identificador SHA-256 estable por UID e ID local. Una transacción crea los metadatos de familia y la ficha solo si faltan. Reintentar con el mismo apodo y edad es idempotente; una ficha existente distinta produce conflicto y no se sobrescribe. Firestore Lite usa REST sin caché persistente ni cola de escrituras offline. La CSP añade únicamente firestore.googleapis.com.
+
+Se invalida la sesión cliente mediante una versión al cambiar/cerrar cuenta o vencer el tiempo de inactividad. Las comprobaciones antes/después de operaciones asíncronas descartan respuestas de una sesión anterior. El formulario se desmonta y descarta el borrador al cambiar cuenta, perfil o edad. Esto no revoca peticiones que ya hayan llegado al servidor: si se interrumpe una solicitud, reintentar permite confirmar el mismo vínculo sin duplicar datos. Las reglas del servidor siguen siendo la autorización efectiva.
+
+La opción Ya verifiqué mi correo recarga el usuario y renueva su token. Las pruebas de navegador interceptan tanto Auth como Firestore: no crean cuentas ni documentos reales. La prueba de integración verifica consentimiento, lista cerrada de campos, idempotencia, conservación del perfil y limpieza al cerrar sesión.

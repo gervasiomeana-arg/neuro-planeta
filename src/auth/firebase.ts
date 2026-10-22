@@ -5,6 +5,14 @@ import { clearAdultActivity, watchAdultIdle } from './idleSession';
 
 // Public web-app identifiers. No admin SDK, service-account key or billing API.
 let auth: Auth | undefined;
+let epoch = 0;
+let sessionActive = false;
+export const adultSessionEpoch = () => epoch;
+export const adultSessionIsCurrent = (uid: string, version: number) => sessionActive && epoch === version && auth?.currentUser?.uid === uid;
+export async function endAdultSession() {
+  sessionActive = false; epoch++;
+  await signOut(adultAuth());
+}
 export function adultAuth() {
   if (!auth) {
     const app = initializeApp({
@@ -25,6 +33,7 @@ export function adultAuth() {
     // Installed once with Auth, not tied to the mounted account form.
     onAuthStateChanged(sessionAuth, account => {
       stopIdle?.();
+      epoch++; sessionActive = Boolean(account);
       if (!account) {
         if (previousUid) clearAdultActivity(previousUid, tabStorage);
         previousUid = undefined;
@@ -33,7 +42,7 @@ export function adultAuth() {
       if (previousUid && previousUid !== account.uid) clearAdultActivity(previousUid, tabStorage);
       previousUid = account.uid;
       stopIdle = watchAdultIdle(account.uid, () => {
-        void signOut(sessionAuth).catch(() => {
+        void endAdultSession().catch(() => {
           window.dispatchEvent(new Event('np-adult-signout-failed'));
         });
       }, {

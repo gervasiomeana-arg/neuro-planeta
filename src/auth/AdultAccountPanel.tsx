@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
-import { adultAuth } from './firebase';
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, reload, getIdToken, type User } from 'firebase/auth';
+import { adultAuth, endAdultSession } from './firebase';
+import FamilyLinkPanel from '../data/FamilyLinkPanel';
+import type { LocalLinkProfile } from '../data/familyLinkData';
 import { RECOVERY_MESSAGE, recoveryErrorMessage } from './accountFeedback';
 
-export default function AdultAccountPanel() {
+export default function AdultAccountPanel({ profile }: { profile: LocalLinkProfile }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,7 +29,7 @@ export default function AdultAccountPanel() {
     } catch { setMessage('No se pudo preparar el acceso. Revisá que el navegador permita guardar la sesión.'); }
     return () => { mounted.current = false; unsubscribe?.(); window.removeEventListener('np-adult-signout-failed', signoutFailure); };
   }, []);
-  async function perform(action: 'login' | 'register' | 'reset' | 'verify' | 'logout') {
+  async function perform(action: 'login' | 'register' | 'reset' | 'verify' | 'logout' | 'refresh') {
     if (running.current) return;
     if (['login', 'register', 'reset'].includes(action) && !email.trim()) { setMessage('Ingresá tu correo electrónico.'); return; }
     if (action === 'register' && (!consent || password.length < 12)) { setMessage('Confirmá que sos adulto y usá una contraseña de al menos 12 caracteres.'); return; }
@@ -49,8 +51,12 @@ export default function AdultAccountPanel() {
         await sendEmailVerification(auth.currentUser);
         if (mounted.current) setMessage('Revisá tu correo para verificar la dirección.');
       }
+      if (action === 'refresh' && auth.currentUser) {
+        await reload(auth.currentUser); await getIdToken(auth.currentUser, true);
+        if (mounted.current) { setUser(auth.currentUser); setMessage(auth.currentUser.emailVerified ? 'Correo confirmado. Ya podés vincular la ficha.' : 'El correo todavía figura sin verificar.'); }
+      }
       if (action === 'logout') {
-        await signOut(auth);
+        await endAdultSession();
         if (mounted.current) { setEmail(''); setConsent(false); setMessage('Sesión adulta cerrada.'); }
       }
     } catch (error) {
@@ -64,13 +70,15 @@ export default function AdultAccountPanel() {
   }
   return <section aria-label="Cuenta adulta" className="np-adult-account rounded-2xl border p-4 space-y-3 text-sm">
     <h3 className="font-bold">Cuenta adulta</h3>
-    <p>Esta cuenta identifica al adulto. Los perfiles, fotos y avances de este dispositivo todavía no están vinculados a la cuenta ni se suben a Firebase. No se sincronizan entre dispositivos.</p>
+    <p>Los perfiles de este dispositivo no se vinculan automáticamente. Podés guardar una ficha mínima de apodo y edad con confirmación explícita. Fotos y avances siguen locales; no hay sincronización del perfil completo.</p>
     <p>La sesión adulta se cierra tras 15 minutos sin actividad en este panel. Jugar en el espacio infantil no prolonga la sesión.</p>
     {!ready && <p role="status">Preparando acceso…</p>}
     {user ? <>
       <p>Sesión iniciada: <strong>{user.email}</strong></p>
       <p>{user.emailVerified ? 'Correo verificado.' : 'Falta verificar el correo. Esta sesión no habilita almacenamiento de perfiles en la nube.'}</p>
       {!user.emailVerified && <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('verify')}>Reenviar verificación</button>}
+      {!user.emailVerified && <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('refresh')}>Ya verifiqué mi correo</button>}
+      {user.emailVerified && profile.id && <FamilyLinkPanel key={`${user.uid}:${profile.id}:${profile.selectedAge}`} user={user} profile={profile} />}
       <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('logout')}>Cerrar sesión adulta</button>
     </> : <form onSubmit={event => { event.preventDefault(); void perform('login'); }} className="space-y-3">
       <label className="block">Correo del adulto<input type="email" required autoComplete="username" maxLength={254} disabled={busy || !ready} value={email} onChange={event => setEmail(event.target.value)} className="block w-full border rounded-lg p-2" /></label>
