@@ -6,7 +6,7 @@ export const browserPolicy = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://api.arasaac.org",
   "media-src 'self' data: blob:",
-  "connect-src 'self' https://api.arasaac.org",
+  "connect-src 'self' https://api.arasaac.org https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
