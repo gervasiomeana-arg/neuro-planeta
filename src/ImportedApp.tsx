@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
+import { useAdultPrivacyGuard } from './security/useAdultPrivacyGuard';
 import { useVoiceRecording } from './audio/useVoiceRecording';
 import ActivityHeader from './ActivityHeader';
 import { AdultDialog, AdultPanelNavigation } from './AdultPanel';
@@ -683,6 +684,15 @@ export default function ImportedApp() {
   const [parentsAnswer, setParentsAnswer] = useState<string>('');
   const [parentsMathQuestion, setParentsMathQuestion] = useState<{q: string, a: number}>({q: '7 x 8', a: 56});
   const [parentsFeedback, setParentsFeedback] = useState<string>('');
+  useAdultPrivacyGuard(() => {
+    setShowParentsMode(false);
+    setParentsAuthenticated(false);
+    setParentsAnswer('');
+    setParentsFeedback('');
+    setPendingReward(null);
+    setRedeemAnswer('');
+    setRedeemFeedback('');
+  });
   
   // Emotion Module State (Semáforo de Regulación y Caritas)
   const [emotionSubTab, setEmotionSubTab] = useState<'semaforo' | 'caritas'>('semaforo');
