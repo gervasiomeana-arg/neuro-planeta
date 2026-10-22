@@ -7,6 +7,7 @@ permissions:
 jobs:
   design:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       PLAYWRIGHT_CHROME_CHANNEL: chrome
     steps:
@@ -21,7 +22,14 @@ jobs:
       - run: npm run test:security
       - name: Comprobar Chrome del entorno
         run: google-chrome --version
-      - run: npx playwright install-deps chromium
+      - name: Comprobar arranque de Chrome
+        timeout-minutes: 1
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium } from '@playwright/test';
+          const browser = await chromium.launch({ channel: 'chrome', timeout: 20000 });
+          await browser.close();
+          JS
       - name: Probar versión candidata
         run: npx playwright test
       - name: Probar web publicada
