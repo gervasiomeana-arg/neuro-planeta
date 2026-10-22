@@ -114,7 +114,11 @@ for(const width of [360,1280]) {
     const accessibility:Record<string,unknown>={};
     for(const [id,label] of sections){
       if(width<900)await dialog.getByLabel('Sección del panel',{exact:true}).selectOption(id);
-      else await dialog.getByRole('navigation',{name:'Secciones del panel de adultos'}).getByRole('button',{name:new RegExp(label)}).click();
+      else {
+        const destination=dialog.getByRole('navigation',{name:'Secciones del panel de adultos'}).getByRole('button',{name:new RegExp(label)});
+        await expect(destination).toBeInViewport();
+        await destination.click();
+      }
       const viewport=dialog.locator('#adult-panel-scroll');
       await expect(viewport).toHaveAttribute('data-section',id);
       const geometry=await viewport.evaluate(el=>({scroll:el.scrollWidth,client:el.clientWidth,top:el.scrollTop}));
