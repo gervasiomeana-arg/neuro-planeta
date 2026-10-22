@@ -38,3 +38,7 @@ Tinyfish se intentó el 22/10/2026 para un recorrido de uso con datos ficticios.
 4. Reabrir IA solo tras autenticación verificada, autorización, consentimiento, minimización de texto, presupuestos y cuotas persistentes. Mientras tanto, conservar el cierre de producción.
 5. Extraer gradualmente editores y registros de `ImportedApp.tsx`, con repositorios de datos y pruebas de contrato. No reescribir toda la aplicación de una vez.
 6. Pruebas reales de micrófono/cámara/voz en teléfonos, revisión independiente de seguridad y revisión de privacidad/licencias antes de comercialización.
+
+## Cierre del espacio adulto al dejar la página
+
+`useAdultPrivacyGuard` concentra los eventos de privacidad del espacio adulto. Al ocultar la pestaña o recibir `pagehide`, cierra el panel, elimina la respuesta aritmética y cancela un canje sin confirmar. El desmontaje del panel descarta la contraseña de copia y su vista previa descifrada; el hook de voz ya cancela las capturas al cerrar el panel. No borra perfiles, historias guardadas ni canjes confirmados. La edición no guardada puede requerir volver a abrir el panel. Dos pruebas de navegador simulan los eventos y comprueban que se vuelve a pedir la operación, que el campo de contraseña queda vacío y que los perfiles almacenados no cambian. Esta precaución no cifra localStorage ni incorpora autenticación de cuenta.
