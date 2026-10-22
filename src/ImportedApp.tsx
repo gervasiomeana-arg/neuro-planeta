@@ -731,9 +731,7 @@ export default function ImportedApp() {
           stars: 12, // start with some stars for immediate engagement
           unlockedAchievements: ['Aventura Iniciada 🚀', 'Explorador Estelar'],
           completedRoutineTasks: [],
-          emotionJournal: [
-            { date: new Date().toLocaleString(), emotion: '😊 Feliz', note: `Perfil creado automáticamente para el demo de terapia: ${clientFocusVal}` }
-          ],
+          emotionJournal: [],
           customPictogramImages: {},
           customPictogramVoices: {},
           therapeuticObjective: `Demostración de NeuroPlanet enfocada en: ${clientFocusVal}`,
@@ -2041,9 +2039,7 @@ export default function ImportedApp() {
                       stars: 0,
                       unlockedAchievements: ['¡Bienvenido Explorador! ✨'],
                       completedRoutineTasks: [],
-                      emotionJournal: [
-                        { date: new Date().toLocaleTimeString(), emotion: '😊 Feliz', note: `¡Hola ${onboardingChildName}! Cosmo te da la bienvenida al NeuroPlaneta.` }
-                      ],
+                      emotionJournal: [],
                       customPictogramImages: {},
                       customPictogramVoices: {},
                       therapeuticObjective: `Autonomía, autorregulación y comunicación adaptada para el rango de ${onboardingAgeRange} años.`,
@@ -2829,7 +2825,7 @@ export default function ImportedApp() {
                 {emotionJournal.length > 0 && (
                   <div className="space-y-2 pt-2">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                      Registro de hoy ({emotionJournal.length})
+                      Últimos registros ({emotionJournal.length})
                     </h4>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                       {emotionJournal.slice(0, 5).map((entry, i) => (
