@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 import { adultAuth } from './firebase';
+import { RECOVERY_MESSAGE, recoveryErrorMessage } from './accountFeedback';
 
 export default function AdultAccountPanel() {
   const [user, setUser] = useState<User | null>(null);
@@ -24,26 +25,30 @@ export default function AdultAccountPanel() {
     if (running.current) return;
     if (['login', 'register', 'reset'].includes(action) && !email.trim()) { setMessage('Ingresá tu correo electrónico.'); return; }
     if (action === 'register' && (!consent || password.length < 12)) { setMessage('Confirmá que sos adulto y usá una contraseña de al menos 12 caracteres.'); return; }
-    running.current = true; setBusy(true); setMessage('');
+    const submittedPassword = password;
+    running.current = true; setBusy(true); setPassword(''); setMessage('');
     try {
       const auth = adultAuth();
-      if (action === 'login') await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (action === 'login') await signInWithEmailAndPassword(auth, email.trim(), submittedPassword);
       if (action === 'register') {
-        const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const result = await createUserWithEmailAndPassword(auth, email.trim(), submittedPassword);
         await sendEmailVerification(result.user);
         if (mounted.current) setMessage('Cuenta creada. Revisá tu correo para verificar la dirección.');
       }
       if (action === 'reset') {
         await sendPasswordResetEmail(auth, email.trim());
-        if (mounted.current) setMessage('Si el correo corresponde a una cuenta, recibirás las instrucciones para recuperar el acceso.');
+        if (mounted.current) setMessage(RECOVERY_MESSAGE);
       }
       if (action === 'verify' && auth.currentUser) {
         await sendEmailVerification(auth.currentUser);
         if (mounted.current) setMessage('Revisá tu correo para verificar la dirección.');
       }
-      if (action === 'logout') await signOut(auth);
-    } catch {
-      if (mounted.current) setMessage(action === 'register'
+      if (action === 'logout') {
+        await signOut(auth);
+        if (mounted.current) { setEmail(''); setConsent(false); setMessage('Sesión adulta cerrada.'); }
+      }
+    } catch (error) {
+      if (mounted.current) setMessage(action === 'reset' ? recoveryErrorMessage(error) : action === 'register'
         ? 'No se pudo completar el registro o enviar la verificación. Si ya tenés cuenta, probá ingresar o recuperar el acceso.'
         : 'No se pudo completar la solicitud. Revisá los datos y la conexión o intentá más tarde.');
     } finally {

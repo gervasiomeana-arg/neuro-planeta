@@ -17,3 +17,9 @@ Antes de conectar datos: reglas de Firestore que exijan usuario autenticado y co
 TypeScript, compilación y batería de seguridad existentes; dos pruebas nuevas de navegador con solicitudes de Auth simuladas: consentimiento/longitud y acceso fallido con contraseña descartada, sin cambiar ni enviar datos del perfil. No se envían correos reales durante esas pruebas. Estas pruebas no sustituyen una prueba completa de registro/verificación/recuperación con una casilla controlada por el propietario. No se crean usuarios con contraseñas elegidas por el agente.
 
 Referencias oficiales: https://firebase.google.com/docs/auth/web/password-auth y https://firebase.google.com/docs/projects/billing/firebase-pricing-plans .
+
+## Refuerzo de recuperación y privacidad del formulario
+
+La recuperación muestra la misma respuesta neutral para correos existentes, inexistentes y otros errores del proveedor. Solo distingue fallos de red y exceso de intentos, sin exponer códigos internos. La contraseña se retira del formulario antes de esperar la respuesta, además de limpiarse al finalizar. Cerrar sesión también limpia el correo y la casilla de consentimiento. Esto no reemplaza la protección contra enumeración y las cuotas del proveedor, ni oculta tiempos de respuesta o llamadas inspeccionadas desde herramientas del navegador.
+
+Una prueba de navegador intercepta todas las llamadas a Auth y compara recuperación exitosa e EMAIL_NOT_FOUND, verificando que no se envíen datos infantiles. No envía correos reales.
