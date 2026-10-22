@@ -46,3 +46,23 @@ test('cada registro exige intensidad elegida y la situación es opcional', async
   await expect(page.getByText(/Registro guardado! Intensidad: Bastante/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Elegí una intensidad para guardar' })).toBeDisabled();
 });
+
+test('navegación de escritorio usa las actividades reales y conserva el perfil', async ({ page }, testInfo) => {
+  await page.setViewportSize({width:1280,height:900});
+  await page.goto('/');
+  await page.getByRole('button', {name:/Tablet Vista amplia/}).click();
+  await page.getByRole('button', {name:/Prueba de diseño/}).click();
+  const sidebar=page.getByRole('complementary',{name:'Mi espacio'});
+  await expect(sidebar).toBeVisible();
+  await sidebar.getByRole('button',{name:'Mis rutinas',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Mis Rutinas y Estructura',exact:true})).toBeVisible();
+  await sidebar.getByRole('button',{name:'Mis historias',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Historias Sociales y Situaciones',exact:true})).toBeVisible();
+  await sidebar.getByRole('button',{name:'Mi planeta',exact:true}).click();
+  await page.getByRole('button',{name:'Saludar a Cosmo',exact:true}).click();
+  await expect(page.getByText('¡Hola, Prueba de diseño! Soy Cosmo. Te acompaño.',{exact:true})).toBeVisible();
+  const profiles=await page.evaluate(()=>JSON.parse(localStorage.getItem('np_patients')||'[]'));
+  expect(profiles).toHaveLength(1);
+  expect(profiles[0]).toMatchObject({id:'design_test',name:'Prueba de diseño',stars:12});
+  await page.screenshot({path:testInfo.outputPath('redisenio-escritorio.png'),fullPage:true});
+});

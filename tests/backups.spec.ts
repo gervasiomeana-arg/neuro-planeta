@@ -90,7 +90,9 @@ test('changes in another tab stop writes from the old session', async ({ page, c
   await start(page);
   const other = await context.newPage();
   // A same-origin empty document avoids a second running application writing state.
-  await other.goto(new URL('favicon.ico', page.url()).href);
+  const helperUrl = new URL('__storage-test__', page.url()).href;
+  await other.route(helperUrl, route => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Storage test helper</title>' }));
+  await other.goto(helperUrl);
   await other.evaluate(() => {
     const profiles = JSON.parse(localStorage.getItem('np_patients') || '[]');
     profiles[0].stars = 7; localStorage.setItem('np_patients', JSON.stringify(profiles));
