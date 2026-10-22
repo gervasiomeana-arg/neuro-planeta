@@ -22,13 +22,14 @@ export default function BackupPanel({ profiles, onRestore, recoveryRaw }: Props)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const recovery = recoveryRaw !== undefined;
   async function exportCopy() {
-    if (password !== confirmation) { setMessage('Las contraseñas no coinciden.'); return; }
+    if (password !== confirmation) { setPassword(''); setConfirmation(''); setMessage('Las contraseñas no coinciden. Volvé a ingresarlas.'); return; }
+    const submittedPassword = password;
+    setPassword(''); setConfirmation('');
     setBusy(true); setMessage('');
     try {
-      const text = recovery ? await encryptRecovery(recoveryRaw || '', password) : await encryptBackup(profiles, password);
+      const text = recovery ? await encryptRecovery(recoveryRaw || '', submittedPassword) : await encryptBackup(profiles, submittedPassword);
       if (!mounted.current) return;
       download(text, recovery);
-      setPassword(''); setConfirmation('');
       setMessage('Descarga iniciada. Comprobá que el archivo quedó guardado y conservá la contraseña en un lugar seguro.');
     } catch (error) {
       if (mounted.current) setMessage(error instanceof Error ? error.message : 'No se pudo crear la copia.');
@@ -36,11 +37,13 @@ export default function BackupPanel({ profiles, onRestore, recoveryRaw }: Props)
   }
   async function inspectCopy() {
     if (!file) { setMessage('Elegí un archivo de copia.'); return; }
+    const submittedPassword = password;
+    setPassword(''); setConfirmation('');
     setBusy(true); setMessage(''); setPreview(null);
     try {
       if (file.size > MAX_BACKUP_BYTES) throw new Error('La copia supera el límite de 20 MB.');
-      const restored = await decryptBackup(await file.text(), password);
-      if (mounted.current) { setPreview(restored); setPassword(''); setConfirmation(''); }
+      const restored = await decryptBackup(await file.text(), submittedPassword);
+      if (mounted.current) setPreview(restored);
     } catch (error) {
       if (mounted.current) setMessage(error instanceof Error ? error.message : 'No se pudo abrir la copia.');
     } finally { if (mounted.current) setBusy(false); }
