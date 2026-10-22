@@ -27,7 +27,7 @@ Se prueban accesos permitidos del propietario y rechazos para otra familia, anó
 
 Las reglas deben publicarse en el proyecto correcto neuroplaneta-bdaf9, sobre Firestore Standard en modo de producción y manteniendo el plan Spark. No usar modo de prueba, no abrir permisos temporales y no activar Storage/Blaze. El despliegue de reglas requiere una sesión del propietario en Firebase; las pruebas del emulador no despliegan reglas.
 
-La app sigue sin inicializar Firestore y la CSP no habilita ese endpoint. No se sube ni se migra ningún perfil al iniciar sesión. Estas reglas no aíslan, cifran ni protegen el localStorage ya existente: los perfiles del dispositivo siguen accesibles a quien use ese navegador. Una integración futura requiere confirmación explícita de qué perfil se vincula, copias conservadas, cachés separadas por UID y descarte de estado al cambiar de cuenta. No activar escrituras infantiles hasta verificar reglas publicadas e integración de extremo a extremo. La primera etapa solo habilita un esquema mínimo de apodo y edad, no sincronización completa.
+Las reglas se publicaron en neuroplaneta-bdaf9, Firestore Standard, manteniendo Spark. Se comprobaron rechazos anónimos, de otra familia y de correo sin verificar. La integración actual inicializa Firestore Lite únicamente al confirmar el vínculo mínimo descrito abajo. No se sube ni se migra ningún perfil al iniciar sesión. Estas reglas no aíslan, cifran ni protegen el localStorage existente: los perfiles del dispositivo siguen accesibles a quien use ese navegador.
 
 Fuentes oficiales: https://firebase.google.com/docs/firestore/security/rules-conditions, https://firebase.google.com/docs/firestore/security/rules-fields y https://firebase.google.com/docs/rules/unit-tests.
 
