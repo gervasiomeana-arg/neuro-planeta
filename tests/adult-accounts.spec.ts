@@ -159,6 +159,29 @@ test('verified adult explicitly links only a minimal profile and retries without
   await expect(link.getByRole('status')).toContainText('ya estaba vinculada');
   expect(writes).toHaveLength(2);
   expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
+  const vault = account.getByRole('region', { name: 'Copia privada por cuenta', exact: true });
+  await expect(vault).toBeVisible();
+  const privatePassword = 'Contraseña privada ficticia 2026';
+  await vault.getByLabel('Contraseña de la copia privada', { exact: true }).fill(privatePassword);
+  await vault.getByLabel('Repetir contraseña de la copia privada', { exact: true }).fill(privatePassword);
+  await vault.getByRole('checkbox').check();
+  await vault.getByRole('button', { name: 'Guardar perfil en copia privada', exact: true }).click();
+  await expect(vault.getByRole('status')).toContainText('guardada y comprobada');
+  const encrypted = await page.evaluate(() => localStorage.getItem('np_family_vault:v1:link_adult'));
+  expect(encrypted).toBeTruthy();
+  expect(encrypted).not.toMatch(/Cuenta ficticia|account_test|emotionJournal/);
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
+  await expect(vault.getByLabel('Contraseña de la copia privada', { exact: true })).toHaveValue('');
+  await vault.getByRole('button', { name: 'Cerrar copia privada', exact: true }).click();
+  await expect(vault.getByLabel('Contenido de copia privada', { exact: true })).toHaveCount(0);
+  await vault.getByLabel('Contraseña de la copia privada', { exact: true }).fill('Contraseña incorrecta ficticia');
+  await vault.getByRole('button', { name: 'Abrir copia privada', exact: true }).click();
+  await expect(vault.getByRole('status')).toContainText('No se pudo confirmar');
+  await expect(vault.getByLabel('Contenido de copia privada', { exact: true })).toHaveCount(0);
+  await vault.getByLabel('Contraseña de la copia privada', { exact: true }).fill(privatePassword);
+  await vault.getByRole('button', { name: 'Abrir copia privada', exact: true }).click();
+  await expect(vault.getByLabel('Contenido de copia privada', { exact: true })).toContainText('Cuenta ficticia');
+
   // Delay a new transaction response until after logout: it must not commit,
   // even a verification-only commit, or revive the old account's UI.
   pauseReads = true;

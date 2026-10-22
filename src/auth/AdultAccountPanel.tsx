@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, reload, getIdToken, type User } from 'firebase/auth';
 import { adultAuth, endAdultSession } from './firebase';
 import FamilyLinkPanel from '../data/FamilyLinkPanel';
+import FamilyVaultPanel from '../data/FamilyVaultPanel';
 import type { LocalLinkProfile } from '../data/familyLinkData';
 import { RECOVERY_MESSAGE, recoveryErrorMessage } from './accountFeedback';
 
-export default function AdultAccountPanel({ profile }: { profile: LocalLinkProfile }) {
+export default function AdultAccountPanel({ profile, localProfile }: { profile: LocalLinkProfile; localProfile?: unknown }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,6 +80,7 @@ export default function AdultAccountPanel({ profile }: { profile: LocalLinkProfi
       {!user.emailVerified && <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('verify')}>Reenviar verificación</button>}
       {!user.emailVerified && <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('refresh')}>Ya verifiqué mi correo</button>}
       {user.emailVerified && profile.id && <FamilyLinkPanel key={`${user.uid}:${profile.id}:${profile.selectedAge}`} user={user} profile={profile} />}
+      {user.emailVerified && profile.id && localProfile && <FamilyVaultPanel key={`vault:${user.uid}:${profile.id}`} user={user} profile={localProfile} />}
       <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('logout')}>Cerrar sesión adulta</button>
     </> : <form onSubmit={event => { event.preventDefault(); void perform('login'); }} className="space-y-3">
       <label className="block">Correo del adulto<input type="email" required autoComplete="username" maxLength={254} disabled={busy || !ready} value={email} onChange={event => setEmail(event.target.value)} className="block w-full border rounded-lg p-2" /></label>
