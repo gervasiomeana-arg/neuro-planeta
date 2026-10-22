@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
 import { useAdultPrivacyGuard } from './security/useAdultPrivacyGuard';
 import { useVoiceRecording } from './audio/useVoiceRecording';
@@ -44,6 +44,8 @@ import {
   FileText,
   LogOut
 } from 'lucide-react';
+
+const AdultAccountPanel = lazy(() => import('./auth/AdultAccountPanel'));
 
 // Theme customization based on age groups
 interface AgeGroup {
@@ -5175,6 +5177,10 @@ export default function ImportedApp() {
                             </div>
                           </div>
                         </div>
+                        <details className="rounded-xl border p-3">
+                          <summary className="font-bold cursor-pointer">Cuenta adulta · correo y contraseña</summary>
+                          <Suspense fallback={<p>Cargando acceso…</p>}><AdultAccountPanel /></Suspense>
+                        </details>
                         <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
                       </div>
                     )}
