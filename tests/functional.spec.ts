@@ -260,4 +260,5 @@ test('diagnóstico de accesibilidad de los siete módulos (informe, sin certific
   }
   await info.attach('accesibilidad-modulos.json', { body: JSON.stringify(results, null, 2), contentType: 'application/json' });
   console.log('ACCESIBILIDAD_MODULOS', JSON.stringify(results));
+  for (const violations of Object.values(results)) expect(violations).toEqual([]);
 });
