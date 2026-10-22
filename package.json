@@ -10,7 +10,8 @@
     "test:security": "node --import tsx --test security-tests/*.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:families": "npx --yes firebase-tools@15.34.1 emulators:exec --only firestore --project demo-neuroplaneta-isolation \"node --test family-tests/*.test.mjs\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@firebase/rules-unit-testing": "6.0.0",
     "@playwright/test": "^1.64.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
