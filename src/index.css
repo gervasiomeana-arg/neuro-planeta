@@ -608,3 +608,14 @@
  .np-adult-desktop-menu button { min-height:44px; }
  .np-adult-desktop-menu { gap:3px; }
 }
+
+/* Account actions must look like buttons, including disabled and keyboard states. */
+.np-adult-account .np-account-button {
+  min-height:44px;padding:10px 16px;border:1px solid #567462;border-radius:11px;
+  background:#e4ecdf;color:#29493f;font-weight:700;cursor:pointer;
+}
+.np-adult-account .np-account-primary { background:#315c49;color:#fff;border-color:#315c49; }
+.np-adult-account .np-account-button:hover:not(:disabled) { background:#d3e0cd; }
+.np-adult-account .np-account-primary:hover:not(:disabled) { background:#254736; }
+.np-adult-account .np-account-button:focus-visible { outline:3px solid #355f80;outline-offset:3px; }
+.np-adult-account .np-account-button:disabled { background:#e3e5df;color:#62695e;border-color:#a5afa0;cursor:not-allowed; }
