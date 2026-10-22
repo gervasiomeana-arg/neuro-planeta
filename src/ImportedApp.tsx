@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
+import WorkspaceNavigation from './WorkspaceNavigation';
+import PlanetIllustration from './PlanetIllustration';
 import BackupPanel from './data/BackupPanel';
 import { useProfileStore } from './data/useProfileStore';
 import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource } from './security/imports';
@@ -2068,14 +2070,24 @@ export default function ImportedApp() {
 
   // CORE APP RENDER
   return (
-    <div className="min-h-dvh stitch-grid flex items-center justify-center p-0 sm:p-4 md:p-6 relative overflow-hidden">
+    <div className="np-live-shell min-h-dvh stitch-grid flex items-center justify-center p-0 sm:p-4 md:p-6 relative overflow-hidden">
       {/* Glowing atmospheric nebula */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 ambient-glow-violet rounded-full opacity-45"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] ambient-glow-cyan rounded-full opacity-35"></div>
       <div className="absolute top-1/3 right-1/3 w-72 h-72 ambient-glow-pink rounded-full opacity-30"></div>
 
-      <div id="neuroplaneta-workspace" data-device={appDeviceMode} className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
+      <div id="neuroplaneta-workspace" data-module={activeModule || currentTab} data-device={appDeviceMode} className={`np-theme mx-auto h-dvh sm:h-[92vh] sm:min-h-[600px] shadow-2xl relative flex flex-col justify-between overflow-hidden rounded-none sm:rounded-[32px] border text-slate-100 font-sans transition-all duration-300 ${appDeviceMode === 'tablet' ? 'max-w-4xl w-full' : 'max-w-md w-full'}`}>
       
+      <WorkspaceNavigation activePage={showParentsMode ? 'adultos' : activeModule || currentTab} onNavigate={(destination) => {
+        if (destination === 'salir') { handleExitApp(); return; }
+        if (destination === 'adultos') { setShowParentsMode(true); if (!parentsAuthenticated) generateParentsMath(); return; }
+        playClickSound();
+        setShowParentsMode(false);
+        setParentsAuthenticated(false);
+        if (destination === 'inicio' || destination === 'logros') { setCurrentTab(destination); setActiveModule(null); }
+        else { setCurrentTab('inicio'); setActiveModule(destination); if (destination === 'social') { setSelectedStoryId(null); setStoryStep('intro'); } }
+        document.getElementById('np-activity-content')?.scrollTo({top:0});
+      }} />
       {storageNotice}
       {/* HEADER SECTION (Like the screenshot) */}
       <header className="px-4 sm:px-6 py-3 sm:py-5 bg-[#03060E]/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0">
@@ -2225,20 +2237,19 @@ export default function ImportedApp() {
       )}
 
       {/* CORE CONTENT SWITCHER */}
-      <main className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto pb-24">
+      <main id="np-activity-content" className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto pb-24">
         
         {currentTab === 'inicio' && !activeModule && (
           <div className="np-home space-y-5 animate-fade-in">
             
-            <section className="np-welcome" aria-labelledby="welcome-title">
-              <button type="button" aria-label="Saludar a Cosmo" className="np-cosmo" onClick={() => { playCalmSound(); setCosmoGreeted(true); }}>
-                <span aria-hidden="true">🪐</span>
-              </button>
-              <div>
-                <p className="np-eyebrow">Tu espacio, a tu ritmo</p>
-                <h2 id="welcome-title">¿Qué te gustaría hacer?</h2>
-                <p className="np-welcome-message" aria-live="polite">{cosmoGreeted ? `¡Hola, ${activePatient.name.split(' (')[0]}! Soy Cosmo. Te acompaño.` : 'Podés jugar, comunicarte o hacer una pausa.'}</p>
+            <section className="np-welcome np-live-welcome" aria-labelledby="welcome-title">
+              <div className="np-live-welcome-copy">
+                <p className="np-eyebrow">COSMO TE ACOMPAÑA</p>
+                <h2 id="welcome-title">Un universo de cosas<br />por descubrir.</h2>
+                <p className="np-welcome-message" aria-live="polite">{cosmoGreeted ? `¡Hola, ${activePatient.name.split(' (')[0]}! Soy Cosmo. Te acompaño.` : 'Podés jugar, expresar lo que sentís o hacer una pausa.'}</p>
+                <button type="button" className="np-live-primary" onClick={() => {playClickSound();setCurrentTab('inicio');setActiveModule('emociones');}}>¿Cómo te sentís hoy? <ChevronRight aria-hidden="true"/></button>
               </div>
+              <button type="button" aria-label="Saludar a Cosmo" className="np-live-cosmo" onClick={() => { playCalmSound(); setCosmoGreeted(true); }}><PlanetIllustration /></button>
             </section>
 
             <section aria-labelledby="activities-title" className="np-activities-section">
