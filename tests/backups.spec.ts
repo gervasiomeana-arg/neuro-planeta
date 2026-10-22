@@ -45,6 +45,7 @@ test('downloaded encrypted backup restores in a fresh browser after review and p
     await restore.getByLabel('Contraseña de la copia', { exact: true }).fill('Contraseña equivocada de prueba');
     await restore.getByRole('button', { name: 'Revisar copia antes de restaurar' }).click();
     await expect(restore.getByRole('status')).toContainText('Contraseña incorrecta');
+    await expect(restore.getByLabel('Contraseña de la copia', { exact: true })).toHaveValue('');
     expect(await fresh.evaluate(() => JSON.parse(localStorage.getItem('np_patients') || '[]'))).toEqual([]);
     await restore.getByLabel('Contraseña de la copia', { exact: true }).fill(password);
     await restore.getByRole('button', { name: 'Revisar copia antes de restaurar' }).click();
@@ -104,4 +105,18 @@ test('changes in another tab stop writes from the old session', async ({ page, c
   await page.getByRole('button', { name: /Registrar en mi Diario Emocional/ }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('np_patients') || '[]')[0].stars)).toBe(7);
   await other.close();
+});
+
+
+test('backup password mismatch clears both fields and preserves local profiles', async ({ page }) => {
+  await start(page);
+  const backup = await panel(page);
+  const before = await page.evaluate(() => localStorage.getItem('np_patients'));
+  await backup.getByLabel('Contraseña de la copia', { exact: true }).fill(password);
+  await backup.getByLabel('Repetir contraseña para descargar').fill('Otra clave ficticia distinta');
+  await backup.getByRole('button', { name: 'Descargar copia cifrada', exact: true }).click();
+  await expect(backup.getByRole('status')).toContainText('Las contraseñas no coinciden');
+  await expect(backup.getByLabel('Contraseña de la copia', { exact: true })).toHaveValue('');
+  await expect(backup.getByLabel('Repetir contraseña para descargar')).toHaveValue('');
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
 });
