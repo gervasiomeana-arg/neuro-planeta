@@ -116,15 +116,19 @@ test('verified adult explicitly links only a minimal profile and retries without
   });
   await page.route('https://securetoken.googleapis.com/**', route => route.abort());
   const writes: any[] = [], cloud = new Map<string, any>();
-  let reads = 0;
+  let reads = 0, commits = 0, pauseReads = false;
+  let resumeRead!: () => void;
+  const pendingRead = new Promise<void>(resolve => { resumeRead = resolve; });
   await page.route('https://firestore.googleapis.com/**', async route => {
     const url = route.request().url(), body = route.request().postDataJSON();
     const now = '2026-10-22T12:00:00.000000Z';
     if (url.includes(':batchGet')) {
       reads++;
+      if (pauseReads) await pendingRead;
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body.documents.map((name: string) => cloud.has(name) ? { found: cloud.get(name), readTime: now } : { missing: name, readTime: now })) });
     }
     if (url.includes(':commit')) {
+      commits++;
       for (const write of body.writes || []) if (write.update) {
         writes.push(write.update);
         cloud.set(write.update.name, { ...write.update, createTime: now, updateTime: now });
@@ -155,6 +159,21 @@ test('verified adult explicitly links only a minimal profile and retries without
   await expect(link.getByRole('status')).toContainText('ya estaba vinculada');
   expect(writes).toHaveLength(2);
   expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
+  // Delay a new transaction response until after logout: it must not commit,
+  // even a verification-only commit, or revive the old account's UI.
+  pauseReads = true;
+  const readsBeforeLogout = reads, commitsBeforeLogout = commits;
+  await link.getByRole('checkbox').check();
+  await link.getByRole('button').click();
+  await expect.poll(() => reads).toBeGreaterThan(readsBeforeLogout);
   await account.getByRole('button', { name: 'Cerrar sesión adulta', exact: true }).click();
   await expect(account.getByRole('region', { name: 'Vincular perfil a mi familia', exact: true })).toHaveCount(0);
+  const lateResponse = page.waitForResponse(response => response.url().includes('firestore.googleapis.com') && response.url().includes(':batchGet'));
+  resumeRead();
+  await lateResponse;
+  await page.waitForLoadState('networkidle');
+  expect(commits).toBe(commitsBeforeLogout);
+  expect(writes).toHaveLength(2);
+  await expect(account.getByLabel('Correo del adulto', { exact: true })).toHaveValue('');
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
 });
