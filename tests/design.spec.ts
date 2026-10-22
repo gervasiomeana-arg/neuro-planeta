@@ -95,3 +95,46 @@ for (const width of [360,1280]) {
     expect(errors).toEqual([]);
   });
 }
+
+for(const width of [360,1280]) {
+  test(`panel adulto navegable y sin desbordes a ${width}px`,async({page},info)=>{
+    await page.setViewportSize({width,height:900});
+    await page.goto('/');
+    await page.getByRole('button',{name:/Prueba de diseño/}).click();
+    const opener=page.getByRole('button',{name:'Abrir espacio de adultos',exact:true});
+    await opener.click();
+    const dialog=page.getByRole('dialog',{name:'Panel de adultos',exact:true});
+    await expect(dialog).toBeVisible();
+    const challenge=(await dialog.innerText()).match(/¿Cuánto es (\d+) x (\d+)/);
+    expect(challenge).not.toBeNull();
+    await dialog.getByRole('spinbutton').fill(String(Number(challenge![1])*Number(challenge![2])));
+    await dialog.getByRole('button',{name:'Abrir configuración',exact:true}).click();
+    const sections=[['pacientes','Perfiles'],['rutinas','Rutinas'],['recompensas','Premios Reales'],['historias','Historias'],['pictogramas','Pictogramas'],['sonido','Audio Sensorial'],['reportes','Resumen']];
+    const accessibility:Record<string,unknown>={};
+    for(const [id,label] of sections){
+      if(width<900)await dialog.getByLabel('Sección del panel',{exact:true}).selectOption(id);
+      else await dialog.getByRole('navigation',{name:'Secciones del panel de adultos'}).getByRole('button',{name:new RegExp(label)}).click();
+      const viewport=dialog.locator('#adult-panel-scroll');
+      await expect(viewport).toHaveAttribute('data-section',id);
+      const geometry=await viewport.evaluate(el=>({scroll:el.scrollWidth,client:el.clientWidth,top:el.scrollTop}));
+      expect(geometry.scroll).toBeLessThanOrEqual(geometry.client+1);
+      expect(geometry.top).toBe(0);
+      await page.screenshot({path:info.outputPath(`adultos-${id}-${width}.png`),fullPage:true});
+      const audit=await new AxeBuilder({page}).include('#adult-panel-dialog').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+      accessibility[id]=audit.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}));
+    }
+    await info.attach('accesibilidad-adultos.json',{body:JSON.stringify(accessibility,null,2),contentType:'application/json'});
+    console.log(`ACCESIBILIDAD_ADULTOS_${width}`,JSON.stringify(accessibility));
+    await dialog.getByRole('button',{name:'Cerrar panel de adultos',exact:true}).focus();
+    await page.keyboard.press('Shift+Tab');
+    await expect(dialog.getByRole('button',{name:'Cerrar panel',exact:true})).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(dialog.getByRole('button',{name:'Cerrar panel de adultos',exact:true})).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    const profiles=await page.evaluate(()=>JSON.parse(localStorage.getItem('np_patients')||'[]'));
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0]).toMatchObject({id:'design_test',name:'Prueba de diseño',stars:12});
+  });
+}

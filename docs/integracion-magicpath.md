@@ -13,3 +13,9 @@ Las ilustraciones vectoriales de Cosmo son propias y no requieren llamadas a ser
 Los siete módulos infantiles comparten ahora un encabezado con acción de volver, etiqueta y título. El progreso de Atención conserva su contador real. Emociones mantiene los cuatro colores visibles y expone la selección a tecnologías de asistencia; no cambia las reglas de intensidad ni el registro. Se ampliaron las tarjetas de números, pictogramas e historias, el espacio de respiración y el lienzo sensorial. La búsqueda y su acción de limpiar tienen nombres accesibles.
 
 Se conservan los manejadores de cada actividad, las historias creadas por la familia y las preferencias de sonido. El diagnóstico de accesibilidad de las pantallas iniciales de los módulos pasa a exigir cero infracciones detectadas; esto no certifica todas las situaciones ni reemplaza pruebas con personas. Las pruebas de 360 y 1280 px generan capturas de cada módulo y comprueban límites y navegación.
+
+## Panel de adultos
+
+Navegación lateral en escritorio y selector de sección en celular para las siete secciones existentes. La identidad del perfil y el aviso de almacenamiento permanecen disponibles; los formularios y las copias cifradas conservan sus funciones. La gestión de perfiles se presenta antes del bloque de respaldo. El panel vuelve al principio al cambiar de sección.
+
+El diálogo incorpora nombre accesible, cierre con Escape, recorrido de teclado dentro del panel y retorno al control que lo abrió. El control aritmético existente sigue siendo una barrera infantil local, no una autenticación de cuenta. El resumen impreso mantiene sus estilos de impresión.

@@ -231,7 +231,7 @@ test('panel adulto: siete secciones, historia revisada, guardado y cinco pasos p
   await dialog.getByLabel('Texto del paso 1').fill('Iré a una escuela nueva con alguien de confianza.');
   await dialog.getByRole('button', { name: 'Guardar para el niño' }).click();
   await expect.poll(async () => (await readProfile(page)).socialStories.length).toBe(1);
-  await dialog.getByRole('button', { name: 'Cerrar panel' }).click();
+  await dialog.getByRole('button', { name: 'Cerrar panel', exact: true }).click();
   await enter(page, 'Social');
   await page.getByRole('button', { name: /Mi nueva escuela/ }).click();
   await expect(page.getByText('Iré a una escuela nueva con alguien de confianza.', { exact: true })).toBeVisible();
