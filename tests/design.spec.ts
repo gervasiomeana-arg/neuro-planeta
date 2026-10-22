@@ -66,3 +66,31 @@ test('navegación de escritorio usa las actividades reales y conserva el perfil'
   expect(profiles[0]).toMatchObject({id:'design_test',name:'Prueba de diseño',stars:12});
   await page.screenshot({path:testInfo.outputPath('redisenio-escritorio.png'),fullPage:true});
 });
+
+const modules = [['Emociones','Emociones y Regulación'],['Atención','Atención Cósmica'],['Zona Calma','Zona Calma'],['Sensorial','Regulación Sensorial'],['Comunicar','Tablero de Comunicación (SACS)'],['Social','Historias Sociales y Situaciones'],['Rutinas','Mis Rutinas y Estructura']] as const;
+
+for (const width of [360,1280]) {
+  test(`actividades legibles y sin desbordes a ${width}px`, async ({page},info) => {
+    await page.setViewportSize({width,height:900});
+    await page.goto('/');
+    await page.getByRole('button',{name:/Prueba de diseño/}).click();
+    const errors:string[]=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    for(const [name,title] of modules) {
+      await page.getByRole('navigation').getByRole('button',{name:/Inicio/}).click();
+      await page.locator('main').getByRole('button',{name:new RegExp(name)}).first().click();
+      const activity=page.locator('.np-module-view');
+      await expect(activity.getByRole('heading',{name:title,exact:true})).toBeVisible();
+      await expect(activity.getByRole('button',{name:'Volver al inicio',exact:true})).toBeEnabled();
+      const bounds=await activity.evaluate(element=>{
+        const r=element.getBoundingClientRect();
+        return {left:r.left,right:r.right,scroll:element.scrollWidth,client:element.clientWidth};
+      });
+      expect(bounds.left).toBeGreaterThanOrEqual(0);
+      expect(bounds.right).toBeLessThanOrEqual(width);
+      expect(bounds.scroll).toBeLessThanOrEqual(bounds.client+1);
+      await page.screenshot({path:info.outputPath(`actividad-${modules.findIndex(m=>m[0]===name)}-${width}.png`),fullPage:true});
+    }
+    expect(errors).toEqual([]);
+  });
+}

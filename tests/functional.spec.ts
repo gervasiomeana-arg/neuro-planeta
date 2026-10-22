@@ -262,26 +262,3 @@ test('diagnóstico de accesibilidad de los siete módulos (informe, sin certific
   console.log('ACCESIBILIDAD_MODULOS', JSON.stringify(results));
   for (const violations of Object.values(results)) expect(violations).toEqual([]);
 });
-
-for (const width of [360,1280]) {
-  test(`actividades legibles y sin desbordes a ${width}px`, async ({page},info) => {
-    await page.setViewportSize({width,height:900});
-    const errors:string[]=[];
-    page.on('pageerror',error=>errors.push(error.message));
-    for(const [name,title] of modules) {
-      await enter(page,name);
-      const activity=page.locator('.np-module-view');
-      await expect(activity.getByRole('heading',{name:title,exact:true})).toBeVisible();
-      await expect(activity.getByRole('button',{name:'Volver al inicio',exact:true})).toBeEnabled();
-      const bounds=await activity.evaluate(element=>{
-        const r=element.getBoundingClientRect();
-        return {left:r.left,right:r.right,scroll:element.scrollWidth,client:element.clientWidth};
-      });
-      expect(bounds.left).toBeGreaterThanOrEqual(0);
-      expect(bounds.right).toBeLessThanOrEqual(width);
-      expect(bounds.scroll).toBeLessThanOrEqual(bounds.client+1);
-      await page.screenshot({path:info.outputPath(`actividad-${modules.findIndex(m=>m[0]===name)}-${width}.png`),fullPage:true});
-    }
-    expect(errors).toEqual([]);
-  });
-}
