@@ -79,3 +79,29 @@ test('unknown and existing recovery emails receive the same message without send
   await expect(account.getByRole('status')).toHaveText(neutral);
   expect(JSON.stringify(requests)).not.toMatch(/Cuenta ficticia|account_test|stars|emotionJournal/);
 });
+
+test('adult session signs out after inactivity while preserving local child profiles', async ({ page }) => {
+  await page.clock.install();
+  const payload = Buffer.from(JSON.stringify({ sub: 'idle_adult', user_id: 'idle_adult', auth_time: Math.floor(Date.now() / 1000), iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, email: 'adulto@example.invalid', email_verified: true })).toString('base64url');
+  const token = `eyJhbGciOiJub25lIn0.${payload}.simulated`;
+  await page.route('https://identitytoolkit.googleapis.com/**', async route => {
+    const url = route.request().url();
+    if (url.includes('accounts:signInWithPassword')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ localId: 'idle_adult', email: 'adulto@example.invalid', idToken: token, refreshToken: 'simulated-only', expiresIn: '3600' }) });
+    if (url.includes('accounts:lookup')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [{ localId: 'idle_adult', email: 'adulto@example.invalid', emailVerified: true, providerUserInfo: [{ providerId: 'password', email: 'adulto@example.invalid', rawId: 'adulto@example.invalid' }] }] }) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ recaptchaEnforcementState: [] }) });
+  });
+  await page.route('https://securetoken.googleapis.com/**', route => route.abort());
+  const account = await open(page);
+  const before = await page.evaluate(() => localStorage.getItem('np_patients'));
+  await account.getByLabel('Correo del adulto', { exact: true }).fill('adulto@example.invalid');
+  await account.getByLabel('Contraseña de la cuenta', { exact: true }).fill('Clave ficticia larga 2026');
+  await account.getByRole('button', { name: 'Ingresar a mi cuenta', exact: true }).click();
+  await expect(account).toContainText('Sesión iniciada:');
+  await expect(account).toContainText('Correo verificado.');
+  await page.clock.fastForward(15 * 60 * 1000 + 1000);
+  await expect(account.getByLabel('Correo del adulto', { exact: true })).toBeVisible();
+  await expect(account.getByLabel('Correo del adulto', { exact: true })).toHaveValue('');
+  await expect(account.getByRole('checkbox')).not.toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
+  expect(await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('np_adult_last_activity:')))).toEqual([]);
+});

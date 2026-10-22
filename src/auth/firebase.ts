@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, browserSessionPersistence, type Auth } from 'firebase/auth';
+import { initializeAuth, browserSessionPersistence, onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
+
+import { clearAdultActivity, watchAdultIdle } from './idleSession';
 
 // Public web-app identifiers. No admin SDK, service-account key or billing API.
 let auth: Auth | undefined;
@@ -12,6 +14,37 @@ export function adultAuth() {
       appId: '1:329476093246:web:aa8c325ef2c8e1ede6686f',
     }, 'neuroplaneta-adults');
     auth = initializeAuth(app, { persistence: browserSessionPersistence });
+    const sessionAuth = auth;
+    const tabStorage = {
+      getItem: (key: string) => window.sessionStorage.getItem(key),
+      setItem: (key: string, value: string) => window.sessionStorage.setItem(key, value),
+      removeItem: (key: string) => window.sessionStorage.removeItem(key),
+    };
+    let stopIdle: (() => void) | undefined;
+    let previousUid: string | undefined;
+    // Installed once with Auth, not tied to the mounted account form.
+    onAuthStateChanged(sessionAuth, account => {
+      stopIdle?.();
+      if (!account) {
+        if (previousUid) clearAdultActivity(previousUid, tabStorage);
+        previousUid = undefined;
+        return;
+      }
+      if (previousUid && previousUid !== account.uid) clearAdultActivity(previousUid, tabStorage);
+      previousUid = account.uid;
+      stopIdle = watchAdultIdle(account.uid, () => {
+        void signOut(sessionAuth).catch(() => {
+          window.dispatchEvent(new Event('np-adult-signout-failed'));
+        });
+      }, {
+        storage: tabStorage, events: window, visibilityEvents: document,
+        hidden: () => document.hidden,
+        adultInteraction: event => event.target instanceof Element
+          && Boolean(event.target.closest('#adult-panel-dialog[data-authenticated="true"]')),
+        now: Date.now,
+        schedule: (callback, ms) => setTimeout(callback, ms), cancel: clearTimeout,
+      });
+    });
   }
   return auth;
 }
