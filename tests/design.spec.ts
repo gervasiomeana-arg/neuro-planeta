@@ -82,6 +82,7 @@ for (const width of [360,1280]) {
       const activity=page.locator('.np-module-view');
       await expect(activity.getByRole('heading',{name:title,exact:true})).toBeVisible();
       await expect(activity.getByRole('button',{name:'Volver al inicio',exact:true})).toBeEnabled();
+      await expect(activity.locator('.np-activity-header')).toBeInViewport();
       const bounds=await activity.evaluate(element=>{
         const r=element.getBoundingClientRect();
         return {left:r.left,right:r.right,scroll:element.scrollWidth,client:element.clientWidth};

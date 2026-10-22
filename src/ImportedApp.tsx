@@ -508,6 +508,8 @@ export default function ImportedApp() {
   
   // Game/Module States
   const [activeModule, setActiveModule] = useState<'emociones' | 'atencion' | 'zona_calma' | 'sensorial' | 'sos' | 'comunicar' | 'social' | 'rutinas' | null>(null);
+  const activityContentRef = useRef<HTMLElement>(null);
+  useEffect(() => { activityContentRef.current?.scrollTo({top:0,left:0,behavior:'auto'}); }, [activeModule,currentTab]);
   const [calmStep, setCalmStep] = useState(0);
   const [stars, setStars] = useState<number>(0);
   const [attentionHighScore, setAttentionHighScore] = useState<number>(0);
@@ -2087,7 +2089,6 @@ export default function ImportedApp() {
         setParentsAuthenticated(false);
         if (destination === 'inicio' || destination === 'logros') { setCurrentTab(destination); setActiveModule(null); }
         else { setCurrentTab('inicio'); setActiveModule(destination); if (destination === 'social') { setSelectedStoryId(null); setStoryStep('intro'); } }
-        document.getElementById('np-activity-content')?.scrollTo({top:0});
       }} />
       {storageNotice}
       {/* HEADER SECTION (Like the screenshot) */}
@@ -2238,7 +2239,7 @@ export default function ImportedApp() {
       )}
 
       {/* CORE CONTENT SWITCHER */}
-      <main id="np-activity-content" className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto pb-24">
+      <main ref={activityContentRef} id="np-activity-content" className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto pb-24">
         
         {currentTab === 'inicio' && !activeModule && (
           <div className="np-home space-y-5 animate-fade-in">

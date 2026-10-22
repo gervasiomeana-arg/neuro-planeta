@@ -500,3 +500,7 @@
 }
 /* Keep rose labels readable on the pastel emotion and story surfaces. */
 .np-module-view { --np-rose:#854253; }
+.np-module-zona_calma button[class~="bg-purple-600"] { background:#705984; }
+.np-live-shell .np-pictogram-grid>button[class~="border-emerald-500"] { border-color:#7d9f78; }
+.np-live-shell .np-pictogram-grid>button[class~="border-pink-500"] { border-color:#af8390; }
+.np-live-shell .np-pictogram-grid>button[class~="border-orange-500"] { border-color:#ac9065; }
