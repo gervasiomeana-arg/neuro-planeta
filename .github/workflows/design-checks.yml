@@ -7,6 +7,8 @@ permissions:
 jobs:
   design:
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_CHROME_CHANNEL: chrome
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,7 +19,9 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run test:security
-      - run: npx playwright install --with-deps chromium
+      - name: Comprobar Chrome del entorno
+        run: google-chrome --version
+      - run: npx playwright install-deps chromium
       - name: Probar versión candidata
         run: npx playwright test
       - name: Probar web publicada
