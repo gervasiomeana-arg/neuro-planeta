@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
 import ActivityHeader from './ActivityHeader';
+import { AdultDialog, AdultPanelNavigation } from './AdultPanel';
 import WorkspaceNavigation from './WorkspaceNavigation';
 import PlanetIllustration from './PlanetIllustration';
 import BackupPanel from './data/BackupPanel';
@@ -483,6 +484,8 @@ export default function ImportedApp() {
 
   // Clinician dashboard tab selection
   const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'recompensas' | 'pictogramas' | 'sonido' | 'reportes' | 'historias'>('pacientes');
+  const adultPanelScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { adultPanelScrollRef.current?.scrollTo({top:0,left:0}); }, [parentsActiveTab]);
 
   // Client demo mode states
   const [clientDemoMessage, setClientDemoMessage] = useState<string>('');
@@ -4478,17 +4481,17 @@ export default function ImportedApp() {
         {/* 👨‍👩‍👧 PARENTS AND THERAPEUTIC GATEWAY DASHBOARD (NEUROPLANETA ENTERPRISE) */}
         {showParentsMode && (
           <div id="adult-panel-overlay" className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div id="adult-panel-dialog" className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+            <AdultDialog authenticated={parentsAuthenticated} onClose={() => {setShowParentsMode(false);setParentsAuthenticated(false);}}>
               
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+              <div className="np-adult-titlebar flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🩺</span>
+                  <span className="np-adult-title-icon"><Lock aria-hidden="true" /></span>
                   <div>
-                    <h2 className="text-sm font-extrabold text-blue-400 uppercase tracking-widest leading-none">Panel de adultos</h2>
-                    <p className="text-[10px] text-slate-400 mt-1">Configuración y resumen de actividades</p>
+                    <h2 id="adult-panel-title" className="text-sm font-extrabold text-blue-400 uppercase tracking-widest leading-none">Panel de adultos</h2>
+                    <p className="text-[10px] text-slate-400 mt-1">Acompañar, comprender y preparar su día</p>
                   </div>
                 </div>
-                <button 
+                <button type="button" aria-label="Cerrar panel de adultos"
                   onClick={() => { playClickSound(); setShowParentsMode(false); setParentsAuthenticated(false); }}
                   className="text-slate-400 hover:text-white font-bold p-1 hover:bg-slate-800 rounded"
                 >
@@ -4514,6 +4517,7 @@ export default function ImportedApp() {
                       type="number"
                       value={parentsAnswer}
                       onChange={(e) => setParentsAnswer(e.target.value)}
+                      aria-label="Respuesta del control de acceso adulto"
                       placeholder="Escribe la respuesta..."
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-center text-white text-sm focus:outline-none focus:border-blue-500 font-bold"
                       autoFocus
@@ -4532,9 +4536,9 @@ export default function ImportedApp() {
                 </div>
               ) : (
                 /* Authenticated Enterprise Dashboard Tabs and views */
-                <div className="flex-1 flex flex-col overflow-hidden mt-4">
+                <div className="np-adult-dashboard flex-1 flex flex-col overflow-hidden mt-4">
                   {/* Selected Patient Status Banner */}
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-900 flex items-center justify-between gap-3 shrink-0 mb-3">
+                  <div className="np-adult-profile bg-slate-950 p-3 rounded-2xl border border-slate-900 flex items-center justify-between gap-3 shrink-0 mb-3">
                     <div className="flex items-center gap-2.5">
                       <span className="text-2xl bg-slate-900 p-1.5 rounded-xl border border-slate-800">{activePatient.avatar}</span>
                       <div className="text-left">
@@ -4551,41 +4555,12 @@ export default function ImportedApp() {
                     </div>
                   </div>
 
-                  <p className="text-[10px] text-slate-300 bg-blue-950/30 border border-blue-500/20 rounded-xl p-2.5 mb-3">
-                    Los perfiles y registros quedan en este navegador. No hay respaldo entre dispositivos; si se borran los datos del navegador, se perderán. Usa apodos y evita ingresar información clínica sensible.
-                  </p>
+                  <details className="np-adult-storage-note"><summary>Guardado en este dispositivo</summary><p>Los perfiles y registros se guardan en este navegador. En Perfiles podés descargar una copia cifrada y recuperarla en otro dispositivo. Usá apodos y evitá incluir datos clínicos sensibles.</p></details>
 
-                  {/* High fidelity enterprise navigation tabs */}
-                  <div className="flex border-b border-slate-800/80 gap-1 pb-2 shrink-0 overflow-x-auto">
-                    {[
-                      { id: 'pacientes', label: '👥 Perfiles', desc: 'Familia / Escuela' },
-                      { id: 'rutinas', label: '📅 Rutinas', desc: 'Editar tareas' },
-                      { id: 'recompensas', label: '🎁 Premios Reales', desc: 'Economía de fichas' },
-                      { id: 'historias', label: '📖 Historias', desc: 'Crear y revisar' },
-                      { id: 'pictogramas', label: '🎨 Pictogramas', desc: 'Biblioteca' },
-                      { id: 'sonido', label: '🔊 Audio Sensorial', desc: 'Hipersensibilidad' },
-                      { id: 'reportes', label: '📋 Resumen', desc: 'Uso local' }
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        onClick={() => { playClickSound(); setParentsActiveTab(tab.id as any); }}
-                        className={`flex-1 min-w-[90px] py-2 px-2 rounded-xl text-left transition-all relative ${
-                          parentsActiveTab === tab.id
-                            ? 'bg-slate-900/80 border border-slate-800 text-white'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
-                        }`}
-                      >
-                        <div className="text-xs font-extrabold">{tab.label}</div>
-                        <div className="text-[8px] text-slate-500 mt-0.5 leading-none">{tab.desc}</div>
-                        {parentsActiveTab === tab.id && (
-                          <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-500 rounded-full"></span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  <AdultPanelNavigation value={parentsActiveTab} onChange={section => {playClickSound();setParentsActiveTab(section);}} />
 
                   {/* Scrollable Dashboard Viewport */}
-                  <div id="adult-panel-scroll" className="flex-1 overflow-y-auto py-3 pr-1 min-h-0 text-left text-xs">
+                  <div ref={adultPanelScrollRef} id="adult-panel-scroll" data-section={parentsActiveTab} className="flex-1 overflow-y-auto py-3 pr-1 min-h-0 text-left text-xs">
 
                     {parentsActiveTab === 'historias' && (
                       <section className="space-y-4" aria-label="Crear historias sociales">
@@ -5007,7 +4982,6 @@ export default function ImportedApp() {
                     {/* TAB 1: PATIENTS / MULTI-USER MANAGEMENT */}
                     {parentsActiveTab === 'pacientes' && (
                       <div className="space-y-4">
-                        <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Patients switcher */}
                           <div className="space-y-2">
@@ -5047,13 +5021,14 @@ export default function ImportedApp() {
 
                           {/* Add New Profile form */}
                           <div className="bg-slate-950/60 border border-slate-850 p-3.5 rounded-2xl space-y-2">
-                            <h3 className="font-extrabold text-white text-xs">➕ Registrar Nuevo Paciente</h3>
+                            <h3 className="font-extrabold text-white text-xs">➕ Crear un perfil</h3>
                             
                             <div className="space-y-1.5">
-                              <label className="text-[9px] text-slate-400 font-bold uppercase">Nombre Completo</label>
+                              <label htmlFor="new-profile-name" className="text-[9px] text-slate-400 font-bold uppercase">Nombre o apodo</label>
                               <input
                                 type="text"
-                                placeholder="ej: Lucas Martínez"
+                                id="new-profile-name"
+                                placeholder="Ej.: Alex"
                                 value={newPatientName}
                                 onChange={(e) => setNewPatientName(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none focus:border-slate-700"
@@ -5063,7 +5038,7 @@ export default function ImportedApp() {
                             <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">
                                 <label className="text-[9px] text-slate-400 font-bold uppercase">Edad</label>
-                                <select
+                                <select aria-label="Edad del nuevo perfil"
                                   value={newPatientAge}
                                   onChange={(e) => setNewPatientAge(e.target.value)}
                                   className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none"
@@ -5075,7 +5050,7 @@ export default function ImportedApp() {
                               </div>
                               <div className="space-y-1">
                                 <label className="text-[9px] text-slate-400 font-bold uppercase">Avatar</label>
-                                <select
+                                <select aria-label="Avatar del nuevo perfil"
                                   value={newPatientAvatar}
                                   onChange={(e) => setNewPatientAvatar(e.target.value)}
                                   className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none"
@@ -5090,10 +5065,11 @@ export default function ImportedApp() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[9px] text-slate-400 font-bold uppercase">Objetivo Terapéutico</label>
+                              <label htmlFor="new-profile-objective" className="text-[9px] text-slate-400 font-bold uppercase">Objetivo de acompañamiento</label>
                               <input
                                 type="text"
-                                placeholder="ej: Reducir frustración de transiciones"
+                                id="new-profile-objective"
+                                placeholder="Ej.: anticipar cambios en la rutina"
                                 value={newPatientObjective}
                                 onChange={(e) => setNewPatientObjective(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-850 rounded-lg p-1.5 text-slate-200 text-xs focus:outline-none focus:border-slate-700"
@@ -5168,7 +5144,7 @@ export default function ImportedApp() {
                             {/* Range Selector */}
                             <div className="space-y-1">
                               <label className="text-[9px] text-blue-400 font-extrabold uppercase tracking-widest block">Rango de Edad Activo</label>
-                              <select
+                              <select aria-label="Rango de edad activo"
                                 value={selectedAge}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -5186,6 +5162,7 @@ export default function ImportedApp() {
                             </div>
                           </div>
                         </div>
+                        <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
                       </div>
                     )}
 
@@ -5208,7 +5185,7 @@ export default function ImportedApp() {
                                 onChange={(e) => setParentsPicSearchQuery(e.target.value)}
                                 className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none"
                               />
-                              <select
+                              <select aria-label="Filtrar pictogramas por categoría"
                                 value={parentsPicCategoryFilter}
                                 onChange={(e) => setParentsPicCategoryFilter(e.target.value as any)}
                                 className="bg-slate-900 border border-slate-800 rounded-lg px-1.5 py-1 text-xs text-slate-300 focus:outline-none"
@@ -5904,7 +5881,7 @@ export default function ImportedApp() {
                   </div>
 
                   {/* Clinician secure log-out section */}
-                  <div className="border-t border-slate-800/85 pt-3 mt-2 shrink-0">
+                  <div className="np-adult-footer border-t border-slate-800/85 pt-3 mt-2 shrink-0">
                     <button
                       onClick={() => {
                         playClickSound();
@@ -5920,7 +5897,7 @@ export default function ImportedApp() {
                 </div>
               )}
 
-            </div>
+            </AdultDialog>
           </div>
         )}
 
