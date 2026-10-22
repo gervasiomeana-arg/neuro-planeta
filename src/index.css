@@ -498,3 +498,5 @@
  .np-live-shell .np-story-library h3 { font-size:18px; }
  .np-live-shell .np-module-social>div[class*="border"] h3 { font-size:21px; }
 }
+/* Keep rose labels readable on the pastel emotion and story surfaces. */
+.np-module-view { --np-rose:#854253; }
