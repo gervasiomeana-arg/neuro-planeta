@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ActivityCard from './ActivityCard';
+import ActivityHeader from './ActivityHeader';
 import WorkspaceNavigation from './WorkspaceNavigation';
 import PlanetIllustration from './PlanetIllustration';
 import BackupPanel from './data/BackupPanel';
@@ -2385,18 +2386,8 @@ export default function ImportedApp() {
 
         {/* 1. EMOCIONES MODULE WITH ZONES OF REGULATION */}
         {activeModule === 'emociones' && (
-          <div className="space-y-4 animate-fade-in text-left">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button aria-label="Volver al inicio"
-                  onClick={() => { playClickSound(); setActiveModule(null); }}
-                  className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-base font-extrabold text-amber-500">Emociones y Regulación</h2>
-              </div>
-            </div>
+          <div className="np-module-view np-module-emociones space-y-4 animate-fade-in text-left">
+            <ActivityHeader title="Emociones y Regulación" label="Todas las emociones tienen lugar" icon={Smile} tone="amber" onBack={() => { playClickSound(); setActiveModule(null); }}></ActivityHeader>
 
             {/* Sub-tab navigation between Semáforo de Regulación and Caritas */}
             <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs gap-1.5">
@@ -2432,12 +2423,14 @@ export default function ImportedApp() {
                 </p>
 
                 {/* 4 Zones Grid */}
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="np-zone-grid grid grid-cols-2 gap-2.5">
                   {REGULATION_ZONES.map((zone) => {
                     const isSelected = selectedZoneId === zone.id;
                     return (
                       <button
                         key={zone.id}
+                        data-zone={zone.id}
+                        aria-pressed={isSelected}
                         type="button"
                         onClick={() => {
                           playSuccessSound();
@@ -2447,7 +2440,7 @@ export default function ImportedApp() {
                           setZoneStrategyFeedback(null);
                           setRegisteredZoneFeedback(null);
                         }}
-                        className={`p-3.5 rounded-2xl border-2 text-left flex flex-col justify-between transition-all duration-200 cursor-pointer min-h-[135px] relative overflow-hidden ${
+                        className={`np-zone-choice p-3.5 rounded-2xl border-2 text-left flex flex-col justify-between transition-all duration-200 cursor-pointer min-h-[135px] relative overflow-hidden ${
                           isSelected
                             ? `${zone.cardColor} ${zone.buttonBorder} scale-[1.02] shadow-xl`
                             : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-300'
@@ -2844,20 +2837,8 @@ export default function ImportedApp() {
 
         {/* 2. ATENCION MODULE (Foco) */}
         {activeModule === 'atencion' && (
-          <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button aria-label="Volver al inicio"
-                  onClick={() => { playClickSound(); setActiveModule(null); }}
-                  className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-base font-extrabold text-blue-400">Atención Cósmica</h2>
-              </div>
-
-              {attentionGameState === 'playing' && <span className="text-sm font-bold text-blue-400">{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}
-            </div>
+          <div className="np-module-view np-module-atencion space-y-5 animate-fade-in">
+            <ActivityHeader title="Atención Cósmica" label="Descubrí a tu ritmo" icon={Brain} tone="blue" onBack={() => { playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
 
             {attentionGameState === 'idle' && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center space-y-4">
@@ -2884,7 +2865,7 @@ export default function ImportedApp() {
 
                 {attentionHint && <p role="status" className="text-sm text-blue-400 font-semibold text-center">Probá con otro número. Podés tomarte tu tiempo.</p>}
 
-                <div className={`grid ${attentionGrid.length === 9 ? 'grid-cols-3' : 'grid-cols-4'} gap-2.5`}>
+                <div className={`np-number-grid grid ${attentionGrid.length === 9 ? 'grid-cols-3' : 'grid-cols-4'} gap-2.5`}>
                   {attentionGrid.map((num, idx) => (
                     <button
                       key={idx}
@@ -2944,24 +2925,16 @@ export default function ImportedApp() {
 
         {/* 3. ZONA CALMA MODULE */}
         {activeModule === 'zona_calma' && (
-          <div className="space-y-5 animate-fade-in text-center">
-            <div className="flex items-center gap-2 text-left">
-              <button aria-label="Volver al inicio"
-                onClick={() => { playClickSound(); setActiveModule(null); }}
-                className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <h2 className="text-base font-extrabold text-purple-400">Zona Calma</h2>
-            </div>
+          <div className="np-module-view np-module-zona_calma space-y-5 animate-fade-in text-center">
+            <ActivityHeader title="Zona Calma" label="Mi rincón tranquilo" icon={Wind} tone="lavender" onBack={() => { playClickSound(); setActiveModule(null); }}></ActivityHeader>
 
             <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed text-left">
               Si querés, acompañá el círculo con tu respiración. Podés seguir tu propio ritmo y parar cuando quieras.
             </p>
 
             {breathingPhase === 'idle' ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <span className="text-4xl animate-pulse">🌬️</span>
+              <div className="np-calm-intro bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                <span className="np-calm-illustration text-4xl">🌿</span>
                 <h3 className="font-extrabold text-base text-white">Una pausa tranquila</h3>
                 <p className="text-sm text-slate-400">
                   Mirá cómo el círculo crece y se achica. No hace falta contener el aire.
@@ -2978,7 +2951,7 @@ export default function ImportedApp() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-6 py-4">
+              <div className="np-breathing-stage space-y-6 py-4">
                 {/* Expanding circle animation mapped to state */}
                 <div className="flex justify-center items-center h-48">
                   <div className={`rounded-full flex flex-col justify-center items-center transition-all duration-1000 border-4 border-purple-500/50 shadow-2xl relative ${
@@ -3017,18 +2990,8 @@ export default function ImportedApp() {
 
         {/* 4. SENSORIAL MODULE */}
         {activeModule === 'sensorial' && (
-          <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button aria-label="Volver al inicio"
-                  onClick={() => { playClickSound(); setActiveModule(null); }}
-                  className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-base font-extrabold text-pink-400">Regulación Sensorial</h2>
-              </div>
-            </div>
+          <div className="np-module-view np-module-sensorial space-y-5 animate-fade-in">
+            <ActivityHeader title="Regulación Sensorial" label="Exploro mis sentidos" icon={Sparkles} tone="rose" onBack={() => { playClickSound(); setActiveModule(null); }}></ActivityHeader>
 
             <p className="text-sm text-slate-400 leading-relaxed">
               Tocá el espacio para crear colores. Podés activar o silenciar los sonidos cuando quieras.
@@ -3093,16 +3056,8 @@ export default function ImportedApp() {
 
         {/* 4.5. COMUNICAR MODULE (AAC Pictograms with Smart Search) */}
         {activeModule === 'comunicar' && (
-          <div className="space-y-4 animate-fade-in text-left">
-            <div className="flex items-center gap-2">
-              <button aria-label="Volver al inicio"
-                onClick={() => { playClickSound(); setActiveModule(null); }}
-                className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <h2 className="text-base font-extrabold text-[#FF7A59]">Tablero de Comunicación (SACS)</h2>
-            </div>
+          <div className="np-module-view np-module-comunicar space-y-4 animate-fade-in text-left">
+            <ActivityHeader title="Tablero de Comunicación (SACS)" label="Mi voz, a mi manera" icon={MessageSquare} tone="aqua" onBack={() => { playClickSound(); setActiveModule(null); }}></ActivityHeader>
 
             <p className="text-xs text-slate-400 leading-relaxed">
               Toca los pictogramas para construir tu frase. {soundEnabled ? 'Podés escucharla cuando quieras.' : 'El sonido está apagado; tu frase se sigue viendo.'}
@@ -3115,6 +3070,7 @@ export default function ImportedApp() {
               </span>
               <input
                 type="text"
+                aria-label="Buscar pictograma"
                 placeholder="Buscar pictograma... (ej: agua, abrazo, feliz)"
                 value={pictogramSearchQuery}
                 onChange={(e) => setPictogramSearchQuery(e.target.value)}
@@ -3122,6 +3078,7 @@ export default function ImportedApp() {
               />
               {pictogramSearchQuery && (
                 <button
+                  aria-label="Limpiar búsqueda de pictogramas"
                   onClick={() => setPictogramSearchQuery('')}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-white text-xs font-bold"
                 >
@@ -3131,7 +3088,7 @@ export default function ImportedApp() {
             </div>
 
             {/* Active phrase bar */}
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 min-h-[70px] flex flex-wrap items-center gap-2 shadow-inner">
+            <div className="np-phrase-display bg-slate-950 border border-slate-800 rounded-2xl p-3 min-h-[70px] flex flex-wrap items-center gap-2 shadow-inner">
               {constructedPhrase.length === 0 ? (
                 <span className="text-[11px] text-slate-500 font-bold italic ml-2">Tu frase aparecerá aquí...</span>
               ) : (
@@ -3259,7 +3216,7 @@ export default function ImportedApp() {
             )}
 
             {/* Pictograms grid */}
-            <div className="grid grid-cols-3 gap-2 pb-4">
+            <div className="np-pictogram-grid grid grid-cols-3 gap-2 pb-4">
               {(() => {
                 const filteredPics = ALL_DEFAULT_PICTOGRAMS.filter(pic => {
                   if (pictogramSearchQuery) {
@@ -3324,23 +3281,15 @@ export default function ImportedApp() {
 
         {/* 4.6. SOCIAL MODULE (Social Stories and Situations) */}
         {activeModule === 'social' && (
-          <div className="space-y-4 animate-fade-in text-left">
-            <div className="flex items-center gap-2">
-              <button aria-label="Volver al inicio"
-                onClick={() => { playClickSound(); setActiveModule(null); }}
-                className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <h2 className="text-base font-extrabold text-pink-400">Historias Sociales y Situaciones</h2>
-            </div>
+          <div className="np-module-view np-module-social space-y-4 animate-fade-in text-left">
+            <ActivityHeader title="Historias Sociales y Situaciones" label="Conozco lo que viene" icon={Handshake} tone="peach" onBack={() => { playClickSound(); setActiveModule(null); }}></ActivityHeader>
 
             <p className="text-xs text-slate-400 leading-relaxed">
               Explorá situaciones cotidianas. Hay más de una forma de pedir ayuda, cuidar tu espacio y jugar con otros.
             </p>
 
             {selectedStoryId === null ? (
-              <div className="space-y-3">
+              <div className="np-story-library space-y-3">
                 {[
                   { id: 'compartir', title: '🤝 Jugar con otra persona', desc: 'Podés compartir o pedir un rato para jugar solo.', badge: 'Elegir' },
                   { id: 'ruido', title: '🎧 Ruido fuerte en clase', desc: 'Formas de pedir un espacio tranquilo.', badge: 'Pedir ayuda' },
@@ -3549,16 +3498,8 @@ export default function ImportedApp() {
 
         {/* 4.7. RUTINAS MODULE (Visual Schedule Checklist, First-Then Board & Micro-Steps) */}
         {activeModule === 'rutinas' && (
-          <div className="space-y-4 animate-fade-in text-left">
-            <div className="flex items-center gap-2">
-              <button aria-label="Volver al inicio"
-                onClick={() => { playClickSound(); setActiveModule(null); }}
-                className="p-1.5 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <h2 className="text-base font-extrabold text-emerald-400">Mis Rutinas y Estructura</h2>
-            </div>
+          <div className="np-module-view np-module-rutinas space-y-4 animate-fade-in text-left">
+            <ActivityHeader title="Mis Rutinas y Estructura" label="Una cosa por vez" icon={ClipboardList} tone="sage" onBack={() => { playClickSound(); setActiveModule(null); }}></ActivityHeader>
 
             {/* Mode selector between Horarios del Día and Tablero Primero/Después */}
             <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs gap-1.5">
