@@ -81,7 +81,7 @@ test('unknown and existing recovery emails receive the same message without send
 });
 
 test('adult session signs out after inactivity while preserving local child profiles', async ({ page }) => {
-  await page.clock.install();
+  await page.clock.install({ time: new Date(new Date().setUTCHours(12, 0, 0, 0)) });
   const payload = Buffer.from(JSON.stringify({ sub: 'idle_adult', user_id: 'idle_adult', auth_time: Math.floor(Date.now() / 1000), iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, email: 'adulto@example.invalid', email_verified: true })).toString('base64url');
   const token = `eyJhbGciOiJub25lIn0.${payload}.simulated`;
   await page.route('https://identitytoolkit.googleapis.com/**', async route => {
