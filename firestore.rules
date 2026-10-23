@@ -38,6 +38,18 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }
+    match /billingConfig/monthly {
+      allow get: if administrator();
+      allow list, delete: if false;
+      allow create, update: if administrator()
+        && request.resource.data.keys().hasAll(['amountCents', 'currency', 'period', 'updatedBy', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['amountCents', 'currency', 'period', 'updatedBy', 'updatedAt'])
+        && request.resource.data.amountCents is int
+        && request.resource.data.amountCents >= 0 && request.resource.data.amountCents <= 999999999
+        && request.resource.data.currency == 'ARS' && request.resource.data.period == 'month'
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
     function validMetadata(familyId) {
       let d = request.resource.data;
       return d.keys().hasAll(['ownerUid', 'schemaVersion', 'createdAt', 'updatedAt'])

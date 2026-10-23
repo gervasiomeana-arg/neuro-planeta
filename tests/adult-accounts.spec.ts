@@ -151,14 +151,14 @@ test('verified adult explicitly links only a minimal profile and retries without
   await link.getByRole('checkbox').check();
   await link.getByRole('button').click();
   await expect(link.getByRole('status')).toContainText('Ficha mínima vinculada');
-  expect(writes).toHaveLength(2);
+  expect(writes.filter(write => write.name.includes('/families/'))).toHaveLength(2);
   const child = writes.find(write => write.name.includes('/profiles/'));
   expect(child.name).toMatch(/\/families\/link_adult\/profiles\/[a-f0-9]{64}$/);
   expect(Object.keys(child.fields).sort()).toEqual(['ageRange', 'nickname', 'ownerUid', 'schemaVersion']);
   expect(JSON.stringify(writes)).not.toMatch(/Cuenta ficticia|account_test|stars|emotionJournal/);
   await link.getByRole('checkbox').check(); await link.getByRole('button').click();
   await expect(link.getByRole('status')).toContainText('ya estaba vinculada');
-  expect(writes).toHaveLength(2);
+  expect(writes.filter(write => write.name.includes('/families/'))).toHaveLength(2);
   expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
   const vault = account.getByRole('region', { name: 'Copia privada por cuenta', exact: true });
   await expect(vault).toBeVisible();
@@ -183,10 +183,27 @@ test('verified adult explicitly links only a minimal profile and retries without
   await vault.getByRole('button', { name: 'Abrir copia privada', exact: true }).click();
   await expect(vault.getByLabel('Contenido de copia privada', { exact: true })).toContainText('Cuenta ficticia');
 
-  const admin = account.getByRole('region', { name: 'Administración de accesos', exact: true });
-  await admin.getByRole('tab', { name: 'Administración · accesos', exact: true }).click();
-  await expect(admin.getByRole('status')).toContainText('Solo la cuenta administradora');
+  await account.getByRole('button', { name: 'Administración', exact: true }).click();
+  const admin = page.getByRole('dialog', { name: 'Administración', exact: true });
+  await admin.getByLabel('Clave de administración', { exact: true }).fill('CAR123');
+  await admin.getByRole('button', { name: 'Ingresar a administración', exact: true }).click();
+  await expect(admin.getByRole('status')).toContainText('Clave o permisos');
   await expect(admin.getByRole('tabpanel')).toHaveCount(0);
+  const roleName = 'projects/neuroplaneta-bdaf9/databases/(default)/documents/admins/link_adult';
+  cloud.set(roleName, { name: roleName, fields: { active: { booleanValue: true } }, createTime: '2026-10-22T12:00:00Z', updateTime: '2026-10-22T12:00:00Z' });
+  await admin.getByLabel('Clave de administración', { exact: true }).fill('CAR123');
+  await admin.getByRole('button', { name: 'Ingresar a administración', exact: true }).click();
+  await admin.getByRole('tab', { name: 'Suscripción mensual', exact: true }).click();
+  const pricing = admin.getByRole('region', { name: 'Suscripción mensual', exact: true });
+  await pricing.getByRole('button', { name: 'Consultar valor vigente', exact: true }).click();
+  await expect(pricing.getByLabel('Importe mensual en pesos', { exact: true })).toBeEnabled();
+  await pricing.getByLabel('Importe mensual en pesos', { exact: true }).fill('15000,50');
+  await pricing.getByRole('button', { name: 'Guardar valor mensual', exact: true }).click();
+  await expect(pricing.getByRole('status')).toContainText('Valor mensual guardado');
+  const monthly = writes.find(write => write.name.endsWith('/billingConfig/monthly'));
+  expect(Number(monthly.fields.amountCents.integerValue)).toBe(1500050);
+  expect(monthly.fields.currency.stringValue).toBe('ARS');
+  await admin.getByRole('button', { name: 'Volver a la app', exact: true }).click();
 
   // Delay a new transaction response until after logout: it must not commit,
   // even a verification-only commit, or revive the old account's UI.
@@ -202,7 +219,7 @@ test('verified adult explicitly links only a minimal profile and retries without
   await lateResponse;
   await page.waitForLoadState('networkidle');
   expect(commits).toBe(commitsBeforeLogout);
-  expect(writes).toHaveLength(2);
+  expect(writes.filter(write => write.name.includes('/families/'))).toHaveLength(2);
   await expect(account.getByLabel('Correo del adulto', { exact: true })).toHaveValue('');
   expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
 });

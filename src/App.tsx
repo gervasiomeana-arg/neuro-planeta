@@ -1,5 +1,6 @@
-import ImportedApp from './ImportedApp';
-
+import { lazy, Suspense } from 'react';
+import GoogleAccessShell from './auth/GoogleAccessShell';
+const ImportedApp = lazy(() => import('./ImportedApp'));
 export default function App() {
-  return <ImportedApp />;
+  return <GoogleAccessShell><Suspense fallback={<p role="status">Abriendo NeuroPlaneta…</p>}><ImportedApp /></Suspense></GoogleAccessShell>;
 }

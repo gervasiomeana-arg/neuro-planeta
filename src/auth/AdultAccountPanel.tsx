@@ -3,7 +3,6 @@ import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerificati
 import { adultAuth, endAdultSession } from './firebase';
 import FamilyLinkPanel from '../data/FamilyLinkPanel';
 import FamilyVaultPanel from '../data/FamilyVaultPanel';
-import AdminAccessPanel from './AdminAccessPanel';
 import { recordAdultAccess } from './accessHistory';
 import type { LocalLinkProfile } from '../data/familyLinkData';
 import { RECOVERY_MESSAGE, recoveryErrorMessage } from './accountFeedback';
@@ -95,7 +94,7 @@ export default function AdultAccountPanel({ profile, localProfile }: { profile: 
       {!user.emailVerified && <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('refresh')}>Ya verifiqué mi correo</button>}
       {user.emailVerified && profile.id && <FamilyLinkPanel key={`${user.uid}:${profile.id}:${profile.selectedAge}`} user={user} profile={profile} />}
       {user.emailVerified && profile.id && localProfile && <FamilyVaultPanel key={`vault:${user.uid}:${profile.id}`} user={user} profile={localProfile} />}
-      {user.emailVerified && <AdminAccessPanel key={`admin:${user.uid}`} user={user} />}
+      {user.emailVerified && <button className="np-account-button" type="button" onClick={() => window.dispatchEvent(new Event('np-open-administration'))}>Administración</button>}
       <button className="np-account-button" type="button" disabled={busy} onClick={() => perform('logout')}>Cerrar sesión adulta</button>
     </> : <form onSubmit={event => { event.preventDefault(); void perform('login'); }} className="space-y-3">
       <label className="block">Correo del adulto<input type="email" required autoComplete="username" maxLength={254} disabled={busy || !ready} value={email} onChange={event => setEmail(event.target.value)} className="block w-full border rounded-lg p-2" /></label>

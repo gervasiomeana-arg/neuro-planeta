@@ -11,6 +11,7 @@ export const adultSessionEpoch = () => epoch;
 export const adultSessionIsCurrent = (uid: string, version: number) => sessionActive && epoch === version && auth?.currentUser?.uid === uid;
 export async function endAdultSession() {
   sessionActive = false; epoch++;
+  window.dispatchEvent(new Event('np-adult-lock'));
   await signOut(adultAuth());
 }
 export function adultAuth() {
@@ -49,7 +50,7 @@ export function adultAuth() {
         storage: tabStorage, events: window, visibilityEvents: document,
         hidden: () => document.hidden,
         adultInteraction: event => event.target instanceof Element
-          && Boolean(event.target.closest('#adult-panel-dialog[data-authenticated="true"]')),
+          && Boolean(event.target.closest('#adult-panel-dialog[data-authenticated="true"], #np-administration[data-adult-secure="true"]')),
         now: Date.now,
         schedule: (callback, ms) => setTimeout(callback, ms), cancel: clearTimeout,
       });
