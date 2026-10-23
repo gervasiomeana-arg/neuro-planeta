@@ -5179,7 +5179,7 @@ export default function ImportedApp() {
                         </div>
                         <details className="rounded-xl border p-3">
                           <summary className="font-bold cursor-pointer">Cuenta adulta · correo y contraseña</summary>
-                          <Suspense fallback={<p>Cargando acceso…</p>}><AdultAccountPanel profile={{ id: activePatient.id, name: activePatient.name, selectedAge: activePatient.selectedAge }} /></Suspense>
+                          <Suspense fallback={<p>Cargando acceso…</p>}><AdultAccountPanel profile={{ id: activePatient.id, name: activePatient.name, selectedAge: activePatient.selectedAge }} localProfile={activePatient} /></Suspense>
                         </details>
                         <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
                       </div>

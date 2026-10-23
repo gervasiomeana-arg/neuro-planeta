@@ -1,8 +1,9 @@
 # Protección local: primera etapa de almacenamiento
 
 Esta etapa incorpora una base de almacenamiento cifrado por UID en `familyVault.ts`.
-Todavía no se usa desde la interfaz: los perfiles actuales de `np_patients` siguen
-sin cifrar y no se migran, borran ni ocultan automáticamente. No anunciar que el
+Se puede usar en Espacio de adultos → Perfiles → Cuenta adulta → Copia privada por cuenta, con correo verificado y confirmación explícita. Guarda o actualiza únicamente el perfil seleccionado; abrir y cerrar muestra u oculta el contenido de la copia. Las contraseñas se descartan del formulario al iniciar cada operación. Cambiar de cuenta, desmontar el panel, ocultar la pestaña o recibir cambios de almacenamiento descarta la vista descifrada y bloquea las respuestas tardías.
+
+Los perfiles actuales de `np_patients` siguen sin cifrar y no se migran, borran ni ocultan automáticamente. La copia privada no se actualiza al jugar: debe guardarse de nuevo explícitamente. No anunciar que el
 dispositivo ya está protegido ni que existe aislamiento completo entre adultos.
 
 Las copias privadas usan el cifrado existente AES-256-GCM, sal e IV aleatorios y
