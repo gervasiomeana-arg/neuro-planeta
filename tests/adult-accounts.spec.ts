@@ -182,6 +182,11 @@ test('verified adult explicitly links only a minimal profile and retries without
   await vault.getByRole('button', { name: 'Abrir copia privada', exact: true }).click();
   await expect(vault.getByLabel('Contenido de copia privada', { exact: true })).toContainText('Cuenta ficticia');
 
+  const admin = account.getByRole('region', { name: 'Administración de accesos', exact: true });
+  await admin.getByRole('tab', { name: 'Administración · accesos', exact: true }).click();
+  await expect(admin.getByRole('status')).toContainText('Solo la cuenta administradora');
+  await expect(admin.getByRole('tabpanel')).toHaveCount(0);
+
   // Delay a new transaction response until after logout: it must not commit,
   // even a verification-only commit, or revive the old account's UI.
   pauseReads = true;
@@ -199,4 +204,15 @@ test('verified adult explicitly links only a minimal profile and retries without
   expect(writes).toHaveLength(2);
   await expect(account.getByLabel('Correo del adulto', { exact: true })).toHaveValue('');
   expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(before);
+});
+
+
+test('Google sign-in requires adult consent without sending child data', async ({ page }) => {
+  const account = await open(page);
+  const google = account.getByRole('button', { name: 'Continuar con Google', exact: true });
+  await expect(google).toBeDisabled();
+  await account.getByRole('checkbox').check();
+  await expect(google).toBeEnabled();
+  await account.getByRole('checkbox').uncheck();
+  await expect(google).toBeDisabled();
 });

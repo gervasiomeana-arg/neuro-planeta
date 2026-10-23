@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, browserSessionPersistence, onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
+import { initializeAuth, browserSessionPersistence, browserPopupRedirectResolver, onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
 
 import { clearAdultActivity, watchAdultIdle } from './idleSession';
 
@@ -21,7 +21,7 @@ export function adultAuth() {
       projectId: 'neuroplaneta-bdaf9',
       appId: '1:329476093246:web:aa8c325ef2c8e1ede6686f',
     }, 'neuroplaneta-adults');
-    auth = initializeAuth(app, { persistence: browserSessionPersistence });
+    auth = initializeAuth(app, { persistence: browserSessionPersistence, popupRedirectResolver: browserPopupRedirectResolver });
     const sessionAuth = auth;
     const tabStorage = {
       getItem: (key: string) => window.sessionStorage.getItem(key),

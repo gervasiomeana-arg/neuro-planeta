@@ -1,12 +1,13 @@
 // React/Motion need inline styles, never inline scripts or eval.
 export const browserPolicy = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' https://apis.google.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://api.arasaac.org",
   "media-src 'self' data: blob:",
-  "connect-src 'self' https://api.arasaac.org https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com",
+  "connect-src 'self' https://api.arasaac.org https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://neuroplaneta-bdaf9.firebaseapp.com",
+  "frame-src https://neuroplaneta-bdaf9.firebaseapp.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
