@@ -57,7 +57,7 @@ export default function FamilyVaultPanel({ user, profile }: { user: User; profil
       }
       if (current()) {
         setOpened(profiles);
-        setMessage(save ? 'Copia privada cifrada guardada y comprobada. El original sigue sin cifrar.'
+        setMessage(save ? 'Copia privada cifrada guardada y comprobada. El perfil principal se conservó.'
           : existing.revision === null ? 'Todavía no hay una copia privada para esta cuenta.' : 'Copia privada abierta en esta sesión.');
       }
     } catch {
@@ -70,11 +70,11 @@ export default function FamilyVaultPanel({ user, profile }: { user: User; profil
   return <section aria-label="Copia privada por cuenta" className="rounded-xl border p-3 space-y-3">
     <h4 className="font-bold">Copia privada por cuenta</h4>
     <p>Guarda una copia cifrada del perfil seleccionado en este navegador, separada por cuenta adulta. No se envía a Firebase ni se actualiza automáticamente al jugar.</p>
-    <p className="font-bold">Los perfiles originales siguen sin cifrar. Esta función todavía no protege el listado habitual ni reemplaza su guardado.</p>
+    <p className="font-bold">Esta copia es independiente del guardado principal. Su protección se configura en Copias de seguridad → Proteger el guardado principal.</p>
     <p>Usá una contraseña propia de 12 a 256 caracteres, distinta de la cuenta adulta. No podemos recuperarla. Conservá también una copia cifrada descargada.</p>
     <label className="block">Contraseña de la copia privada<input className="block w-full border rounded-lg p-2" type="password" autoComplete="off" maxLength={256} disabled={busy} value={password} onChange={event => setPassword(event.target.value)} /></label>
     <label className="block">Repetir contraseña de la copia privada<input className="block w-full border rounded-lg p-2" type="password" autoComplete="off" maxLength={256} disabled={busy} value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>
-    <label className="flex gap-2"><input type="checkbox" disabled={busy} checked={consent} onChange={event => setConsent(event.target.checked)} />Confirmo guardar o actualizar este perfil en mi copia privada. El original continúa sin cifrar.</label>
+    <label className="flex gap-2"><input type="checkbox" disabled={busy} checked={consent} onChange={event => setConsent(event.target.checked)} />Confirmo guardar o actualizar este perfil en mi copia privada. El perfil principal se conserva.</label>
     <div className="flex flex-wrap gap-2">
       <button type="button" className="np-account-button np-account-primary" disabled={busy || !consent || password.trim().length < 12 || password !== confirmation} onClick={() => perform(true)}>Guardar perfil en copia privada</button>
       <button type="button" className="np-account-button" disabled={busy || password.trim().length < 12} onClick={() => perform(false)}>Abrir copia privada</button>
