@@ -610,12 +610,26 @@
 }
 
 /* Account actions must look like buttons, including disabled and keyboard states. */
-.np-adult-account .np-account-button {
+.np-account-button {
   min-height:44px;padding:10px 16px;border:1px solid #567462;border-radius:11px;
   background:#e4ecdf;color:#29493f;font-weight:700;cursor:pointer;
 }
-.np-adult-account .np-account-primary { background:#315c49;color:#fff;border-color:#315c49; }
-.np-adult-account .np-account-button:hover:not(:disabled) { background:#d3e0cd; }
-.np-adult-account .np-account-primary:hover:not(:disabled) { background:#254736; }
-.np-adult-account .np-account-button:focus-visible { outline:3px solid #355f80;outline-offset:3px; }
-.np-adult-account .np-account-button:disabled { background:#e3e5df;color:#62695e;border-color:#a5afa0;cursor:not-allowed; }
+.np-account-primary { background:#315c49;color:#fff;border-color:#315c49; }
+.np-account-button:hover:not(:disabled) { background:#d3e0cd; }
+.np-account-primary:hover:not(:disabled) { background:#254736; }
+.np-account-button:focus-visible { outline:3px solid #355f80;outline-offset:3px; }
+.np-account-button:disabled { background:#e3e5df;color:#62695e;border-color:#a5afa0;cursor:not-allowed; }
+
+/* Adult controls retain visible buttons outside the account panel. */
+#np-administration [role="tablist"] { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+#np-administration .np-admin-history { background:#e3eef8; color:#214e72; border-color:#8db0cb; }
+#np-administration .np-admin-price { background:#eee5f6; color:#5d3978; border-color:#b59bc9; }
+#np-administration .np-admin-history[aria-selected="true"] { background:#285e85; color:#fff; border-color:#285e85; box-shadow:0 0 0 3px #d1e2ef; }
+#np-administration .np-admin-price[aria-selected="true"] { background:#714892; color:#fff; border-color:#714892; box-shadow:0 0 0 3px #e5d8ef; }
+#np-administration .np-admin-lock { background:#fae7e7; color:#8e303b; border-color:#c7a0a0; }
+#np-administration .np-admin-return { background:#e4e8eb; color:#374b59; border-color:#a8b7bf; }
+#np-administration .np-account-button:hover:not(:disabled) { filter:brightness(.94); }
+#np-administration .np-account-button:disabled { background:#e3e5df; color:#62695e; border-color:#a5afa0; box-shadow:none; filter:none; }
+#np-administration table { width:100%; border-collapse:collapse; }
+#np-administration th, #np-administration td { padding:12px; text-align:left; border-bottom:1px solid #cbd7d3; }
+#np-administration th { background:#e3eef8; color:#214e72; }
