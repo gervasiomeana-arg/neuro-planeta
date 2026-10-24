@@ -6,6 +6,50 @@ service cloud.firestore {
         && request.auth.uid == familyId
         && request.auth.token.email_verified == true;
     }
+    function verifiedAdult() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function administrator() {
+      return verifiedAdult()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+    function currentAccessId(eventId) {
+      return verifiedAdult() && request.auth.token.auth_time is int
+        && eventId == request.auth.uid + '_' + string(request.auth.token.auth_time);
+    }
+    match /admins/{uid} {
+      // Provisioned only through the trusted Firebase console / Admin SDK.
+      allow get: if verifiedAdult() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /accessEvents/{eventId} {
+      allow get: if currentAccessId(eventId) || administrator();
+      allow list: if administrator() && request.query.limit <= 100;
+      allow create: if currentAccessId(eventId)
+        && request.resource.data.keys().hasAll(['ownerUid', 'email', 'provider', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'email', 'provider', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.provider in ['password', 'google.com']
+        && request.resource.data.provider == request.auth.token.firebase.sign_in_provider
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    match /billingConfig/monthly {
+      allow get: if administrator();
+      allow list, delete: if false;
+      allow create, update: if administrator()
+        && request.resource.data.keys().hasAll(['amountCents', 'currency', 'period', 'updatedBy', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['amountCents', 'currency', 'period', 'updatedBy', 'updatedAt'])
+        && request.resource.data.amountCents is int
+        && request.resource.data.amountCents >= 0 && request.resource.data.amountCents <= 999999999
+        && request.resource.data.currency == 'ARS' && request.resource.data.period == 'month'
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
     function validMetadata(familyId) {
       let d = request.resource.data;
       return d.keys().hasAll(['ownerUid', 'schemaVersion', 'createdAt', 'updatedAt'])

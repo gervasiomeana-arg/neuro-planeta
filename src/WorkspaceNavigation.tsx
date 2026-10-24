@@ -12,6 +12,6 @@ export default function WorkspaceNavigation({activePage,onNavigate}:Props) {
     <p className="np-workspace-caption">MI ESPACIO</p>
     <nav aria-label="Navegación de escritorio">{destinations.map(({id,label,icon:Icon})=><button type="button" key={id} onClick={()=>onNavigate(id)} aria-current={activePage===id?'page':undefined}><Icon aria-hidden="true"/><span>{label}</span></button>)}</nav>
     <section className="np-workspace-pause"><Leaf aria-hidden="true"/><h2>Está bien hacer una pausa.</h2><p>Tu rincón tranquilo siempre está acá.</p><button type="button" onClick={()=>onNavigate('zona_calma')}>Ir a mi calma <ArrowRight aria-hidden="true"/></button></section>
-    <div className="np-workspace-tools"><button type="button" onClick={()=>onNavigate('adultos')}><Lock aria-hidden="true"/> Espacio de adultos</button><button type="button" onClick={()=>onNavigate('salir')}><LogOut aria-hidden="true"/> Salir al acceso</button><p>Hecho para acompañarte ♡</p></div>
+    <div className="np-workspace-tools"><button type="button" onClick={()=>window.dispatchEvent(new Event('np-open-administration'))}><Lock aria-hidden="true"/> Administración</button><button type="button" onClick={()=>onNavigate('adultos')}><Lock aria-hidden="true"/> Espacio de adultos</button><button type="button" onClick={()=>onNavigate('salir')}><LogOut aria-hidden="true"/> Salir al acceso</button><p>Hecho para acompañarte ♡</p></div>
   </aside>;
 }

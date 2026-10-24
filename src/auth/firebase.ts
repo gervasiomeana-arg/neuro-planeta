@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, browserSessionPersistence, onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
+import { initializeAuth, browserSessionPersistence, browserPopupRedirectResolver, onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
 
 import { clearAdultActivity, watchAdultIdle } from './idleSession';
 
@@ -11,6 +11,7 @@ export const adultSessionEpoch = () => epoch;
 export const adultSessionIsCurrent = (uid: string, version: number) => sessionActive && epoch === version && auth?.currentUser?.uid === uid;
 export async function endAdultSession() {
   sessionActive = false; epoch++;
+  window.dispatchEvent(new Event('np-adult-lock'));
   await signOut(adultAuth());
 }
 export function adultAuth() {
@@ -21,7 +22,7 @@ export function adultAuth() {
       projectId: 'neuroplaneta-bdaf9',
       appId: '1:329476093246:web:aa8c325ef2c8e1ede6686f',
     }, 'neuroplaneta-adults');
-    auth = initializeAuth(app, { persistence: browserSessionPersistence });
+    auth = initializeAuth(app, { persistence: browserSessionPersistence, popupRedirectResolver: browserPopupRedirectResolver });
     const sessionAuth = auth;
     const tabStorage = {
       getItem: (key: string) => window.sessionStorage.getItem(key),
@@ -49,7 +50,7 @@ export function adultAuth() {
         storage: tabStorage, events: window, visibilityEvents: document,
         hidden: () => document.hidden,
         adultInteraction: event => event.target instanceof Element
-          && Boolean(event.target.closest('#adult-panel-dialog[data-authenticated="true"]')),
+          && Boolean(event.target.closest('#adult-panel-dialog[data-authenticated="true"], #np-administration[data-adult-secure="true"]')),
         now: Date.now,
         schedule: (callback, ms) => setTimeout(callback, ms), cancel: clearTimeout,
       });

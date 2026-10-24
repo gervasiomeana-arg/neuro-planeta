@@ -1,7 +1,7 @@
 import { before, after, beforeEach, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, collection, collectionGroup, query, limit, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, collection, collectionGroup, query, limit, orderBy, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 // Demo project + explicit local address: never use production accounts or data.
 const projectId = 'demo-neuroplaneta-isolation';
@@ -16,6 +16,7 @@ before(async () => {
 beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'admins/administrator'), { active: true });
     for (const uid of ['family-a', 'family-b']) {
       await setDoc(doc(context.firestore(), `families/${uid}`), metadata(uid));
       await setDoc(doc(context.firestore(), `families/${uid}/profiles/child`), profile(uid));
@@ -82,4 +83,68 @@ test('claiming another family or an admin role does not override the authenticat
   const fake = env.authenticatedContext('family-b', { email_verified: true, familyId: 'family-a', ownerUid: 'family-a', role: 'admin' }).firestore();
   await assertFails(getDoc(doc(fake, 'families/family-a/profiles/child')));
   await assertFails(setDoc(doc(fake, 'families/family-a/profiles/injected'), profile('family-a')));
+});
+
+const accessAuth = (uid = 'adult-a', verified = true, provider = 'password') => env.authenticatedContext(uid, {
+  email_verified: verified, email: `${uid}@example.invalid`, auth_time: 1700000000,
+  firebase: { sign_in_provider: provider },
+}).firestore();
+const accessEvent = (uid = 'adult-a', provider = 'password') => ({ ownerUid: uid, email: `${uid}@example.invalid`, provider, createdAt: serverTimestamp() });
+
+test('adult can record exactly their signed-in session without spoofing identity, provider or server time', async () => {
+  const a = accessAuth(), ref = doc(a, 'accessEvents/adult-a_1700000000');
+  await assertSucceeds(getDoc(ref));
+  await assertSucceeds(setDoc(ref, accessEvent()));
+  await assertFails(setDoc(ref, accessEvent()));
+  await assertFails(updateDoc(ref, { email: 'injected@example.invalid' }));
+  await assertFails(deleteDoc(ref));
+  for (const extra of [{ ownerUid: 'other' }, { email: 'other@example.invalid' }, { provider: 'google.com' }, { createdAt: Timestamp.fromMillis(1) }, { childName: 'forbidden' }]) {
+    await env.withSecurityRulesDisabled(async context => { await deleteDoc(doc(context.firestore(), 'accessEvents/adult-a_1700000000')); });
+    await assertFails(setDoc(ref, { ...accessEvent(), ...extra }));
+  }
+  await assertFails(setDoc(doc(a, 'accessEvents/adult-a_1700000001'), accessEvent()));
+  await assertFails(setDoc(doc(a, 'accessEvents/other_1700000000'), accessEvent()));
+  const google = accessAuth('google-adult', true, 'google.com');
+  await assertSucceeds(setDoc(doc(google, 'accessEvents/google-adult_1700000000'), accessEvent('google-adult', 'google.com')));
+});
+test('only a provisioned verified administrator can list bounded access history', async () => {
+  const a = accessAuth();
+  await assertSucceeds(setDoc(doc(a, 'accessEvents/adult-a_1700000000'), accessEvent()));
+  for (const client of [a, db(null), accessAuth('administrator', false)]) {
+    await assertFails(getDocs(query(collection(client, 'accessEvents'), limit(50))));
+  }
+  await assertFails(getDoc(doc(accessAuth('adult-b'), 'accessEvents/adult-a_1700000000')));
+  const admin = accessAuth('administrator');
+  await assertSucceeds(getDocs(query(collection(admin, 'accessEvents'), orderBy('createdAt', 'desc'), limit(50))));
+  await assertSucceeds(getDoc(doc(admin, 'accessEvents/adult-a_1700000000')));
+  await assertFails(getDocs(collection(admin, 'accessEvents')));
+  await assertFails(getDocs(query(collection(admin, 'accessEvents'), limit(101))));
+});
+test('client cannot self-assign administrator privileges or enumerate administrator identities', async () => {
+  const a = accessAuth();
+  await assertSucceeds(getDoc(doc(a, 'admins/adult-a')));
+  await assertFails(setDoc(doc(a, 'admins/adult-a'), { active: true }));
+  await assertFails(getDoc(doc(a, 'admins/administrator')));
+  await assertFails(getDocs(query(collection(a, 'admins'), limit(50))));
+  const admin = accessAuth('administrator');
+  await assertFails(updateDoc(doc(admin, 'admins/administrator'), { active: false }));
+  await assertFails(deleteDoc(doc(admin, 'admins/administrator')));
+  const unverified = accessAuth('adult-a', false);
+  await assertFails(setDoc(doc(unverified, 'accessEvents/adult-a_1700000000'), accessEvent()));
+});
+
+test('only the provisioned administrator can read or change a valid monthly ARS price', async () => {
+  const admin = accessAuth('administrator'), ref = doc(admin, 'billingConfig/monthly');
+  const price = { amountCents: 1500050, currency: 'ARS', period: 'month', updatedBy: 'administrator', updatedAt: serverTimestamp() };
+  await assertSucceeds(setDoc(ref, price));
+  await assertSucceeds(getDoc(ref));
+  for (const client of [accessAuth(), db(null), accessAuth('administrator', false)]) {
+    await assertFails(getDoc(doc(client, 'billingConfig/monthly')));
+    await assertFails(setDoc(doc(client, 'billingConfig/monthly'), price));
+  }
+  for (const invalid of [{ amountCents: -1 }, { amountCents: 1.5 }, { amountCents: 1000000000 }, { currency: 'USD' }, { period: 'year' }, { updatedBy: 'other' }, { updatedAt: Timestamp.fromMillis(1) }, { paymentToken: 'forbidden' }]) {
+    await assertFails(setDoc(ref, { ...price, ...invalid }));
+  }
+  await assertFails(getDocs(query(collection(admin, 'billingConfig'), limit(10))));
+  await assertFails(deleteDoc(ref));
 });

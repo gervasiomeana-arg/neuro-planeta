@@ -1,6 +1,6 @@
 # Cuentas adultas: primera etapa, Firebase Spark
 
-Proyecto independiente creado desde la consola: `neuroplaneta-bdaf9`. La consola confirmó Spark, sin costo mensual. Se desactivaron Gemini y Analytics durante el alta. Email/Password es el único proveedor habilitado; política de contraseña en modo obligatorio con mínimo 12 caracteres. Sin Cloud Storage, SMS, Functions, cuenta de facturación ni actualización a Blaze.
+Proyecto independiente creado desde la consola: `neuroplaneta-bdaf9`. La consola confirmó Spark, sin costo mensual. Se desactivaron Gemini y Analytics durante el alta. Email/Password y Google están habilitados; política de contraseña en modo obligatorio con mínimo 12 caracteres. Sin Cloud Storage, SMS, Functions, cuenta de facturación ni actualización a Blaze.
 
 En Espacio de adultos → Perfiles → Cuenta adulta se pueden crear cuentas, ingresar, solicitar verificación de correo, recuperar contraseña y cerrar sesión mediante Firebase Auth. La recuperación usa el manejador de acciones de Firebase, sin una pantalla propia que recopile códigos. El SDK está fijado a una versión exacta. La configuración web pública no contiene claves administrativas ni credenciales de servicio. La contraseña no se incorpora a perfiles y se descarta al completar cada operación o desmontar el panel. Los errores de acceso son genéricos. El registro requiere confirmar que se es adulto y que se autoriza el uso de ese correo.
 
@@ -8,7 +8,7 @@ La persistencia de Auth se limita a la sesión de la pestaña. Cerrar el panel n
 
 ## Límite de esta etapa
 
-Las cuentas adultas son identidades independientes de los perfiles locales. No se asocia, sube, mezcla ni migra un perfil al ingresar. Solo el adulto con correo verificado puede confirmar el envío de una ficha mínima de apodo y rango de edad a su familia en Firestore. No hay sincronización del perfil completo. El candado aritmético sigue siendo una barrera local y la cuenta aún no reemplaza esa barrera. Tener una cuenta no cifra ni protege los perfiles existentes del dispositivo. La IA pública continúa bloqueada.
+Las cuentas adultas son identidades independientes de los perfiles locales. No se asocia, sube, mezcla ni migra un perfil al ingresar. Solo el adulto con correo verificado puede confirmar el envío de una ficha mínima de apodo y rango de edad a su familia en Firestore. No hay sincronización del perfil completo. El candado aritmético sigue siendo una barrera local y la cuenta aún no reemplaza esa barrera. Tener una cuenta no activa el cifrado: el guardado principal tiene una protección opcional independiente, descrita en proteccion-local.md. La IA pública continúa bloqueada.
 
 Las reglas publicadas de Firestore exigen autenticación y correo verificado, aíslan por UID y validan campos y tamaños. Se probaron en el emulador y se comprobaron rechazos en producción sin subir perfiles reales. Fotos y voces familiares quedan locales para evitar Cloud Storage/Blaze. La vinculación conserva los originales y descarta el borrador al cambiar de cuenta o perfil. Ver [aislamiento-familias.md](aislamiento-familias.md) para el alcance y las pruebas.
 
