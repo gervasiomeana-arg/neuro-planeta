@@ -36,6 +36,7 @@ export default function AdminWorkspace({ user }: { user: User | null }) {
   if (!user?.emailVerified) return <p>Ingresá con tu cuenta de Google para abrir administración.</p>;
   if (!allowed) return <form onSubmit={event => { event.preventDefault(); void unlock(); }} className="space-y-3">
     <p>Acceso reservado a la cuenta administradora habilitada en Firebase.</p>
+    <p>La clave de esta pantalla es independiente de Google. No ingreses tu contraseña de Google.</p>
     <label className="block">Clave de administración<input autoComplete="off" type="password" maxLength={128} disabled={busy} value={phrase} onChange={event => setPhrase(event.target.value)} className="block w-full border rounded-lg p-2" /></label>
     <button className="np-account-button np-account-primary" disabled={busy || !phrase} type="submit">Ingresar a administración</button>
     {message && <p role="status">{message}</p>}
