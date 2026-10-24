@@ -70,6 +70,19 @@ export async function unlockProfileProtection(storage: StorageAdapter, password:
   const encrypted = storage.getItem(PROFILE_KEY);
   if (encrypted === null) throw new Error('No se encontró el almacenamiento protegido.');
   const cipher = await openBackupSession(encrypted, password);
-  if (storage.getItem(PROFILE_KEY) !== encrypted) { cipher.destroy(); throw new Error('Los datos cambiaron. Volvé a desbloquear.'); }
-  return new ProtectedProfileStore(cipher, storage, encrypted, notify);
+  try {
+    if (storage.getItem(PROFILE_KEY) !== encrypted) throw new Error('Los datos cambiaron. Volvé a desbloquear.');
+    return new ProtectedProfileStore(cipher, storage, encrypted, notify);
+  } catch (error) { cipher.destroy(); throw error; }
+}
+
+export async function createProtectedAccount(storage: StorageAdapter, password: string, notify: () => void) {
+  if (storage.getItem(PROFILE_KEY) !== null) throw new Error('El espacio de esta cuenta ya existe.');
+  const encrypted = await encryptBackup([], password);
+  const cipher = await openBackupSession(encrypted, password);
+  try {
+    if (storage.getItem(PROFILE_KEY) !== null) throw new Error('El espacio cambió mientras se preparaba.');
+    storage.setItem(PROFILE_KEY, encrypted);
+    return new ProtectedProfileStore(cipher, storage, encrypted, notify);
+  } catch (error) { cipher.destroy(); throw error; }
 }

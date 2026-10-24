@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { isProtectedProfileData, PROFILE_KEY } from './backups';
-import { prepareProfileProtection, unlockProfileProtection, type ProtectedProfileStore } from './protectedProfileStore';
+import { createProtectedAccount, prepareProfileProtection, unlockProfileProtection, type ProtectedProfileStore } from './protectedProfileStore';
+
+import { useProfileStorage } from './ProfileStorageContext';
 
 type Prepared = Awaited<ReturnType<typeof prepareProfileProtection>>;
 type ContextValue = { session: ProtectedProfileStore | null; activate: (prepared: Prepared) => void; lock: () => Promise<void>; exclusive: (work: () => Promise<void>) => Promise<void>; closing: boolean };
@@ -12,7 +14,11 @@ function download(text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 export default function DeviceProtection({ children }: { children: ReactNode }) {
-  const [protectedMode, setProtectedMode] = useState(() => { try { return isProtectedProfileData(localStorage.getItem(PROFILE_KEY)); } catch { return false; } });
+  const storage = useProfileStorage();
+  const [legacyEncrypted] = useState(() => { try { const raw = localStorage.getItem(PROFILE_KEY); return storage.isolated && isProtectedProfileData(raw) ? raw : null; } catch { return null; } });
+  const [needsSetup, setNeedsSetup] = useState(() => { try { return storage.isolated && storage.getItem(PROFILE_KEY) === null; } catch { return false; } });
+  const [confirmation, setConfirmation] = useState('');
+  const [protectedMode, setProtectedMode] = useState(() => { try { return storage.isolated || isProtectedProfileData(storage.getItem(PROFILE_KEY)); } catch { return true; } });
   const [session, setSession] = useState<ProtectedProfileStore | null>(null);
   const [, refresh] = useState(0), [closing, setClosing] = useState(false), [busy, setBusy] = useState(false);
   const [password, setPassword] = useState(''), [message, setMessage] = useState('');
@@ -34,28 +40,55 @@ export default function DeviceProtection({ children }: { children: ReactNode }) 
   async function unlock() {
     if (running.current) return;
     const submitted = password; setPassword(''); setMessage(''); setBusy(true); running.current = true;
-    try { const opened = await unlockProfileProtection(localStorage, submitted, notify); if (mounted.current) setSession(opened); else await opened.close(); }
+    try { const opened = await unlockProfileProtection(storage, submitted, notify); if (mounted.current) setSession(opened); else await opened.close(); }
     catch { if (mounted.current) setMessage('Contraseña incorrecta, copia dañada o almacenamiento no disponible. Los datos guardados no se modificaron.'); }
     finally { running.current = false; if (mounted.current) setBusy(false); }
   }
+  async function createSpace() {
+    if (running.current) return;
+    if (password !== confirmation) { setPassword(''); setConfirmation(''); setMessage('Las contraseñas no coinciden.'); return; }
+    const submitted = password; setPassword(''); setConfirmation(''); setMessage(''); setBusy(true); running.current = true;
+    try {
+      const opened = await createProtectedAccount(storage, submitted, notify);
+      if (mounted.current) { setSession(opened); setNeedsSetup(false); setProtectedMode(true); }
+      else await opened.close();
+    } catch { if (mounted.current) setMessage('No se pudo crear el espacio. Los datos anteriores se conservaron. Revisá la sesión, el espacio disponible y una contraseña de 12 a 256 caracteres.'); }
+    finally { running.current = false; if (mounted.current) setBusy(false); }
+  }
+  if (needsSetup) return <main className="np-theme min-h-dvh bg-[#e8ede3] p-5 flex items-center justify-center text-[#293b3a]">
+    <section aria-label="Crear espacio de perfiles" className="max-w-lg w-full rounded-2xl border bg-[#fcf7ed] p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Tus perfiles, separados por cuenta</h1>
+      <p>Cuenta: <strong>{storage.email}</strong></p>
+      <p>Elegí una contraseña propia de 12 a 256 caracteres para cifrar los perfiles de esta cuenta. Es independiente de Google y no se guarda. No podemos recuperarla si la olvidás.</p>
+      <p>Los perfiles anteriores de este navegador se conservan sin asignar. No se muestran ni se copian automáticamente. Si tenés un respaldo cifrado, podrás revisarlo y restaurarlo en tu espacio después de crearlo.</p>
+      {legacyEncrypted && <button type="button" className="np-account-button" disabled={busy} onClick={() => download(legacyEncrypted)}>Descargar respaldo anterior sin asignar</button>}
+      <form className="space-y-3" onSubmit={event => { event.preventDefault(); void createSpace(); }}>
+        <label className="block">Nueva contraseña de perfiles<input type="password" autoComplete="off" maxLength={256} disabled={busy} value={password} onChange={event => setPassword(event.target.value)} className="block w-full border rounded-lg p-3" /></label>
+        <label className="block">Repetir contraseña de perfiles<input type="password" autoComplete="off" maxLength={256} disabled={busy} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="block w-full border rounded-lg p-3" /></label>
+        <button type="submit" className="np-account-button np-account-primary" disabled={busy || password.trim().length < 12 || !confirmation}>{busy ? 'Preparando…' : 'Crear mi espacio protegido'}</button>
+      </form>
+      {message && <p role="status">{message}</p>}
+    </section>
+  </main>;
   const value: ContextValue = { session, closing, lock, async exclusive(work) {
     if (running.current) throw new Error('Hay una operación protegida pendiente.');
     running.current = true; setClosing(true);
     try { await work(); } finally { running.current = false; setClosing(false); }
   }, activate(prepared) {
     if (protectedMode || running.current) throw new Error('La protección ya está activa o hay una operación pendiente.');
-    const opened = prepared.activate(localStorage, notify);
+    const opened = prepared.activate(storage, notify);
     setSession(opened); setProtectedMode(true); setMessage('Protección activada. El guardado principal ahora está cifrado.');
   } };
   if (protectedMode && !session) return <main className="np-theme min-h-dvh bg-[#e8ede3] p-5 flex items-center justify-center text-[#293b3a]">
     <section aria-label="Desbloquear perfiles protegidos" className="max-w-lg w-full rounded-2xl border bg-[#fcf7ed] p-6 space-y-4">
       <h1 className="text-2xl font-bold">Tus perfiles están protegidos</h1>
-      <p>Ingresá la contraseña de protección de este dispositivo. Es distinta de tu cuenta Google. No podemos recuperarla si la olvidás.</p>
+      {storage.isolated && <p>Cuenta: <strong>{storage.email}</strong></p>}
+      <p>Ingresá la contraseña de protección de tus perfiles. Es distinta de tu cuenta Google. No podemos recuperarla si la olvidás.</p>
       <form className="space-y-3" onSubmit={event => { event.preventDefault(); void unlock(); }}>
         <label className="block">Contraseña de protección<input autoComplete="off" type="password" maxLength={256} disabled={busy} value={password} onChange={event => setPassword(event.target.value)} className="block w-full rounded-lg border p-3" /></label>
         <button type="submit" className="np-account-button np-account-primary" disabled={busy || password.trim().length < 12}>{busy ? 'Desbloqueando…' : 'Desbloquear perfiles'}</button>
       </form>
-      <button type="button" className="np-account-button" disabled={busy} onClick={() => { try { const raw = localStorage.getItem(PROFILE_KEY); if (raw) download(raw); } catch { setMessage('No se pudo descargar el archivo guardado.'); } }}>Descargar archivo cifrado guardado</button>
+      <button type="button" className="np-account-button" disabled={busy} onClick={() => { try { const raw = storage.getItem(PROFILE_KEY); if (raw) download(raw); } catch { setMessage('No se pudo descargar el archivo guardado.'); } }}>Descargar archivo cifrado guardado</button>
       <p>No se borran ni se reinician los perfiles desde esta pantalla. Con una copia y su contraseña podés recuperarlos en otro dispositivo.</p>
       {message && <p role="status">{message}</p>}
     </section>
@@ -70,6 +103,7 @@ export default function DeviceProtection({ children }: { children: ReactNode }) 
 
 export function DeviceProtectionControls({ profiles }: { profiles: unknown[] }) {
   const context = useDeviceProtection();
+  const storage = useProfileStorage();
   const [password, setPassword] = useState(''), [confirmation, setConfirmation] = useState('');
   const [prepared, setPrepared] = useState<Prepared | null>(null), [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
@@ -91,7 +125,7 @@ export function DeviceProtectionControls({ profiles }: { profiles: unknown[] }) 
   if (!context) return null;
   if (context.session) return <section aria-label="Protección principal de perfiles" className="rounded-xl border p-3 space-y-3">
     <h3 className="font-bold">Guardado principal protegido</h3>
-    <p>Los perfiles, notas, imágenes, voces y avances se guardan cifrados en este navegador. Mientras está desbloqueado, quien use esta pestaña puede verlos. Esta contraseña protege todo el dispositivo; todavía no separa adultos por cuenta.</p>
+    <p>Los perfiles, notas, imágenes, voces y avances se guardan cifrados en este navegador. Mientras está desbloqueado, quien use esta pestaña puede verlos. {storage.isolated ? 'Este espacio pertenece a tu cuenta Google; otras cuentas abren un espacio distinto.' : 'Esta contraseña protege todo el dispositivo; todavía no separa adultos por cuenta.'}</p>
     <button type="button" className="np-account-button" disabled={context.closing} onClick={() => void context.lock()}>Bloquear perfiles ahora</button>
     <p>Recargar o cerrar la pestaña vuelve a pedir la contraseña. Conservá respaldos cifrados actualizados. El bloqueo no elimina capturas, descargas ni copias antiguas que hayas guardado.</p>
   </section>;
