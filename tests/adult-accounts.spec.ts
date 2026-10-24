@@ -185,13 +185,19 @@ test('verified adult explicitly links only a minimal profile and retries without
 
   await account.getByRole('button', { name: 'Administración', exact: true }).click();
   const admin = page.getByRole('dialog', { name: 'Administración', exact: true });
+  await expect(admin).toContainText('Cuenta Google:');
+  const readsBeforeWrongKey = reads;
+  await admin.getByLabel('Clave de administración', { exact: true }).fill('OTRA123');
+  await admin.getByRole('button', { name: 'Ingresar a administración', exact: true }).click();
+  await expect(admin.getByRole('status')).toContainText('La clave de administración no coincide');
+  expect(reads).toBe(readsBeforeWrongKey);
   await admin.getByLabel('Clave de administración', { exact: true }).fill('CAR123');
   await admin.getByRole('button', { name: 'Ingresar a administración', exact: true }).click();
-  await expect(admin.getByRole('status')).toContainText('Clave o permisos');
+  await expect(admin.getByRole('status')).toContainText('La clave es correcta, pero esta cuenta Google no está habilitada');
   await expect(admin.getByRole('tabpanel')).toHaveCount(0);
   const roleName = 'projects/neuroplaneta-bdaf9/databases/(default)/documents/admins/link_adult';
   cloud.set(roleName, { name: roleName, fields: { active: { booleanValue: true } }, createTime: '2026-10-22T12:00:00Z', updateTime: '2026-10-22T12:00:00Z' });
-  await admin.getByLabel('Clave de administración', { exact: true }).fill('CAR123');
+  await admin.getByLabel('Clave de administración', { exact: true }).fill(' CAR123 ');
   await admin.getByRole('button', { name: 'Ingresar a administración', exact: true }).click();
   await admin.getByRole('tab', { name: 'Suscripción mensual', exact: true }).click();
   const pricing = admin.getByRole('region', { name: 'Suscripción mensual', exact: true });
