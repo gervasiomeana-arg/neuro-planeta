@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { GoogleAuthProvider, getIdTokenResult, onAuthStateChanged, signInWithPopup, type User } from 'firebase/auth';
-import { adultAuth, endAdultSession } from './firebase';
+import { adultAuth, adultSessionEpoch, adultSessionIsCurrent, endAdultSession } from './firebase';
 import { recordAdultAccess } from './accessHistory';
 import AdminWorkspace from './AdminWorkspace';
 export default function GoogleAccessShell({ children }: { children: ReactNode }) {
@@ -30,8 +30,9 @@ export default function GoogleAccessShell({ children }: { children: ReactNode })
         const currentVersion = ++version;
         setUser(null); setGoogleVerified(false); setReady(false); setAdministration(false); setConsent(false);
         if (!account) { setReady(true); return; }
+        const epoch = adultSessionEpoch();
         void getIdTokenResult(account).then(result => {
-          if (!mounted.current || currentVersion !== version) return;
+          if (!mounted.current || currentVersion !== version || !adultSessionIsCurrent(account.uid, epoch)) return;
           const provider = (result.claims.firebase as { sign_in_provider?: string } | undefined)?.sign_in_provider;
           setUser(account); setGoogleVerified(account.emailVerified && result.claims.email_verified === true && provider === 'google.com');
           setReady(true);

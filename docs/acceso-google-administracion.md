@@ -25,9 +25,9 @@ correo, proveedor y fecha/hora de America/Argentina/Buenos_Aires. Cerrar la vist
 ocultar la pestaña, cerrar sesión o cambiar cuenta descarta los registros visibles.
 No hay suscripciones en tiempo real ni carga completa automática del historial.
 
-## Activación pendiente en Firebase
+## Configuración de Firebase
 
-El código no habilita Google ni publica reglas por sí mismo. Antes de anunciarlo:
+Google está habilitado desde consola. El código no publica reglas ni concede roles por sí mismo. Antes de anunciar la integración completa:
 
 1. Confirmar el correo y UID exactos del propietario que será administrador.
 2. Habilitar Google en Authentication → Sign-in method, indicar correo de soporte

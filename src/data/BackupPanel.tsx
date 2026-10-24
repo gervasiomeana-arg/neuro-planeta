@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { decryptBackup, encryptBackup, encryptRecovery, MAX_BACKUP_BYTES } from './backups';
+import { DeviceProtectionControls } from './DeviceProtection';
 
 function download(text: string, recovery: boolean) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/octet-stream' }));
@@ -10,7 +11,7 @@ function download(text: string, recovery: boolean) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-type Props = { profiles: unknown[]; onRestore?: (profiles: unknown[]) => void; recoveryRaw?: string | null };
+type Props = { profiles: unknown[]; onRestore?: (profiles: unknown[]) => void | Promise<void>; recoveryRaw?: string | null };
 export default function BackupPanel({ profiles, onRestore, recoveryRaw }: Props) {
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -51,7 +52,7 @@ export default function BackupPanel({ profiles, onRestore, recoveryRaw }: Props)
   return <section className="rounded-2xl border border-[#b8c9be] bg-[#fcf7ed] p-4 space-y-3 text-sm text-[#293b3a]" aria-label="Copias de seguridad">
     <h3 className="font-extrabold">{recovery ? 'Rescatar los datos originales' : 'Copias de seguridad del dispositivo'}</h3>
     <p>{recovery ? 'Este archivo cifrado conserva los datos tal como están para una revisión técnica. No modifica ni repara el original.' : 'La copia incluye todos los perfiles, avances, notas, imágenes y voces de este navegador. Se cifra aquí y no se envía a un servidor.'}</p>
-    <p className="text-xs">La contraseña de la copia no es una cuenta de acceso. No podemos recuperarla si la olvidás. El navegador sigue guardando los perfiles sin este cifrado.</p>
+    <p className="text-xs">La contraseña de la copia no es una cuenta de acceso. No podemos recuperarla si la olvidás. La protección del guardado principal se configura por separado en esta pantalla.</p>
     <label className="block font-bold">Contraseña de la copia
       <input type="password" value={password} onChange={event => setPassword(event.target.value)} minLength={12} maxLength={256} autoComplete="off" disabled={busy} className="block w-full rounded-lg border p-2 mt-1 bg-white text-[#293b3a]" />
     </label>
@@ -71,13 +72,16 @@ export default function BackupPanel({ profiles, onRestore, recoveryRaw }: Props)
         <p className="font-bold">{preview.length} perfil(es) en la copia</p>
         <ul>{preview.map(profile => <li key={profile.id}>{profile.name}</li>)}</ul>
         <p>Se agregarán como perfiles nuevos con «(copia)» en el nombre. Los perfiles actuales se conservan. Los avances diarios de fechas anteriores se reinician al abrir el perfil, como en el uso habitual.</p>
-        <button type="button" disabled={preview.length === 0 || busy} onClick={() => {
-          try { onRestore(preview); setPreview(null); setFile(null); setMessage('Perfiles restaurados como copias y guardados en este dispositivo.'); }
+        <button type="button" disabled={preview.length === 0 || busy} onClick={async () => {
+          setBusy(true);
+          try { await onRestore(preview); setPreview(null); setFile(null); setMessage('Perfiles restaurados como copias y guardados en este dispositivo.'); }
           catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo guardar. Los perfiles actuales se conservaron.'); }
+          finally { if (mounted.current) setBusy(false); }
         }} className="rounded-lg bg-[#27665e] text-white font-bold px-4 py-3">Agregar perfiles como copias</button>
         <button type="button" onClick={() => { setPreview(null); setFile(null); setMessage('Restauración cancelada.'); }} className="rounded-lg border px-4 py-3 ml-2">Cancelar restauración</button>
       </div>}
     </div>}
     {message && <p role="status" className="font-bold">{message}</p>}
+    {!recovery && <DeviceProtectionControls profiles={profiles} />}
   </section>;
 }
