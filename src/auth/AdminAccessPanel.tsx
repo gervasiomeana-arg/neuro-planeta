@@ -42,12 +42,12 @@ export default function AdminAccessPanel({ user }: { user: User }) {
     finally { running.current = false; if (mounted.current) setBusy(false); }
   }
   return <section aria-label="Administración de accesos" className="rounded-xl border p-3 space-y-3">
-    <div role="tablist" aria-label="Sección administradora"><button id="access-admin-tab" type="button" role="tab" aria-selected={opened} aria-controls={opened ? 'access-admin-panel' : undefined} className="np-account-button" disabled={busy} onClick={() => load()}>Administración · accesos</button></div>
+    <div role="tablist" aria-label="Sección administradora"><button id="access-admin-tab" type="button" role="tab" aria-selected={opened} aria-controls={opened ? 'access-admin-panel' : undefined} className="np-account-button np-admin-history" disabled={busy} onClick={() => load()}>Administración · accesos</button></div>
     <p>Acceso exclusivo mediante permisos del servidor. Muestra inicios de sesión de adultos; no visitas anónimas ni actividad infantil. Horario de Argentina.</p>
     {busy && <p role="status">Consultando permisos y accesos…</p>}
     {opened && <div id="access-admin-panel" role="tabpanel" aria-label="Historial de accesos" className="overflow-x-auto">
       <table><thead><tr><th>Cuenta adulta</th><th>Día y hora · Argentina</th><th>Acceso</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td>{row.email}</td><td>{row.date}</td><td>{row.provider}</td></tr>)}</tbody></table>
-      {more && <button type="button" className="np-account-button" disabled={busy} onClick={() => load(true)}>Ver 50 anteriores</button>}
+      {more && <button type="button" className="np-account-button np-admin-history" disabled={busy} onClick={() => load(true)}>Ver 50 anteriores</button>}
       <button type="button" className="np-account-button" onClick={close}>Cerrar historial</button>
     </div>}
     {message && <p role="status">{message}</p>}

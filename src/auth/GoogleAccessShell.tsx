@@ -66,10 +66,10 @@ export default function GoogleAccessShell({ children }: { children: ReactNode })
   const canEnter = required === false || (required === true && ready && googleVerified);
   return <>
     <div inert={administration}>
-      {canEnter ? <>{required && <div className="np-theme p-2 flex gap-2"><button className="np-account-button" onClick={() => setAdministration(true)}>Administración</button><button className="np-account-button" onClick={() => void endAdultSession().catch(() => setMessage('No se pudo cerrar la sesión. Cerrá la pestaña antes de compartirla.'))}>Cerrar sesión Google</button>{message && <p role="status">{message}</p>}</div>}{children}</> : <main className="np-theme min-h-dvh bg-[#e8ede3] p-5 pt-20"><button type="button" className="np-account-button absolute top-4 left-4" onClick={() => setAdministration(true)}>Administración</button>{entry}</main>}
+      {canEnter ? <>{required && <div className="np-theme p-2 flex flex-wrap gap-2"><button className="np-account-button" onClick={() => setAdministration(true)}>Administración</button><button className="np-account-button" onClick={() => void endAdultSession().catch(() => setMessage('No se pudo cerrar la sesión. Cerrá la pestaña antes de compartirla.'))}>Cerrar sesión Google</button>{message && <p role="status">{message}</p>}</div>}{children}</> : <main className="np-theme min-h-dvh bg-[#e8ede3] p-5 pt-20"><button type="button" className="np-account-button absolute top-4 left-4" onClick={() => setAdministration(true)}>Administración</button>{entry}</main>}
     </div>
     {administration && <div role="dialog" aria-modal="true" aria-label="Administración" id="np-administration" data-adult-secure="true" className="np-theme fixed inset-0 z-[200] bg-[#e8ede3] p-5 overflow-y-auto text-[#293b3a]">
-      <div className="max-w-3xl mx-auto space-y-4"><h2 className="text-2xl font-bold">Administración</h2><button className="np-account-button" onClick={() => setAdministration(false)}>Volver a la app</button>
+      <div className="max-w-3xl mx-auto space-y-4"><h2 className="text-2xl font-bold">Administración</h2><button className="np-account-button np-admin-return" onClick={() => setAdministration(false)}>Volver a la app</button>
         {(!user?.emailVerified || (required && !googleVerified)) ? entry : <AdminWorkspace key={user.uid} user={user} />}
       </div>
     </div>}

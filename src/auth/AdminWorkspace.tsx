@@ -49,8 +49,8 @@ export default function AdminWorkspace({ user }: { user: User | null }) {
     {message && <p role="status">{message}</p>}
   </form>;
   return <div className="space-y-4">
-    <div role="tablist" aria-label="Administración"><button className="np-account-button" role="tab" aria-selected={tab === 'history'} onClick={() => setTab('history')}>Historial de ingresos</button><button className="np-account-button" role="tab" aria-selected={tab === 'price'} onClick={() => setTab('price')}>Suscripción mensual</button></div>
+    <div role="tablist" aria-label="Administración"><button className="np-account-button np-admin-history" role="tab" aria-selected={tab === 'history'} onClick={() => setTab('history')}>Historial de ingresos</button><button className="np-account-button np-admin-price" role="tab" aria-selected={tab === 'price'} onClick={() => setTab('price')}>Suscripción mensual</button></div>
     {tab === 'history' ? <AdminAccessPanel user={user} /> : <SubscriptionPanel user={user} />}
-    <button className="np-account-button" type="button" onClick={() => { version.current++; setAllowed(false); setPhrase(''); }}>Bloquear administración</button>
+    <button className="np-account-button np-admin-lock" type="button" onClick={() => { version.current++; setAllowed(false); setPhrase(''); }}>Bloquear administración</button>
   </div>;
 }

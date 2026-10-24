@@ -34,7 +34,7 @@ export default function SubscriptionPanel({ user }: { user: User }) {
   return <section aria-label="Suscripción mensual" className="space-y-3">
     <h3 className="font-bold">Valor de la suscripción mensual</h3>
     <p>Pesos argentinos (ARS), sin separador de miles; por ejemplo, 15000,00. Guardar este valor no activa pagos ni débitos automáticos.</p>
-    <button className="np-account-button" type="button" disabled={busy} onClick={() => perform(false)}>Consultar valor vigente</button>
+    <button className="np-account-button np-admin-price" type="button" disabled={busy} onClick={() => perform(false)}>Consultar valor vigente</button>
     <label className="block">Importe mensual en pesos<input className="block w-full border rounded-lg p-2" inputMode="decimal" maxLength={10} value={amount} disabled={busy || !loaded} onChange={event => setAmount(event.target.value)} /></label>
     <button className="np-account-button np-account-primary" type="button" disabled={busy || !loaded || !amount.trim()} onClick={() => perform(true)}>Guardar valor mensual</button>
     {message && <p role="status">{message}</p>}
