@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decryptBackup, PROFILE_KEY } from '../src/data/backups';
-import { prepareProfileProtection, unlockProfileProtection } from '../src/data/protectedProfileStore';
+import { prepareProfileProtection, ProtectedProfileStore, unlockProfileProtection } from '../src/data/protectedProfileStore';
 const password = 'Protección ficticia de prueba 2026';
 const profile = { id: 'ficticio', name: 'Perfil reservado', avatar: '🦊', selectedAge: '6-8', stars: 19, unlockedAchievements: [], completedRoutineTasks: [], emotionJournal: [{ date: '2026-10-22', emotion: 'Verde', note: 'Nota reservada' }], customPictogramImages: {}, customPictogramVoices: {} };
 function storage() {
@@ -68,4 +68,28 @@ test('another tab cannot be overwritten and a rejected write can be explicitly r
   assert.equal(s.getItem(PROFILE_KEY), foreign);
   await opened.save([profile]); // Discard the unsaved edit, never write over the other tab.
   await opened.close(); assert.equal(s.getItem(PROFILE_KEY), foreign);
+});
+test('authentication teardown revokes failed-save memory without touching the saved ciphertext', async () => {
+  const s = storage(), prepared = await prepareProfileProtection([profile], password);
+  const opened = prepared.activate(s, () => {}), original = s.getItem(PROFILE_KEY);
+  s.quota(true);
+  await assert.rejects(opened.save([{ ...profile, stars: 80 }]), /Quota/);
+  opened.dispose(); opened.dispose();
+  assert.throws(() => opened.profiles, /bloqueado/);
+  await assert.rejects(opened.save([profile]), /bloqueado/);
+  assert.equal(s.getItem(PROFILE_KEY), original);
+  assert.deepEqual(await decryptBackup(original, password), [profile]);
+});
+test('teardown during encryption destroys the key and rejects the late write', async () => {
+  let finish!: (value: string) => void, started!: () => void, destroyed = 0, writes = 0;
+  const sealing = new Promise<void>(resolve => { started = resolve; });
+  const cipher = { profiles: [profile], seal: async () => { started(); return new Promise<string>(resolve => { finish = resolve; }); }, destroy: () => { destroyed++; cipher.profiles = []; } };
+  const opened = new ProtectedProfileStore(cipher, { getItem: () => 'original-ciphertext', setItem: () => { writes++; } }, 'original-ciphertext');
+  const save = opened.save([{ ...profile, stars: 99 }]);
+  await sealing;
+  opened.dispose();
+  assert.equal(destroyed, 1); assert.deepEqual(cipher.profiles, []);
+  finish('late-ciphertext');
+  await assert.rejects(save, /Otra pestaña|bloqueado/);
+  assert.equal(writes, 0); assert.throws(() => opened.profiles, /bloqueado/);
 });

@@ -47,6 +47,11 @@ export class ProtectedProfileStore {
   async close() {
     await this.queue;
     if (this.dirty) throw new Error('Hay cambios sin guardar. Descargá una copia antes de cerrar.');
+    this.dispose();
+  }
+  // Authentication teardown must revoke access even when a save has failed.
+  // Never flush here: the former account may no longer own the session.
+  dispose() {
     this.closed = true; this.cipher.destroy(); this.saved = ''; this.latest = '';
   }
 }
