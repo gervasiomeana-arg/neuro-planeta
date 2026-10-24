@@ -23,8 +23,9 @@ export default function DeviceProtection({ children }: { children: ReactNode }) 
   const [, refresh] = useState(0), [closing, setClosing] = useState(false), [busy, setBusy] = useState(false);
   const [password, setPassword] = useState(''), [message, setMessage] = useState('');
   const running = useRef(false), mounted = useRef(false);
+  const sessionRef = useRef<ProtectedProfileStore | null>(null);
   const notify = () => { if (mounted.current) refresh(value => value + 1); };
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; sessionRef.current?.dispose(); sessionRef.current = null; }; }, []);
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => { if (session?.dirty) { event.preventDefault(); event.returnValue = ''; } };
     window.addEventListener('beforeunload', beforeUnload);
@@ -33,14 +34,14 @@ export default function DeviceProtection({ children }: { children: ReactNode }) 
   async function lock() {
     if (!session || running.current) return;
     running.current = true; setClosing(true); setMessage('');
-    try { await session.close(); setSession(null); setPassword(''); }
+    try { await session.close(); sessionRef.current = null; setSession(null); setPassword(''); }
     catch { setMessage('No se pudo bloquear: hay cambios sin guardar. Reintentá el guardado o descargá una copia antes de cerrar.'); }
     finally { running.current = false; setClosing(false); }
   }
   async function unlock() {
     if (running.current) return;
     const submitted = password; setPassword(''); setMessage(''); setBusy(true); running.current = true;
-    try { const opened = await unlockProfileProtection(storage, submitted, notify); if (mounted.current) setSession(opened); else await opened.close(); }
+    try { const opened = await unlockProfileProtection(storage, submitted, notify); if (mounted.current) { sessionRef.current = opened; setSession(opened); } else opened.dispose(); }
     catch { if (mounted.current) setMessage('Contraseña incorrecta, copia dañada o almacenamiento no disponible. Los datos guardados no se modificaron.'); }
     finally { running.current = false; if (mounted.current) setBusy(false); }
   }
@@ -50,8 +51,8 @@ export default function DeviceProtection({ children }: { children: ReactNode }) 
     const submitted = password; setPassword(''); setConfirmation(''); setMessage(''); setBusy(true); running.current = true;
     try {
       const opened = await createProtectedAccount(storage, submitted, notify);
-      if (mounted.current) { setSession(opened); setNeedsSetup(false); setProtectedMode(true); }
-      else await opened.close();
+      if (mounted.current) { sessionRef.current = opened; setSession(opened); setNeedsSetup(false); setProtectedMode(true); }
+      else opened.dispose();
     } catch { if (mounted.current) setMessage('No se pudo crear el espacio. Los datos anteriores se conservaron. Revisá la sesión, el espacio disponible y una contraseña de 12 a 256 caracteres.'); }
     finally { running.current = false; if (mounted.current) setBusy(false); }
   }
@@ -77,6 +78,7 @@ export default function DeviceProtection({ children }: { children: ReactNode }) 
   }, activate(prepared) {
     if (protectedMode || running.current) throw new Error('La protección ya está activa o hay una operación pendiente.');
     const opened = prepared.activate(storage, notify);
+    sessionRef.current = opened;
     setSession(opened); setProtectedMode(true); setMessage('Protección activada. El guardado principal ahora está cifrado.');
   } };
   if (protectedMode && !session) return <main className="np-theme min-h-dvh bg-[#e8ede3] p-5 flex items-center justify-center text-[#293b3a]">
