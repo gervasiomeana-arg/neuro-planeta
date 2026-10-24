@@ -51,7 +51,7 @@ export default function BackupPanel({ profiles, onRestore, recoveryRaw }: Props)
   }
   return <section className="rounded-2xl border border-[#b8c9be] bg-[#fcf7ed] p-4 space-y-3 text-sm text-[#293b3a]" aria-label="Copias de seguridad">
     <h3 className="font-extrabold">{recovery ? 'Rescatar los datos originales' : 'Copias de seguridad del dispositivo'}</h3>
-    <p>{recovery ? 'Este archivo cifrado conserva los datos tal como están para una revisión técnica. No modifica ni repara el original.' : 'La copia incluye todos los perfiles, avances, notas, imágenes y voces de este navegador. Se cifra aquí y no se envía a un servidor.'}</p>
+    <p>{recovery ? 'Este archivo cifrado conserva los datos tal como están para una revisión técnica. No modifica ni repara el original.' : 'La copia incluye los perfiles, avances, notas, imágenes y voces de tu espacio actual. Se cifra aquí y no se envía a un servidor.'}</p>
     <p className="text-xs">La contraseña de la copia no es una cuenta de acceso. No podemos recuperarla si la olvidás. La protección del guardado principal se configura por separado en esta pantalla.</p>
     <label className="block font-bold">Contraseña de la copia
       <input type="password" value={password} onChange={event => setPassword(event.target.value)} minLength={12} maxLength={256} autoComplete="off" disabled={busy} className="block w-full rounded-lg border p-2 mt-1 bg-white text-[#293b3a]" />

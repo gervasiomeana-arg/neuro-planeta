@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { encryptBackup } from '../src/data/backups';
+import { accountProfileKey } from '../src/data/accountProfileStorage';
 const published = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 test('mandatory Google entry hides local profiles until authentication', async ({ page }) => {
   if (!published) await page.route('**/access-policy.json', route => route.fulfill({ json: { requireGoogle: true } }));
@@ -66,12 +67,15 @@ test('simulated Google session still needs the device password and sign-out hide
   await account.getByRole('button', { name: 'Ingresar a mi cuenta', exact: true }).click();
   await expect(account).toContainText('Sesión iniciada:');
   required = true;
-  await page.evaluate(encrypted => localStorage.setItem('np_patients', encrypted), encrypted);
+  const source = await page.evaluate(() => localStorage.getItem('np_patients'));
+  const scopedKey = accountProfileKey('google_mock');
+  await page.evaluate(({ encrypted, scopedKey }) => localStorage.setItem(scopedKey, encrypted), { encrypted, scopedKey });
   await page.reload();
   const locked = page.getByRole('region', { name: 'Desbloquear perfiles protegidos', exact: true });
   await expect(locked).toBeVisible();
   await expect(page.getByRole('button', { name: /Cifrado ficticio Google/ })).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(encrypted);
+  expect(await page.evaluate(scopedKey => localStorage.getItem(scopedKey), scopedKey)).toBe(encrypted);
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(source);
   await locked.getByLabel('Contraseña de protección', { exact: true }).fill(password);
   await locked.getByRole('button', { name: 'Desbloquear perfiles', exact: true }).click();
   await expect(page.getByRole('button', { name: /Cifrado ficticio Google/ })).toBeVisible();
@@ -79,5 +83,6 @@ test('simulated Google session still needs the device password and sign-out hide
   await page.getByRole('button', { name: 'Cerrar sesión Google', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Ingreso con Google', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Cifrado ficticio Google/ })).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).not.toContain(profile.name);
+  expect(await page.evaluate(scopedKey => localStorage.getItem(scopedKey), scopedKey)).not.toContain(profile.name);
+  expect(await page.evaluate(() => localStorage.getItem('np_patients'))).toBe(source);
 });

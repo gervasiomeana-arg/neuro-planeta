@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadProfiles, persistProfiles, PROFILE_KEY, validateProfiles } from './backups';
 import { useDeviceProtection } from './DeviceProtection';
+import { useProfileStorage } from './ProfileStorageContext';
 
 export function useProfileStore<T extends { id: string; name: string }>() {
   const protection = useDeviceProtection();
+  const storage = useProfileStorage();
   const vault = protection?.session;
   const [initial] = useState(() => {
     if (vault) { const profiles = vault.profiles; return { profiles, raw: JSON.stringify(profiles), error: '' }; }
-    try { return loadProfiles(localStorage); }
+    try { return loadProfiles(storage); }
     catch { return { profiles: [], raw: null, error: 'El navegador no permite leer los datos locales.' }; }
   });
   const [profiles, setProfiles] = useState<T[]>(initial.profiles as unknown as T[]);
@@ -25,22 +27,22 @@ export function useProfileStore<T extends { id: string; name: string }>() {
       return () => { alive = false; };
     }
     try {
-      expected.current = persistProfiles(localStorage, profiles, expected.current);
+      expected.current = persistProfiles(storage, profiles, expected.current);
       setError('');
     } catch (cause) {
       setError(cause instanceof Error && cause.message.startsWith('Otra pestaña') ? cause.message : 'No se pudieron guardar los últimos cambios. Siguen en esta sesión: descargá una copia antes de cerrar.');
     }
-  }, [profiles, attempt, vault]);
+  }, [profiles, attempt, vault, storage]);
   useEffect(() => {
     const changed = (event: StorageEvent) => {
-      if (event.key !== PROFILE_KEY && event.key !== null) return;
+      if (event.key !== storage.physicalKey && event.key !== null) return;
       if (event.newValue === expected.current && event.key !== null) return;
       blocked.current = true;
       setError('Otra pestaña cambió los perfiles. Descargá una copia de esta sesión antes de recargar.');
     };
     window.addEventListener('storage', changed);
     return () => window.removeEventListener('storage', changed);
-  }, []);
+  }, [storage]);
   async function restoreCopies(incoming: unknown[]) {
     if (blocked.current) throw new Error('El guardado está detenido. Conservá una copia antes de recargar o pedir ayuda.');
     validateProfiles(incoming);
@@ -52,7 +54,7 @@ export function useProfileStore<T extends { id: string; name: string }>() {
       setProfiles(combined as unknown as T[]); setError('');
     });
     else {
-      expected.current = persistProfiles(localStorage, combined as unknown[], expected.current);
+      expected.current = persistProfiles(storage, combined as unknown[], expected.current);
       setProfiles(combined as unknown as T[]); setError('');
     }
   }
