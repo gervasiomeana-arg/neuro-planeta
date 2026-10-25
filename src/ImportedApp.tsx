@@ -919,6 +919,7 @@ export default function ImportedApp() {
   
   // Attention Game State
   const legacyTracker = useSessionTracker();
+  const learningExitRef = useRef<(() => void) | null>(null);
   const legacyCounts = useRef({ attempts: 0, independent: 0, rounds: 0, helped: false });
   const recordLearningResult = (result: LearningResult, variant = `nivel:${result.level}`) => {
     if (!activePatientId || loadedPatientId !== activePatientId) return;
@@ -2866,10 +2867,10 @@ export default function ImportedApp() {
         {/* 2. ATENCION MODULE (Foco) */}
         {activeModule === 'atencion' && (
           <div className="np-module-view np-module-atencion space-y-5 animate-fade-in">
-            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { if (attentionGameState === 'playing') finishLegacySession('paused'); playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
+            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { if (attentionGameState === 'playing') finishLegacySession('paused'); else learningExitRef.current?.(); playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
 
             {attentionGameState === 'idle' && (
-              <Suspense fallback={<p role="status">Preparando los juegos…</p>}><LearningHub key={activePatientId || 'none'} progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={recordLearningResult} /></Suspense>
+              <Suspense fallback={<p role="status">Preparando los juegos…</p>}><LearningHub key={activePatientId || 'none'} progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} exitRef={learningExitRef} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={recordLearningResult} /></Suspense>
             )}
 
             {attentionGameState === 'playing' && attentionActivity === 'numbers' && (
