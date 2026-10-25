@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
+import type { LearningProgress } from './learning/curriculum';
 import { BUILTIN_PICTOGRAMS, defaultSymbol } from './pictograms/catalog';
 import { useAdultPrivacyGuard } from './security/useAdultPrivacyGuard';
 import { useVoiceRecording } from './audio/useVoiceRecording';
@@ -47,6 +48,7 @@ import {
 } from 'lucide-react';
 
 const AdultAccountPanel = lazy(() => import('./auth/AdultAccountPanel'));
+const LearningHub = lazy(() => import('./learning/LearningHub'));
 
 // Theme customization based on age groups
 interface AgeGroup {
@@ -129,6 +131,7 @@ interface Patient {
   rewardsStore?: RewardItem[];
   redeemedRewards?: RedeemedReward[];
   routineSupportLevel?: 'detallado' | 'clave' | 'autonomo';
+  learningProgress?: LearningProgress;
 }
 
 const DEFAULT_REWARDS_STORE: RewardItem[] = [
@@ -2250,7 +2253,7 @@ export default function ImportedApp() {
               </div>
               <div className={`np-modules ${appDeviceMode === 'tablet' ? 'np-modules-tablet' : ''}`}>
                 <ActivityCard title="Emociones" description="Contá cómo te sentís" icon={Smile} tone="amber" onClick={() => { playClickSound(); setActiveModule('emociones'); }} />
-                <ActivityCard title="Atención" description="Jugá a descubrir" icon={Brain} tone="blue" onClick={() => { playClickSound(); setActiveModule('atencion'); }} />
+                <ActivityCard title="Aprender y jugar" description="25 juegos: números, memoria y lenguaje" icon={Brain} tone="blue" onClick={() => { playClickSound(); setActiveModule('atencion'); }} />
                 <ActivityCard title="Zona Calma" description="Una pausa para vos" icon={Wind} tone="lavender" onClick={() => { playClickSound(); setActiveModule('zona_calma'); }} />
                 <ActivityCard title="Sensorial" description="Explorá a tu manera" icon={Sparkles} tone="rose" onClick={() => { playClickSound(); setActiveModule('sensorial'); }} />
                 <ActivityCard title="Comunicar" description="Decilo con imágenes" icon={MessageSquare} tone="aqua" onClick={() => { playClickSound(); setActiveModule('comunicar'); }} />
@@ -2828,20 +2831,18 @@ export default function ImportedApp() {
         {/* 2. ATENCION MODULE (Foco) */}
         {activeModule === 'atencion' && (
           <div className="np-module-view np-module-atencion space-y-5 animate-fade-in">
-            <ActivityHeader title="Atención Cósmica" label="Descubrí a tu ritmo" icon={Brain} tone="blue" onBack={() => { playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
+            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
 
             {attentionGameState === 'idle' && (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center space-y-4">
-                <span className="text-4xl">🚀</span>
-                <h3 className="font-extrabold text-base text-white">Elegí un juego</h3>
-                <p className="text-sm text-slate-400 leading-relaxed max-w-xs mx-auto">
-                  Sin reloj. Podés probar otra vez cuantas veces quieras.
-                </p>
-                <div className="grid gap-2">
-                  <button onClick={startAttentionGame} className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm py-3 px-4 rounded-xl">🔢 Buscar números</button>
-                  <button onClick={startMatchingGame} className="bg-[#e5eef1] text-[#355f80] border border-[#a9c4d0] font-extrabold text-sm py-3 px-4 rounded-xl">🧩 Parejas de imágenes</button>
-                </div>
-              </div>
+              <Suspense fallback={<p role="status">Preparando los juegos…</p>}><LearningHub key={activePatientId || 'none'} progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={result => {
+                if (!activePatientId || loadedPatientId !== activePatientId) return;
+                const profileId = activePatientId;
+                setPatients(previous => previous.map(profile => {
+                  if (profile.id !== profileId) return profile;
+                  const old = profile.learningProgress?.[result.gameId];
+                  return { ...profile, learningProgress: { ...profile.learningProgress, [result.gameId]: { sessions: (old?.sessions || 0) + 1, highestLevel: Math.max(old?.highestLevel || 0, result.level), lastPlayed: new Date().toISOString(), independentCorrect: (old?.independentCorrect || 0) + result.independentCorrect, attempts: (old?.attempts || 0) + result.attempts } } };
+                }));
+              }} /></Suspense>
             )}
 
             {attentionGameState === 'playing' && attentionActivity === 'numbers' && (

@@ -38,6 +38,8 @@ Antes de cada publicación: revisar cambios de AI Studio/GitHub, probar candidat
 
 ## Próximas entregas concretas
 
+Ampliación educativa en la rama: biblioteca de 25 juegos totales (2 originales + 23 nuevos), con niveles, apoyos, práctica cotidiana y progreso local cifrado. Ver `biblioteca-25-juegos.md`. Implementada sin pruebas por solicitud del titular; no se marca publicada ni validada.
+
 Actualización de contenido: ver `contenido-uso-comercial.md`. La revisión encontró la restricción comercial de ARASAAC; la rama sustituye su buscador por OpenMoji local. Quedan pendientes pruebas, revisión de comprensión y revisión de imágenes históricas de origen desconocido. Ver `catalogo-openmoji.md` y `comparacion-otsimo-2026-10-25.md`. Las correcciones de texto, atribución e inventario se preparan en la rama `release/content-commercial-review`, sin pruebas ni publicación por instrucción del titular. No se considera cerrado P0-3 por añadir una advertencia.
 
 | Prioridad | Trabajo y evidencia exigida | Estado al corte |
@@ -64,7 +66,7 @@ Esto es un plan de trabajo, no una automatización ya programada. Registrar inci
 
 ## Oferta y medición comercial
 
-Propuesta a validar: piloto gratuito, luego un único Plan Familia de lanzamiento con referencia de US$5,99/mes. Para Argentina definir un importe fijo en pesos visible antes de contratar; no se fija aquí una conversión cambiaria ni una tarifa del procesador. Precio y costos deben confirmarse antes de ofrecerlo. Posponer plan profesional y anual hasta contar con gestión de varias familias y retención observada.
+Precio definido por el titular: Plan Familia, USD 20/mes. La rama de trabajo agrega la presentación del precio y el guardado administrador en USD; las reglas remotas y los cobros siguen pendientes de publicación/verificación. No convertir valores ARS previos automáticamente. Si se cobra en pesos, el importe y la política de conversión deben definirse y mostrarse antes de contratar; no se inventa aquí un tipo de cambio ni una tarifa del procesador. Confirmar costos antes de ofrecerlo. Posponer plan profesional y anual hasta contar con gestión de varias familias y retención observada.
 
 Mercado Pago ofrece suscripciones recurrentes; integrarlas con estados de acceso en el servidor y validación de notificaciones según la documentación del producto. Un link o una pantalla de éxito no verifica una suscripción. Modelar prueba, activa, pago pendiente, período de gracia y cancelada; no retirar ejercicios de calma durante una sesión por un cambio de estado de cobro. Separar consulta/exportación de datos del acceso a funciones de pago.
 

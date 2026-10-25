@@ -45,6 +45,12 @@ export function validateProfiles(value: unknown): asserts value is Array<Record<
         (entry.trigger !== undefined && typeof entry.trigger !== 'string')) fail();
     }
     if (p.attentionHighScore !== undefined && (typeof p.attentionHighScore !== 'number' || p.attentionHighScore < 0)) fail();
+    if (p.learningProgress !== undefined) {
+      if (!record(p.learningProgress) || Object.keys(p.learningProgress).length > 25) fail();
+      for (const result of Object.values(p.learningProgress as object)) {
+        if (!record(result) || !['sessions', 'highestLevel', 'independentCorrect', 'attempts'].every(key => Number.isSafeInteger(result[key]) && Number(result[key]) >= 0) || Number(result.sessions) < 1 || ![1, 2, 3].includes(Number(result.highestLevel)) || typeof result.lastPlayed !== 'string' || !Number.isFinite(Date.parse(result.lastPlayed)) || Number(result.independentCorrect) > Number(result.sessions) * 5 || Number(result.attempts) < Number(result.independentCorrect)) fail();
+      }
+    }
     if (p.therapeuticObjective !== undefined && typeof p.therapeuticObjective !== 'string') fail();
     if (p.routineDay !== undefined && typeof p.routineDay !== 'string') fail();
     if (p.routineSupportLevel !== undefined && !['detallado', 'clave', 'autonomo'].includes(String(p.routineSupportLevel))) fail();

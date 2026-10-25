@@ -20,6 +20,48 @@
 .np-symbol-credit a { text-decoration: underline; text-underline-offset: 2px; }
 @media (max-width: 380px) { .np-symbol-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+/* Learning library: comfortably spaced choices, explicit progress, no flashing. */
+.np-learning { color: #293b3a; display: grid; gap: 18px; text-align: left; }
+.np-learning h3 { font-size: clamp(21px, 4vw, 28px); font-weight: 800; line-height: 1.25; letter-spacing: -.025em; }
+.np-learning h4 { font-size: 17px; font-weight: 750; line-height: 1.45; }
+.np-learning p { font-size: 14px; line-height: 1.65; }
+.np-learning button { cursor: pointer; }
+.np-learning button:disabled { cursor: default; opacity: .65; }
+.np-learning button:focus-visible { outline: 3px solid #355f80; outline-offset: 3px; }
+.np-learning-hero { display: flex; align-items: flex-start; gap: 16px; padding: 22px; border: 1px solid #cbd9cb; border-radius: 24px; background: #e7eee2; }
+.np-learning-hero > span { font-size: 36px; }
+.np-learning .np-learning-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #49665a; }
+.np-learning-levels, .np-learning-filters, .np-learning-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.np-learning-levels button, .np-learning-filters button, .np-learning-secondary { min-height: 44px; border: 1px solid #b9cdc3; border-radius: 13px; padding: 10px 14px; background: #fcf7ed; color: #29433e; font-size: 13px; font-weight: 700; }
+.np-learning-levels button[aria-pressed="true"], .np-learning-filters button[aria-pressed="true"] { color: #fffdf7; background: #27665e; border-color: #27665e; }
+.np-learning-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.np-learning-card { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 20px; border: 1px solid #d6dcd1; border-radius: 23px; background: #fcf7ed; box-shadow: 0 4px 14px #293b3a07; }
+.np-learning-icon { display: grid; place-items: center; width: 48px; height: 48px; font-size: 29px; background: #e7eee2; border-radius: 16px; }
+.np-learning-card button, .np-learning-primary { min-height: 46px; margin-top: auto; padding: 11px 16px; border: 1px solid #27665e; border-radius: 13px; background: #27665e; color: #fffdf7; font-weight: 750; font-size: 14px; }
+.np-learning-card button { width: 100%; }
+.np-learning .np-learning-progress { color: #355f80; font-size: 12px; font-weight: 700; }
+.np-learning .np-learning-small { font-size: 12px; color: #526760; }
+.np-learning-link { min-height: 44px; width: fit-content; padding: 7px 0; text-decoration: underline; text-underline-offset: 4px; color: #355f80; font-weight: 700; font-size: 13px; }
+.np-learning-guide, .np-learning-finish aside { padding: 20px; border: 1px solid #c8d8cc; border-radius: 18px; background: #eaf0e7; }
+.np-learning-session-head { display: flex; gap: 12px; justify-content: space-between; align-items: center; font-size: 12px; flex-wrap: wrap; }
+.np-learning-objective { color: #526760; }
+.np-learning-question { display: grid; gap: 18px; padding: clamp(14px, 3vw, 24px); border: 1px solid #d6dcd1; border-radius: 24px; background: #fcf7ed; }
+.np-learning-stimulus { text-align: center; white-space: pre-line; overflow-wrap: anywhere; font-size: clamp(25px, 5vw, 40px); line-height: 1.9; padding: 16px; border: 1px solid #d4dfd4; border-radius: 18px; background: #f0f4ea; }
+.np-learning-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.np-learning-choices button { min-height: 100px; padding: 16px 10px; border: 2px solid #b9cdc3; border-radius: 19px; background: #fffdf8; color: #29433e; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; font-size: 19px; font-weight: 750; overflow-wrap: anywhere; }
+.np-learning-choices button:hover:not(:disabled) { border-color: #27665e; }
+.np-learning-option-visual { min-height: 64px; display: grid; place-items: center; line-height: 1; }
+.np-learning-color { display: block; width: 54px; height: 54px; border-radius: 50%; border: 2px solid #293b3a; }
+.np-learning-position { display: grid; grid-template-columns: repeat(3, 1fr); max-width: 260px; width: 100%; margin: auto; border: 1px solid #b9cdc3; }
+.np-learning-position span { min-height: 62px; display: grid; place-items: center; border: 1px solid #b9cdc3; font-size: 30px; }
+.np-learning-memory { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.np-learning-memory button { aspect-ratio: 1; min-height: 54px; border-radius: 16px; border: 2px solid #a8c6ba; background: #e5eee6; color: #29433e; font-size: clamp(25px, 5vw, 40px); }
+.np-learning-memory button:disabled { opacity: 1; }
+.np-learning-hint, .np-learning-feedback { background: #e6eef3; border-radius: 15px; padding: 14px; color: #355f80; }
+.np-learning-finish { padding: 22px; border: 1px solid #c8d8cc; border-radius: 24px; background: #fcf7ed; }
+.np-learning-finish > span { font-size: 48px; text-align: center; }
+@media (max-width: 430px) { .np-learning-grid { grid-template-columns: 1fr; } .np-learning-card { padding: 18px; } .np-learning-hero { padding: 17px; } }
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;

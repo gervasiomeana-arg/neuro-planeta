@@ -46,7 +46,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['amountCents', 'currency', 'period', 'updatedBy', 'updatedAt'])
         && request.resource.data.amountCents is int
         && request.resource.data.amountCents >= 0 && request.resource.data.amountCents <= 999999999
-        && request.resource.data.currency == 'ARS' && request.resource.data.period == 'month'
+        && request.resource.data.currency in ['ARS', 'USD'] && request.resource.data.period == 'month'
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt == request.time;
     }

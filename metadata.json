@@ -1,6 +1,6 @@
 {
   "name": "Remix: NeuroPlaneta",
-  "description": "Actividades de atención, calma, rutinas, historias sociales y comunicación visual para niños y familias, con un espacio de acompañamiento adulto. No ofrece diagnóstico ni sustituye la atención profesional.",
+  "description": "25 juegos y actividades de atención, calma, rutinas, historias sociales y comunicación visual para niños y familias, con un espacio de acompañamiento adulto. No ofrece diagnóstico ni sustituye la atención profesional.",
   "requestFramePermissions": [
     "camera",
     "microphone"
