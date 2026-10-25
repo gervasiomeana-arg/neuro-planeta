@@ -6,7 +6,7 @@ Actualizado el 25 de octubre de 2026. Este estado sustituye las referencias ante
 
 La app tiene 25 juegos, registro descriptivo de uso, descarga del informe, perfiles cifrados y copia/restauración. Los juegos nuevos, el informe y la recuperación cuentan ahora con pruebas de navegador. El informe no realiza análisis clínicos, evaluaciones, diagnósticos ni tratamientos. No presentar la app como servicio clínico ni como herramienta de diagnóstico.
 
-Se corrigieron dibujos locales, la correspondencia toalla/canasta, el formato de 24 horas y el desplazamiento al entrar en juegos. El titular informó que actualizó AI Studio; queda confirmar el recorrido de la versión publicada.
+Se corrigieron dibujos locales, la correspondencia toalla/canasta, el formato de 24 horas y el desplazamiento al entrar en juegos. El titular informó que actualizó AI Studio. Después se reprodujeron y corrigieron fallas adicionales de carga de Juegos, altura al girar el celular y salida de los juegos originales. Esta nueva corrección pasó 11 pruebas de navegador y requiere otra sincronización/publicación y confirmación en el equipo físico; ver la auditoría funcional.
 
 ## Orden de cierre
 

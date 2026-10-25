@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
 import type { LearningProgress } from './learning/curriculum';
 import type { LearningResult } from './learning/LearningHub';
+import LearningHub from './learning/LearningHub';
+import ActivityErrorBoundary from './ActivityErrorBoundary';
 import { downloadTextReport } from './reports/downloadTextReport';
 import { useSessionTracker, type ActivitySession } from './learning/useSessionTracker';
 import { BUILTIN_PICTOGRAMS, defaultSymbol } from './pictograms/catalog';
@@ -53,7 +55,6 @@ import {
 } from 'lucide-react';
 
 const AdultAccountPanel = lazy(() => import('./auth/AdultAccountPanel'));
-const LearningHub = lazy(() => import('./learning/LearningHub'));
 const ParentActivityReport = lazy(() => import('./reports/ParentActivityReport'));
 
 // Theme customization based on age groups
@@ -940,6 +941,13 @@ export default function ImportedApp() {
   };
   const [attentionGameState, setAttentionGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
   const [attentionActivity, setAttentionActivity] = useState<'numbers' | 'matching' | null>(null);
+  const leaveLearningActivity = () => {
+    if (activeModule !== 'atencion') return;
+    if (attentionGameState === 'playing') finishLegacySession('paused');
+    else learningExitRef.current?.();
+    setAttentionGameState('idle');
+    setAttentionActivity(null);
+  };
   useEffect(() => { activityContentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' }); }, [attentionGameState, attentionActivity]);
   const [matchingRound, setMatchingRound] = useState(0);
   const [matchingHint, setMatchingHint] = useState(false);
@@ -1703,6 +1711,7 @@ export default function ImportedApp() {
 
   // Salida limpia de la app hacia la pantalla de acceso
   const handleExitApp = () => {
+    leaveLearningActivity();
     playClickSound();
     stopCommunicationAudio();
     stopMaskingNoise();
@@ -2115,6 +2124,7 @@ export default function ImportedApp() {
       <WorkspaceNavigation activePage={showParentsMode ? 'adultos' : activeModule || currentTab} onNavigate={(destination) => {
         if (destination === 'salir') { handleExitApp(); return; }
         if (destination === 'adultos') { setShowParentsMode(true); if (!parentsAuthenticated) generateParentsMath(); return; }
+        leaveLearningActivity();
         playClickSound();
         setShowParentsMode(false);
         setParentsAuthenticated(false);
@@ -2155,7 +2165,7 @@ export default function ImportedApp() {
           </button>
           {/* LOGROS HEADS-UP DISPLAY */}
           <button 
-            onClick={() => { playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
+            onClick={() => { leaveLearningActivity(); playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
             className="np-star-balance bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 px-2 sm:px-3 py-2 min-h-11 rounded-full flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
           >
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
@@ -2870,10 +2880,10 @@ export default function ImportedApp() {
         {/* 2. ATENCION MODULE (Foco) */}
         {activeModule === 'atencion' && (
           <div className="np-module-view np-module-atencion space-y-5 animate-fade-in">
-            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { if (attentionGameState === 'playing') finishLegacySession('paused'); else learningExitRef.current?.(); playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
+            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { leaveLearningActivity(); playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
 
             {attentionGameState === 'idle' && (
-              <Suspense fallback={<p role="status">Preparando los juegos…</p>}><LearningHub key={activePatientId || 'none'} progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} exitRef={learningExitRef} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={recordLearningResult} /></Suspense>
+              <ActivityErrorBoundary key={activePatientId || 'none'} onBack={() => setActiveModule(null)}><LearningHub progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} exitRef={learningExitRef} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={recordLearningResult} /></ActivityErrorBoundary>
             )}
 
             {attentionGameState === 'playing' && attentionActivity === 'numbers' && (
@@ -5839,7 +5849,7 @@ export default function ImportedApp() {
       <nav className="absolute bottom-0 left-0 right-0 bg-[#060913]/95 backdrop-blur-xl border-t border-white/10 py-2 px-2 pb-[max(0.625rem,env(safe-area-inset-bottom))] z-40 shrink-0">
         <div className="max-w-md mx-auto flex items-center justify-around gap-1">
           <button
-            onClick={() => { playClickSound(); setCurrentTab('inicio'); setActiveModule(null); }}
+            onClick={() => { leaveLearningActivity(); playClickSound(); setCurrentTab('inicio'); setActiveModule(null); }}
             className={`flex flex-col items-center gap-1 py-1.5 px-3 sm:px-5 rounded-2xl transition-all duration-200 cursor-pointer ${
               currentTab === 'inicio' && !activeModule
                 ? 'text-white bg-[#186EF3]/20 border border-[#186EF3]/30 font-bold shadow-[0_0_15px_rgba(24,110,243,0.15)]' 
@@ -5851,7 +5861,7 @@ export default function ImportedApp() {
           </button>
 
           <button
-            onClick={() => { playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
+            onClick={() => { leaveLearningActivity(); playClickSound(); setCurrentTab('logros'); setActiveModule(null); }}
             className={`flex flex-col items-center gap-1 py-1.5 px-3 sm:px-5 rounded-2xl transition-all duration-200 cursor-pointer ${
               currentTab === 'logros' 
                 ? 'text-white bg-[#186EF3]/20 border border-[#186EF3]/30 font-bold shadow-[0_0_15px_rgba(24,110,243,0.15)]' 
@@ -5864,7 +5874,7 @@ export default function ImportedApp() {
           <button
             type="button"
             aria-label="Abrir ejercicio SOS Calma"
-            onClick={() => { setShowParentsMode(false); setParentsAuthenticated(false); setCalmStep(0); setCurrentTab('inicio'); setActiveModule('sos'); }}
+            onClick={() => { leaveLearningActivity(); setShowParentsMode(false); setParentsAuthenticated(false); setCalmStep(0); setCurrentTab('inicio'); setActiveModule('sos'); }}
             className={`flex flex-col items-center gap-1 py-1.5 px-2 sm:px-4 rounded-2xl transition-colors cursor-pointer ${
               activeModule === 'sos'
                 ? 'text-rose-400 bg-rose-500/10 border border-rose-500/30 font-bold'

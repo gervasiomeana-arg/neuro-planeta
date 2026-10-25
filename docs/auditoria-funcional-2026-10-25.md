@@ -33,6 +33,26 @@ También se comprueba la descarga de un informe después de jugar, sus registros
 
 Las pruebas de dimensiones recorren los 23 juegos nuevos a 360, 768 y 1280 px. Se revisan capturas representativas; no equivalen a teléfonos o tablets físicos. Los controles de voz y micrófono emplean dispositivos simulados para comprobar cancelación, tamaño máximo, errores, duración y liberación del recurso.
 
+## Revisión adicional de celular y tablet
+
+El titular informó que Juegos quedaba en blanco en un celular. Se verificó primero que `main` de GitHub seguía en `3bb46207b8a6e74f5021cafc59a4394b663a1647`, con las correcciones previas guardadas. La web pública sirve `index-D2heCtX4.js`, `ImportedApp-BaCBbqSF.js` y `LearningHub-CtFZ8Ef3.js`; el módulo de juegos responde JavaScript en esta consulta. No se dispone del error ni de una inspección del teléfono del titular, por lo que no se afirma una causa exacta en ese equipo.
+
+Se reprodujeron y corrigieron tres fallas en el candidato aislado:
+
+- Al abortar la descarga diferida de `LearningHub`, React dejaba `#root` vacío. Los juegos ahora se incluyen en el módulo principal de la app; abrir la biblioteca no depende de otra descarga de JavaScript. Un límite de errores permite reintentar o volver al inicio ante una falla de renderizado, conservando la navegación. No borra almacenamiento ni recarga automáticamente.
+- Al girar un celular de 390 × 844 a 844 × 390, la altura mínima de 600 px dejaba la navegación totalmente fuera de pantalla (intersección con el viewport: cero). En pantallas bajas se usa la altura disponible, y la barra lateral de tablets permite desplazarse.
+- Al salir de un juego original se conservaba su estado de juego, impidiendo volver a elegir desde la biblioteca. Las salidas por cabecera, Inicio, Logros, SOS, barra lateral y acceso ahora cierran la sesión como pausa y restablecen la selección. La comprobación de navegador cubre la cabecera y la salida por Inicio, sin duplicar registros.
+
+Resultado final: **11 pruebas de navegador aprobadas**, más TypeScript, compilación de producción y revisión de espacios del diff. La batería incluye:
+
+- Interacción táctil simulada con `isMobile` y `hasTouch`: 320 × 568, 390 × 844, 768 × 1024 y 1024 × 600. En los tamaños de tablet también se activa el modo Tablet de la app.
+- Apertura y salida de los 25 juegos en cada tamaño; una respuesta de Contar objetos, giro, siguiente desafío, pausa y conservación de 27 registros de prueba por recorrido. No se confunde este recorrido con repetir las cinco rondas de todos los juegos, ya verificadas en la batería anterior.
+- Las siete actividades y las siete secciones del panel adulto, sin desborde horizontal; navegación visible después del giro; perfiles y notas ficticias conservados.
+- Descarga del informe descriptivo después de completar un juego, respaldo textual ante una imagen ausente y dimensiones de los 23 juegos nuevos a 360, 768 y 1280 px.
+- Bloqueo de la antigua descarga separada sin impedir abrir Juegos e inyección de un error de dibujo con recuperación mediante Reintentar.
+
+Todas las pruebas usan perfiles ficticios locales. No se modificaron datos reales, Firebase, permisos, precios, créditos de ilustraciones ni el contenido del informe. El informe sigue describiendo actividades registradas, sin análisis clínicos, evaluaciones, diagnósticos ni tratamientos. Las correcciones requieren sincronizar/publicar AI Studio; esta batería no sustituye la confirmación en el celular/tablet físico ni prueba Safari/iOS real.
+
 ## Estado de producción observado
 
 - https://neuroplaneta.ai.studio/ responde y la prueba pública de acceso obligatorio con Google pasó: un perfil ficticio local no se muestra antes de autenticar; el consentimiento habilita el botón y administración no revela el formulario protegido.

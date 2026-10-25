@@ -22,6 +22,9 @@
 
 /* Learning library: comfortably spaced choices, explicit progress, no flashing. */
 .np-learning { color: #293b3a; display: grid; gap: 18px; text-align: left; }
+.np-activity-recovery { display:grid;gap:16px;padding:20px;border:1px solid #b9cdc3;border-radius:18px;background:#fcf7ed;color:#29433e;overflow-wrap:anywhere; }
+.np-activity-recovery h3 { font-size:21px;font-weight:750; }
+.np-activity-recovery p { font-size:14px;line-height:1.7; }
 .np-learning h3 { font-size: clamp(21px, 4vw, 28px); font-weight: 800; line-height: 1.25; letter-spacing: -.025em; }
 .np-learning h4 { font-size: 17px; font-weight: 750; line-height: 1.45; }
 .np-learning p { font-size: 14px; line-height: 1.65; }
@@ -433,7 +436,7 @@
 @media(min-width:1024px) {
   .np-live-shell { padding:0; }
   .np-live-shell #neuroplaneta-workspace { width:100%;max-width:1600px;height:100dvh;min-height:640px;padding-left:232px;border:0;border-radius:0;box-shadow:none; }
-  .np-workspace-sidebar { position:absolute;left:0;top:0;bottom:0;width:232px;display:flex;flex-direction:column;padding:32px 22px 24px;background:#eef1e4;border-right:1px solid #d9e1ce; }
+  .np-workspace-sidebar { position:absolute;left:0;top:0;bottom:0;width:232px;display:flex;flex-direction:column;padding:32px 22px 24px;background:#eef1e4;border-right:1px solid #d9e1ce;overflow-y:auto;overscroll-behavior:contain; }
   .np-workspace-brand { display:flex;align-items:center;gap:10px;min-height:48px;text-align:left;color:#29493f;font-size:19px;font-weight:750;letter-spacing:-.6px; }
   .np-workspace-brand svg { width:25px;height:25px;flex-shrink:0;stroke:#63815a; }
   .np-workspace-brand small { display:block;font-size:8px;letter-spacing:1.3px;color:#576c4f;margin-top:4px; }
@@ -716,3 +719,10 @@
 .np-game-symbol img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .np-game-symbol[data-failed] { width: auto; height: auto; font: 14px/1.4 system-ui, sans-serif; color: #29433e; }
 .np-learning-choices button > span:last-child:has(> .np-game-symbol:only-child) { font-size: 42px; }
+
+/* A rotated phone or short tablet must not push navigation below the screen. */
+@media screen and (max-height:700px) {
+  .np-live-shell { padding:0;align-items:flex-start; }
+  .np-live-shell #neuroplaneta-workspace { height:100vh;height:100dvh;min-height:0;border-radius:0; }
+  .np-workspace-sidebar > * { flex-shrink:0; }
+}
