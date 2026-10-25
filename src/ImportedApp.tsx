@@ -1,3 +1,4 @@
+import { GameText, GameArtworkCredit } from './learning/GameText';
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
 import type { LearningProgress } from './learning/curriculum';
@@ -2907,16 +2908,16 @@ export default function ImportedApp() {
               <div className="space-y-4">
                 <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-2xl text-center">
                   <p className="text-sm text-blue-400 font-bold">Buscá el dibujo igual</p>
-                  <span className="block text-5xl mt-2" role="img" aria-label={MATCH_ROUNDS[matchingRound].word}>{MATCH_ROUNDS[matchingRound].answer}</span>
+                  <span className="block text-5xl mt-2" role="img" aria-label={MATCH_ROUNDS[matchingRound].word}>{<GameText text={MATCH_ROUNDS[matchingRound].answer} />}</span>
                 </div>
                 {matchingHint && <p role="status" className="text-sm text-blue-400 font-semibold text-center">Probá con otra imagen. No hay apuro.</p>}
                 <div className="grid grid-cols-3 gap-2">
                   {MATCH_ROUNDS[matchingRound].choices.map(choice => (
                     <button key={choice} type="button" onClick={() => handleMatchingChoice(choice)} aria-label={`Elegir ${MATCH_LABELS[choice]}`} className="min-h-24 rounded-2xl border border-[#a9c4d0] bg-[#fcf7ed] text-4xl hover:border-[#355f80] focus-visible:outline-2 focus-visible:outline-[#355f80] flex items-center justify-center">
-                      <span aria-hidden="true">{choice}</span>
+                      <span aria-hidden="true" style={{ fontSize: 48 }}><GameText text={choice} /></span>
                     </button>
                   ))}
-                </div>
+                </div><GameArtworkCredit />
               </div>
             )}
 

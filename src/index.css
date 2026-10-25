@@ -53,7 +53,7 @@
 .np-learning-option-visual { min-height: 64px; display: grid; place-items: center; line-height: 1; }
 .np-learning-color { display: block; width: 54px; height: 54px; border-radius: 50%; border: 2px solid #293b3a; }
 .np-learning-position { display: grid; grid-template-columns: repeat(3, 1fr); max-width: 260px; width: 100%; margin: auto; border: 1px solid #b9cdc3; }
-.np-learning-position span { min-height: 62px; display: grid; place-items: center; border: 1px solid #b9cdc3; font-size: 30px; }
+.np-learning-position > span { min-height: 62px; display: grid; place-items: center; border: 1px solid #b9cdc3; font-size: 30px; }
 .np-learning-memory { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
 .np-learning-memory button { aspect-ratio: 1; min-height: 54px; border-radius: 16px; border: 2px solid #a8c6ba; background: #e5eee6; color: #29433e; font-size: clamp(25px, 5vw, 40px); }
 .np-learning-memory button:disabled { opacity: 1; }
@@ -710,3 +710,9 @@
 #np-administration table { width:100%; border-collapse:collapse; }
 #np-administration th, #np-administration td { padding:12px; text-align:left; border-bottom:1px solid #cbd7d3; }
 #np-administration th { background:#e3eef8; color:#214e72; }
+
+/* Game drawings use local SVG artwork at the surrounding text size. */
+.np-game-symbol { display: inline-block; width: 1em; height: 1em; vertical-align: -.15em; line-height: 1; }
+.np-game-symbol img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.np-game-symbol[data-failed] { width: auto; height: auto; font: 14px/1.4 system-ui, sans-serif; color: #29433e; }
+.np-learning-choices button > span:last-child:has(> .np-game-symbol:only-child) { font-size: 42px; }

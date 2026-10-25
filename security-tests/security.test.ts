@@ -106,14 +106,17 @@ test('static CSP forbids inline scripts, eval, plugins and arbitrary connections
   assert.match(browserPolicy, /object-src 'none'/); assert.match(browserPolicy, /connect-src 'self' https:\/\/api.arasaac.org https:\/\/identitytoolkit.googleapis.com https:\/\/securetoken.googleapis.com https:\/\/firestore.googleapis.com https:\/\/neuroplaneta-bdaf9.firebaseapp.com;/);
 });
 
-test('board import permits raster and ARASAAC, rejects trackers, local-network URLs, SVG and prototype keys', () => {
+test('board import permits raster and bundled symbols, rejects remote images, SVG and prototype keys', () => {
   const image = 'data:image/png;base64,iVBORw0KGgo=';
   assert.equal(safeImageSource(image), image);
-  for (const bad of ['https://attacker.invalid/track.png', 'http://127.0.0.1/private', 'javascript:alert(1)', 'data:image/svg+xml;base64,PHN2Zz4=', 'https://api.arasaac.org.attacker.invalid/api/pictograms/1', 'https://api.arasaac.org/api/pictograms/1?name=PRIVATE', 'https://u:p@api.arasaac.org/api/pictograms/1']) {
+  for (const bad of ['https://api.arasaac.org/api/pictograms/123', 'https://attacker.invalid/track.png', 'http://127.0.0.1/private', 'javascript:alert(1)', 'data:image/svg+xml;base64,PHN2Zz4=', 'https://api.arasaac.org.attacker.invalid/api/pictograms/1', 'https://api.arasaac.org/api/pictograms/1?name=PRIVATE', 'https://u:p@api.arasaac.org/api/pictograms/1']) {
     assert.equal(safeImageSource(bad), undefined);
     assert.throws(() => parseBoardImages(JSON.stringify({ format: 'open-board-v1', buttons: [{ id: 'tengo_sed', image_url: bad }] }), ['tengo_sed']));
   }
-  assert.equal(safeImageSource('https://api.arasaac.org/api/pictograms/123'), 'https://api.arasaac.org/api/pictograms/123');
+  assert.equal(safeImageSource('np-symbol:1F4A7'), '/pictograms/openmoji/1F4A7.svg');
+  assert.equal(safeImageSource('np-symbol:DEADBEEF'), undefined);
+  const bundled = parseBoardImages(JSON.stringify({ format: 'open-board-v1', buttons: [{ id: 'tengo_sed', neuroplaneta_symbol: 'np-symbol:1F4A7' }] }), ['tengo_sed']);
+  assert.equal(bundled.tengo_sed, 'np-symbol:1F4A7');
   const restored = parseBoardImages(JSON.stringify({ format: 'open-board-v1', buttons: [{ id: 'tengo_sed', image_url: image }, { id: '__proto__', image_url: image }] }), ['tengo_sed']);
   assert.deepEqual(Object.keys(restored), ['tengo_sed']); assert.equal(Object.getPrototypeOf(restored), null);
   assert.throws(() => parseBoardImages(' '.repeat(MAX_BOARD_BYTES + 1), []));
