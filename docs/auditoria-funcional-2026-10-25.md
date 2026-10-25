@@ -36,9 +36,9 @@ Las pruebas de dimensiones recorren los 23 juegos nuevos a 360, 768 y 1280 px. S
 ## Estado de producción observado
 
 - https://neuroplaneta.ai.studio/ responde y la prueba pública de acceso obligatorio con Google pasó: un perfil ficticio local no se muestra antes de autenticar; el consentimiento habilita el botón y administración no revela el formulario protegido.
-- El HTML público observado sirve `/assets/index-Cql3IhsI.js`, correspondiente a la compilación previa a la corrección de la toalla. La ruta de la nueva toalla responde HTML de la SPA en lugar de SVG: debe sincronizarse/publicarse el código actualizado. No se considera desplegado por estar guardado en GitHub.
+- En la primera revisión, el HTML público servía `/assets/index-Cql3IhsI.js` y faltaba el SVG de la toalla. Posteriormente el titular informó que actualizó AI Studio. Falta confirmar el recorrido final autenticado en esa versión; no se confunde la publicación de reglas con la publicación del frontend.
 - No se probó autenticación real con una cuenta adulta en la web publicada. Los recorridos autenticados de integración usan respuestas ficticias de Auth y Firestore.
-- firestore.rules en GitHub admite USD y ARS; las 13 pruebas del emulador validan permisos y USD 20. No se puede afirmar que esas reglas estén activas en producción: la consola de Firebase pide iniciar sesión y la cuenta visible figura como «Sesión cerrada». No se publicaron reglas sin acceso autenticado.
+- Actualización posterior: el 25 de octubre se ingresó con autorización a la consola de NeuroPlaneta y se publicaron las reglas que admiten ARS y USD. Solo cambió `request.resource.data.currency == 'ARS'` por `request.resource.data.currency in ['ARS', 'USD']`. Se comparó el contenido completo antes de publicar y se confirmó la versión activa tras recargar (historial: Today, 5:02 PM). Los permisos, usuarios y documentos no se modificaron. Las 13 pruebas previas del emulador cubren este mismo cambio. La confirmación se registró como texto; no se adjunta una captura de la consola autenticada a GitHub.
 
 ## Lista de lanzamiento actualizada
 
@@ -46,7 +46,7 @@ Las pruebas de dimensiones recorren los 23 juegos nuevos a 360, 768 y 1280 px. S
 | --- | --- | --- |
 | Juegos, tiempos, guardado e informe | Recorridos automatizados y datos ficticios verificados; informe real del usuario revisado en el trabajo anterior. | Confirmar estas correcciones tras publicar la nueva versión. |
 | Recuperación y aislamiento | Copia cifrada descargada desde UI, restauración en navegador nuevo y separación entre cuentas verificadas. | Prueba práctica en los dispositivos del titular; conservar copia descargada y contraseña. |
-| Publicación | Código en GitHub y puerta pública de acceso comprobada. | Sincronizar/publicar AI Studio y confirmar reglas Firebase con sesión autorizada. |
+| Publicación | Código en GitHub, puerta pública y publicación de reglas Firebase USD comprobados. | Confirmar el recorrido final en la versión de AI Studio actualizada. |
 | Cobros | USD 20 configurado como precio; formulario de administración y permisos probados. | No hay pasarela, suscripciones, renovación, cancelación ni habilitación por pago. No ofrecer como cobro automático operativo. |
 | Privacidad y condiciones | Hay consentimientos puntuales y cifrado local. | Faltan textos comerciales completos, conservación/borrado, gestión de eliminación y contacto visible de soporte. No se da esta área por cerrada. |
 | Dispositivos y accesibilidad | Geometría simulada, teclado, navegación, permisos y grabación simulados. | Android/iOS/tablets reales, calidad de voz, micrófono físico y lectores de pantalla. |

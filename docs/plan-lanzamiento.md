@@ -6,14 +6,14 @@ Actualizado el 25 de octubre de 2026. Este estado sustituye las referencias ante
 
 La app tiene 25 juegos, registro descriptivo de uso, descarga del informe, perfiles cifrados y copia/restauración. Los juegos nuevos, el informe y la recuperación cuentan ahora con pruebas de navegador. El informe no realiza análisis clínicos, evaluaciones, diagnósticos ni tratamientos. No presentar la app como servicio clínico ni como herramienta de diagnóstico.
 
-Se corrigieron dibujos locales, la correspondencia toalla/canasta, el formato de 24 horas y el desplazamiento al entrar en juegos. Hay que publicar la versión actualizada de AI Studio antes de dar esos cambios por presentes en la web pública.
+Se corrigieron dibujos locales, la correspondencia toalla/canasta, el formato de 24 horas y el desplazamiento al entrar en juegos. El titular informó que actualizó AI Studio; queda confirmar el recorrido de la versión publicada.
 
 ## Orden de cierre
 
 | Orden | Trabajo | Condición verificable |
 | --- | --- | --- |
 | 1 | Publicar y verificar versión actualizada | AI Studio sirve el código actual y el SVG de la toalla; recorrido de acceso, juego, guardado e informe correcto en la publicación. |
-| 2 | Confirmar reglas Firebase de USD | Comparar/publicar las reglas del repositorio con sesión autorizada. Los permisos y USD 20 ya pasaron el emulador; no confundirlo con despliegue. |
+| 2 | Reglas Firebase de USD: completado | Publicadas en NeuroPlaneta el 25 de octubre y verificadas tras recarga. Cambio limitado a admitir USD junto con ARS; permisos y datos conservados. Ver constancia en la auditoría. |
 | 3 | Privacidad, condiciones y soporte | Textos visibles, conservación y eliminación resueltas, alcance del servicio y contacto identificable. Los consentimientos puntuales actuales no cierran este punto. |
 | 4 | Cobro y acceso | Elegir/configurar proveedor; probar pago verificado en servidor, renovación aprobada/rechazada, notificaciones repetidas, cancelación y estado de acceso. Mostrar USD 20 no cobra. |
 | 5 | Equipos reales | Probar Android/iOS/tablet objetivo, voz, grabación, permisos, recuperación, teclado y lector de pantalla. No confundir viewport simulado con equipo físico. |
