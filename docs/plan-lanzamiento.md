@@ -1,15 +1,17 @@
 # Plan de seguimiento para vender NeuroPlaneta
 
-Fecha de corte: 21 de octubre de 2026. Estado: beta funcional. La aprobación de pruebas técnicas no demuestra eficacia terapéutica ni equivale a una auditoría de seguridad integral.
+Fecha de corte: 25 de octubre de 2026. Estado: beta funcional. La aprobación de pruebas técnicas no demuestra eficacia terapéutica ni equivale a una auditoría de seguridad integral.
 
 ## Qué está hecho y qué falta
 
 - Inicio rediseñado y publicado: crema/salvia, tarjetas pastel, actividades primero, textos y navegación simplificados. No se completó el rediseño de todas las pantallas. El archivo de Figma quedó vacío por el límite de llamadas comunicado en el intento anterior; no se presenta como entregado.
-- Siete módulos y principales recorridos revisados. La etapa anterior aprobó 11 pruebas de seguridad, 22 de navegador y 16 recorridos de la web publicada.
-- Esta entrega agrega protección de lectura/guardado local, avisos, copias cifradas y restauración como perfiles nuevos con revisión previa. Sus resultados se registran en el PR asociado.
-- Los perfiles siguen en el navegador. No hay cuentas comerciales, sincronización ni respaldo automático en nube. No se promete acceso desde varios dispositivos.
-- Entre los proyectos Supabase disponibles no aparece NeuroPlaneta. La infraestructura propia debe definirse antes de implementar cuentas; no se selecciona otro proyecto existente como destino.
-- La IA remota sigue bloqueada en producción hasta tener autenticación, permisos y cuotas por cuenta. El borrador guiado funciona sin esa IA.
+- Google obligatorio y administración con rol verificado en Firebase Spark. El historial registra accesos autenticados de adultos. Configurar el valor mensual no procesa pagos.
+- Perfiles locales cifrados por cuenta Google, con contraseña propia, sin asignación automática del almacenamiento anterior. Cambio 69 publicado en GitHub Pages. El titular descargó su respaldo; falta su verificación del recorrido de recuperación en su dispositivo y de la actualización publicada en AI Studio.
+- Cambio 70 publicado: al desmontar la sesión se destruye la referencia a la clave y se descartan las copias internas del almacén; los guardados tardíos no escriben. No equivale a borrado físico garantizado de memoria ni elimina archivos históricos.
+- Evidencia del cambio 70: 54 pruebas de navegador y 47 de seguridad aprobadas, ejecución 40111047895. Despliegue de Pages aprobado, ejecución 40134318336. No es una auditoría independiente.
+- Los perfiles completos siguen en el navegador. No hay sincronización automática ni respaldo automático en nube. Las fichas remotas mínimas requieren consentimiento; no equivalen al perfil completo ni a acceso multidispositivo.
+- La IA remota sigue bloqueada en producción hasta tener permisos y cuotas por cuenta. El borrador guiado funciona sin esa IA.
+- En curso: recuperación entre dos contextos de navegador con Google obligatorio, contraseñas de origen/copia/destino distintas y perfiles ficticios completos. El resultado se registrará en el PR asociado; no marcarlo aprobado antes de finalizar CI.
 
 ## Secuencia y condiciones de salida
 
@@ -30,9 +32,21 @@ No vender como tratamiento, diagnóstico, atención de emergencias ni servicio c
 
 Trabajar por bloques, con máximo tres tareas activas y un responsable por tarea. Una tarea pasa por Pendiente → En curso → En prueba → Publicada y verificada. Registrar objetivo, evidencia, fecha de verificación, dependencia y siguiente acción. No usar un porcentaje global de avance sin un alcance estable y ponderado.
 
-Bloque 1: cerrar protección/recuperación local y elegir infraestructura de cuentas. Bloque 2: cuentas, autorización, respaldos y privacidad. Bloque 3: rediseño completo, permisos físicos y revisión profesional. Bloque 4: cobros y piloto. La duración depende del acceso a servicios, revisiones y problemas encontrados; estas son dependencias, no fechas garantizadas.
+Bloque actual: demostrar recuperación cifrada con cuentas y confirmar el recorrido del titular. Después: privacidad/contenido/licencias y revisión en teléfonos; completar coherencia visual y accesibilidad; cobros con cancelación verificada; piloto acompañado. Firebase Spark ya es la infraestructura elegida para identidad y permisos mínimos. La duración depende del acceso a servicios, revisiones y problemas encontrados; estas son dependencias, no fechas garantizadas.
 
 Antes de cada publicación: revisar cambios de AI Studio/GitHub, probar candidato con datos ficticios, verificar regresión, fusionar y comprobar la web publicada. Identificar explícitamente qué versión está publicada y no asumir que el editor de AI Studio se sincronizó por actualizar GitHub.
+
+## Próximas entregas concretas
+
+| Prioridad | Trabajo y evidencia exigida | Estado al corte |
+| --- | --- | --- |
+| 1 | Exportar una copia real de la UI en un contexto aislado y restaurarla en otro, con revisión previa; comparar notas, imágenes, voces, rutinas, historias y premios; recargar y desbloquear de nuevo. | Prueba candidata preparada, pendiente de CI; recorrido real del titular pendiente. |
+| 2 | Inventariar contenido e integraciones externas; decidir sustitución o autorización verificable de los recursos antes de vender. Revisar textos de privacidad y condiciones con el titular. | Pendiente. La advertencia de ARASAAC dentro de la app no cierra por sí sola el permiso comercial. |
+| 3 | Revisar pantallas restantes, accesibilidad y permisos de audio/cámara en teléfonos objetivo. Registrar modelo, navegador y resultado. | Parcial; las pruebas automatizadas no reemplazan las físicas. |
+| 4 | Elegir proveedor y precio final, implementar validación de pago/cancelación en servidor e idempotencia, sin desbloqueos basados en la pantalla de éxito. | Pendiente. El importe de administración es configuración, no pasarela de pago. |
+| 5 | Publicar soporte y condiciones, ejecutar piloto consentido y resolver incidencias antes de ampliar ventas. | Pendiente. |
+
+Las actualizaciones de GitHub Pages y AI Studio se verifican por separado. No prometer “funcionamiento total” por una batería de pruebas: hay servicios externos, permisos físicos y decisiones del titular que deben comprobarse.
 
 ## Seguimiento después del piloto
 
