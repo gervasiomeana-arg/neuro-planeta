@@ -51,6 +51,12 @@ export function validateProfiles(value: unknown): asserts value is Array<Record<
         if (!record(result) || !['sessions', 'highestLevel', 'independentCorrect', 'attempts'].every(key => Number.isSafeInteger(result[key]) && Number(result[key]) >= 0) || Number(result.sessions) < 1 || ![1, 2, 3].includes(Number(result.highestLevel)) || typeof result.lastPlayed !== 'string' || !Number.isFinite(Date.parse(result.lastPlayed)) || Number(result.independentCorrect) > Number(result.sessions) * 5 || Number(result.attempts) < Number(result.independentCorrect)) fail();
       }
     }
+    if (p.activitySessions !== undefined) {
+      if (!Array.isArray(p.activitySessions) || p.activitySessions.length > 200) fail();
+      for (const entry of p.activitySessions as unknown[]) {
+        if (!record(entry) || !['id', 'gameId', 'variant', 'startedAt', 'endedAt'].every(key => typeof entry[key] === 'string' && String(entry[key]).length <= 100) || !['completed', 'paused'].includes(String(entry.status)) || entry.timingVersion !== 1 || ![1, 2, 3].includes(Number(entry.level)) || !['roundsCompleted', 'independentCorrect', 'attempts'].every(key => Number.isSafeInteger(entry[key]) && Number(entry[key]) >= 0) || Number(entry.roundsCompleted) > 5 || Number(entry.independentCorrect) > Number(entry.roundsCompleted) || typeof entry.activeSeconds !== 'number' || !Number.isFinite(entry.activeSeconds) || entry.activeSeconds < 0 || !Array.isArray(entry.firstResponseSeconds) || entry.firstResponseSeconds.length > 5 || !entry.firstResponseSeconds.every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0) || !Number.isFinite(Date.parse(String(entry.startedAt))) || !Number.isFinite(Date.parse(String(entry.endedAt)))) fail();
+      }
+    }
     if (p.therapeuticObjective !== undefined && typeof p.therapeuticObjective !== 'string') fail();
     if (p.routineDay !== undefined && typeof p.routineDay !== 'string') fail();
     if (p.routineSupportLevel !== undefined && !['detallado', 'clave', 'autonomo'].includes(String(p.routineSupportLevel))) fail();

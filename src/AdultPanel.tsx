@@ -9,7 +9,7 @@ const sections: {id:AdultSection;label:string;description:string;icon:LucideIcon
  {id:'historias',label:'Historias',description:'Anticipar y acompañar',icon:BookOpen},
  {id:'pictogramas',label:'Pictogramas',description:'Imágenes y voces',icon:Images},
  {id:'sonido',label:'Audio Sensorial',description:'Volumen y preferencias',icon:Volume2},
- {id:'reportes',label:'Resumen',description:'Registros del dispositivo',icon:ChartNoAxesCombined},
+ {id:'reportes',label:'Informe de uso',description:'Compartir con un profesional',icon:ChartNoAxesCombined},
 ];
 export function AdultPanelNavigation({value,onChange}:{value:AdultSection;onChange:(section:AdultSection)=>void}){
  return <div className="np-adult-navigation">

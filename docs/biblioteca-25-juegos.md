@@ -22,7 +22,7 @@ Las expresiones son dibujos convencionales, no un método para deducir emociones
 
 ## Registro y protección
 
-`learningProgress` es un campo opcional del perfil. Guarda por juego nuevo: sesiones terminadas, nivel máximo practicado, última fecha, respuestas sin ayuda e intentos acumulados. Se actualiza solo al terminar los cinco desafíos. Las sesiones pausadas se descartan; los dos juegos originales mantienen sus registros anteriores. No se guardan respuestas crudas, no se envía progreso infantil a servidores ni se usa un almacenamiento compartido adicional.
+`learningProgress` es un campo opcional del perfil. Guarda por juego nuevo: sesiones terminadas, nivel máximo practicado, última fecha, respuestas sin ayuda e intentos acumulados. Se actualiza solo al terminar los cinco desafíos. Actualización: los 25 juegos agregan un registro descriptivo de sesiones completas o pausadas por controles instrumentados, con máximo 200 por perfil; los avances de nivel se agregan solo al completar. Ver informe-registro-uso.md. Se registran tiempos a la primera selección por desafío, no el contenido de cada respuesta. No se envía progreso infantil a servidores ni se usa un almacenamiento compartido adicional.
 
 El registro sigue el guardado cifrado por cuenta y se incluye en respaldos. La validación del respaldo admite y controla el nuevo campo. «Sin ayuda» significa primer intento sin abrir pistas ni revisar la secuencia; en memoria, sin pares fallidos ni mostrar todas. Es un indicador de interacción con la app, no de dominio de una habilidad ni de evolución clínica. No se agregan estrellas para evitar cambiar sin revisión la economía de recompensas existente.
 

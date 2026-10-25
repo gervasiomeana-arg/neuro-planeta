@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
 import type { LearningProgress } from './learning/curriculum';
+import type { LearningResult } from './learning/LearningHub';
+import { useSessionTracker, type ActivitySession } from './learning/useSessionTracker';
 import { BUILTIN_PICTOGRAMS, defaultSymbol } from './pictograms/catalog';
 import { useAdultPrivacyGuard } from './security/useAdultPrivacyGuard';
 import { useVoiceRecording } from './audio/useVoiceRecording';
@@ -49,6 +51,7 @@ import {
 
 const AdultAccountPanel = lazy(() => import('./auth/AdultAccountPanel'));
 const LearningHub = lazy(() => import('./learning/LearningHub'));
+const ParentActivityReport = lazy(() => import('./reports/ParentActivityReport'));
 
 // Theme customization based on age groups
 interface AgeGroup {
@@ -60,7 +63,7 @@ interface AgeGroup {
   characterMsg: string;
 }
 
-// Patient interface representing clinic patients / school profiles (NeuroPlaneta Enterprise)
+// Local child/family profile for accompaniment and activities; no clinical record.
 type StoryPage = { emoji: string; text: string };
 type SocialStory = { id: string; title: string; pages: StoryPage[] };
 
@@ -132,6 +135,7 @@ interface Patient {
   redeemedRewards?: RedeemedReward[];
   routineSupportLevel?: 'detallado' | 'clave' | 'autonomo';
   learningProgress?: LearningProgress;
+  activitySessions?: ActivitySession[];
 }
 
 const DEFAULT_REWARDS_STORE: RewardItem[] = [
@@ -913,6 +917,23 @@ export default function ImportedApp() {
 
   
   // Attention Game State
+  const legacyTracker = useSessionTracker();
+  const legacyCounts = useRef({ attempts: 0, independent: 0, rounds: 0, helped: false });
+  const recordLearningResult = (result: LearningResult, variant = `nivel:${result.level}`) => {
+    if (!activePatientId || loadedPatientId !== activePatientId) return;
+    const profileId = activePatientId;
+    const entry: ActivitySession = { ...result.measurement, id: crypto.randomUUID(), gameId: result.gameId, level: result.level, variant, status: result.status, roundsCompleted: result.roundsCompleted, independentCorrect: result.independentCorrect, attempts: result.attempts };
+    setPatients(previous => previous.map(profile => {
+      if (profile.id !== profileId) return profile;
+      const old = profile.learningProgress?.[result.gameId];
+      return { ...profile, activitySessions: [...(profile.activitySessions || []), entry].slice(-200), ...(result.status === 'completed' ? { learningProgress: { ...profile.learningProgress, [result.gameId]: { sessions: (old?.sessions || 0) + 1, highestLevel: Math.max(old?.highestLevel || 0, result.level), lastPlayed: result.measurement.endedAt, independentCorrect: (old?.independentCorrect || 0) + result.independentCorrect, attempts: (old?.attempts || 0) + result.attempts } } } : {}) };
+    }));
+  };
+  const finishLegacySession = (status: 'completed' | 'paused') => {
+    const measurement = legacyTracker.finish();
+    if (!measurement || !attentionActivity) return;
+    recordLearningResult({ gameId: attentionActivity, level: 1, status, roundsCompleted: legacyCounts.current.rounds, independentCorrect: legacyCounts.current.independent, attempts: legacyCounts.current.attempts, measurement }, attentionActivity === 'numbers' ? `edad:${selectedAge}` : 'parejas-original-v1');
+  };
   const [attentionGameState, setAttentionGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
   const [attentionActivity, setAttentionActivity] = useState<'numbers' | 'matching' | null>(null);
   const [matchingRound, setMatchingRound] = useState(0);
@@ -950,6 +971,7 @@ export default function ImportedApp() {
     setActiveRoutineTab(currentRoutineTab());
     setShowAgeSelector(false);
     setAttentionGameState('idle');
+    legacyTracker.discard();
     setAttentionActivity(null);
     setMatchingRound(0);
     setMatchingHint(false);
@@ -1556,6 +1578,7 @@ export default function ImportedApp() {
 
   // Start Attention Game
   const startAttentionGame = () => {
+    legacyTracker.start(); legacyCounts.current = { attempts: 0, independent: 0, rounds: 0, helped: false };
     playClickSound();
     attentionChoiceLockedRef.current = false;
     setAttentionActivity('numbers');
@@ -1569,6 +1592,7 @@ export default function ImportedApp() {
   };
 
   const startMatchingGame = () => {
+    legacyTracker.start(); legacyCounts.current = { attempts: 0, independent: 0, rounds: 0, helped: false };
     matchingChoiceLockedRef.current = false;
     setAttentionActivity('matching');
     setMatchingRound(0);
@@ -1578,26 +1602,33 @@ export default function ImportedApp() {
 
   const handleMatchingChoice = (choice: string) => {
     if (attentionGameState !== 'playing' || attentionActivity !== 'matching' || matchingChoiceLockedRef.current) return;
+    legacyTracker.firstResponse(); legacyCounts.current.attempts++;
     if (choice !== MATCH_ROUNDS[matchingRound].answer) {
+      legacyCounts.current.helped = true;
       setMatchingHint(true);
       return;
     }
     matchingChoiceLockedRef.current = true;
+    legacyCounts.current.rounds++; if (!legacyCounts.current.helped) legacyCounts.current.independent++; legacyCounts.current.helped = false;
     setMatchingHint(false);
     playSuccessSound();
     if (matchingRound === MATCH_ROUNDS.length - 1) {
+      finishLegacySession('completed');
       setAttentionGameState('gameover');
       if (!unlockedAchievements.includes('Parejas Visuales')) awardStars(5, 'Parejas Visuales');
     } else {
       setMatchingRound(round => round + 1);
+      legacyTracker.beginRound();
     }
   };
 
   // Click cell in Attention game
   const handleCellClick = (num: number) => {
     if (attentionGameState !== 'playing' || attentionChoiceLockedRef.current) return;
+    legacyTracker.firstResponse(); legacyCounts.current.attempts++;
     
     if (num === targetNumber) {
+      legacyCounts.current.rounds++; if (!legacyCounts.current.helped) legacyCounts.current.independent++; legacyCounts.current.helped = false;
       attentionChoiceLockedRef.current = true;
       playSuccessSound();
       const nextScore = attentionScoreRef.current + 1;
@@ -1614,14 +1645,17 @@ export default function ImportedApp() {
       }
 
       if (nextScore >= 5) {
+        finishLegacySession('completed');
         setAttentionGameState('gameover');
         return;
       }
 
       const nextRound = createNumberRound(selectedAge);
+      legacyTracker.beginRound();
       setTargetNumber(nextRound.target);
       setAttentionGrid(nextRound.grid);
     } else {
+      legacyCounts.current.helped = true;
       setAttentionHint(true);
     }
   };
@@ -2831,18 +2865,10 @@ export default function ImportedApp() {
         {/* 2. ATENCION MODULE (Foco) */}
         {activeModule === 'atencion' && (
           <div className="np-module-view np-module-atencion space-y-5 animate-fade-in">
-            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
+            <ActivityHeader title="Aprender y jugar" label="25 juegos · cinco áreas · a tu ritmo" icon={Brain} tone="blue" onBack={() => { if (attentionGameState === 'playing') finishLegacySession('paused'); playClickSound(); setActiveModule(null); }}>{attentionGameState === 'playing' && <span>{attentionActivity === 'matching' ? matchingRound + 1 : attentionScore} de {attentionActivity === 'matching' ? MATCH_ROUNDS.length : 5}</span>}</ActivityHeader>
 
             {attentionGameState === 'idle' && (
-              <Suspense fallback={<p role="status">Preparando los juegos…</p>}><LearningHub key={activePatientId || 'none'} progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={result => {
-                if (!activePatientId || loadedPatientId !== activePatientId) return;
-                const profileId = activePatientId;
-                setPatients(previous => previous.map(profile => {
-                  if (profile.id !== profileId) return profile;
-                  const old = profile.learningProgress?.[result.gameId];
-                  return { ...profile, learningProgress: { ...profile.learningProgress, [result.gameId]: { sessions: (old?.sessions || 0) + 1, highestLevel: Math.max(old?.highestLevel || 0, result.level), lastPlayed: new Date().toISOString(), independentCorrect: (old?.independentCorrect || 0) + result.independentCorrect, attempts: (old?.attempts || 0) + result.attempts } } };
-                }));
-              }} /></Suspense>
+              <Suspense fallback={<p role="status">Preparando los juegos…</p>}><LearningHub key={activePatientId || 'none'} progress={activePatient.learningProgress || {}} audioEnabled={sensoryAudioMode !== 'silent'} volume={audioVolume} onLegacy={id => id === 'numbers' ? startAttentionGame() : startMatchingGame()} onComplete={recordLearningResult} /></Suspense>
             )}
 
             {attentionGameState === 'playing' && attentionActivity === 'numbers' && (
@@ -4887,7 +4913,7 @@ export default function ImportedApp() {
                             </button>
                           </div>
                           <span className="text-[9.5px] text-slate-400 block">
-                            💡 Consejo clínico: acordar costos alcanzables en 2 o 3 días para mantener la motivación intrínseca.
+                            💡 Para acompañar: acuerden premios posibles y flexibles, respetando las preferencias del niño. No es una indicación de tratamiento.
                           </span>
                         </form>
 
@@ -5526,6 +5552,9 @@ export default function ImportedApp() {
                     {/* TAB 3: MEDICAL & CLINICAL PROGRESS REPORTS */}
                     {parentsActiveTab === 'reportes' && (
                       <div className="space-y-3">
+                        <Suspense fallback={<p role="status">Preparando el informe…</p>}><ParentActivityReport key={activePatientId || 'none'} profileName={activePatient.name} sessions={activePatient.activitySessions || []} /></Suspense>
+                        <details><summary className="np-learning-link">Ver otros registros familiares del dispositivo</summary>
+
                         <div className="flex items-center justify-between">
                           <h3 className="font-extrabold text-white text-xs">📋 Resumen de actividades</h3>
                           <button
@@ -5771,6 +5800,7 @@ export default function ImportedApp() {
                             Registro orientativo de uso de la app. Las estrellas, tareas marcadas y partidas no equivalen a un diagnóstico ni a una medición clínica.
                           </div>
                         </div>
+                        </details>
                       </div>
                     )}
 

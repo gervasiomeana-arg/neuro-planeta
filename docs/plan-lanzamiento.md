@@ -38,6 +38,8 @@ Antes de cada publicación: revisar cambios de AI Studio/GitHub, probar candidat
 
 ## Próximas entregas concretas
 
+Informe incorporado en la rama: registro de uso para el profesional, sin análisis ni evaluación, con descarga revisada por el adulto. No se generan diagnósticos, tratamientos ni conclusiones sobre evolución. Ver `informe-registro-uso.md`. Sin pruebas ni publicación todavía.
+
 Ampliación educativa en la rama: biblioteca de 25 juegos totales (2 originales + 23 nuevos), con niveles, apoyos, práctica cotidiana y progreso local cifrado. Ver `biblioteca-25-juegos.md`. Implementada sin pruebas por solicitud del titular; no se marca publicada ni validada.
 
 Actualización de contenido: ver `contenido-uso-comercial.md`. La revisión encontró la restricción comercial de ARASAAC; la rama sustituye su buscador por OpenMoji local. Quedan pendientes pruebas, revisión de comprensión y revisión de imágenes históricas de origen desconocido. Ver `catalogo-openmoji.md` y `comparacion-otsimo-2026-10-25.md`. Las correcciones de texto, atribución e inventario se preparan en la rama `release/content-commercial-review`, sin pruebas ni publicación por instrucción del titular. No se considera cerrado P0-3 por añadir una advertencia.
