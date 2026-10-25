@@ -5284,6 +5284,7 @@ export default function ImportedApp() {
                                   </div>
 
                                   <div className="space-y-1.5 shrink-0">
+                                    <p className="text-[10px] text-slate-400 leading-relaxed">Usá imágenes propias o con permiso de uso. Para compartir fotos o voces de otras personas, necesitás su autorización.</p>
                                     {/* Capture Action */}
                                     <input
                                       id="custom-img-upload-enterprise"
@@ -5370,13 +5371,13 @@ export default function ImportedApp() {
                             <div className="flex items-center gap-1.5 border-b border-slate-900 pb-1.5">
                               <span className="text-sm">🌐</span>
                               <div>
-                                <h4 className="font-extrabold text-white text-[11px] leading-none uppercase tracking-wider">Integración AsTeRICS Grid</h4>
-                                <p className="text-[8.5px] text-slate-500 mt-0.5">Sincroniza tableros de comunicación en formato Open Board (.obf)</p>
+                                <h4 className="font-extrabold text-white text-[11px] leading-none uppercase tracking-wider">Archivos de comunicación OBF</h4>
+                                <p className="text-[8.5px] text-slate-500 mt-0.5">Importación y exportación manual; no hay sincronización automática</p>
                               </div>
                             </div>
 
                             <p className="text-[9.5px] text-slate-400 leading-tight">
-                              Exporta este tablero para usarlo en AsTeRICS Grid o importa un archivo de cuadrícula de comunicación AAC estándar desde tu terapeuta.
+                              Exportá o importá un archivo Open Board (.obf). La compatibilidad depende de los campos admitidos por cada aplicación. NeuroPlaneta no está afiliada a AsTeRICS Grid.
                             </p>
 
                             <div className="grid grid-cols-2 gap-2 pt-1">
@@ -5411,16 +5412,16 @@ export default function ImportedApp() {
                               <div className="flex items-center gap-1.5 border-b border-slate-900 pb-1.5">
                                 <span className="text-sm">🔍</span>
                                 <div>
-                                  <h4 className="font-extrabold text-white text-[11px] leading-none uppercase tracking-wider">Buscador Oficial ARASAAC</h4>
-                                  <p className="text-[8.5px] text-slate-500 mt-0.5">Base de datos mundial de pictogramas para autismo</p>
+                                  <h4 className="font-extrabold text-white text-[11px] leading-none uppercase tracking-wider">Pictogramas de ARASAAC</h4>
+                                  <p className="text-[8.5px] text-slate-500 mt-0.5">Recurso externo de comunicación visual</p>
                                 </div>
                               </div>
 
                               <p className="text-[9.5px] text-slate-400 leading-tight">
-                                Busca cualquier pictograma oficial en los servidores de ARASAAC y asígnalo instantáneamente al pictograma seleccionado arriba.
+                                Buscá pictogramas en ARASAAC y elegí uno para tu tablero. Requiere internet. NeuroPlaneta no es una aplicación oficial de ARASAAC.
                               </p>
                               <p className="text-[9.5px] text-slate-400 leading-tight">
-                                Pictogramas de <a className="text-blue-300 underline" href="https://arasaac.org" target="_blank" rel="noopener noreferrer">ARASAAC</a>, Gobierno de Aragón. La búsqueda requiere internet. Antes de un uso comercial, revisa sus <a className="text-blue-300 underline" href="https://aulaabierta.arasaac.org/en/terms-of-use" target="_blank" rel="noopener noreferrer">condiciones de uso y atribución</a>.
+                                Pictogramas de Sergio Palao para <a className="text-blue-300 underline" href="https://arasaac.org" target="_blank" rel="noopener noreferrer">ARASAAC</a>, propiedad del Gobierno de Aragón, bajo licencia CC BY-NC-SA. Esta licencia no autoriza el uso comercial. Revisá las <a className="text-blue-300 underline" href="https://arasaac.org/terms-of-use" target="_blank" rel="noopener noreferrer">condiciones de uso</a> antes de distribuir tableros o materiales.
                               </p>
 
                               <div className="flex gap-1.5 pt-1.5">

@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-25",
+  "source": "package-lock.json; metadata only, not a legal clearance or complete bundle inventory",
+  "dependencies": [
+    {
+      "package": "@google/genai",
+      "version": "2.30.0",
+      "declaredLicense": "Apache-2.0",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "@tailwindcss/vite",
+      "version": "4.3.3",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "@vitejs/plugin-react",
+      "version": "6.1.2",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "dotenv",
+      "version": "17.4.2",
+      "declaredLicense": "BSD-2-Clause",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "express",
+      "version": "4.22.3",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "firebase",
+      "version": "13.1.0",
+      "declaredLicense": "Apache-2.0",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "lucide-react",
+      "version": "0.546.0",
+      "declaredLicense": "ISC",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "motion",
+      "version": "12.43.0",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "react",
+      "version": "19.3.1",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "react-dom",
+      "version": "19.3.1",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    },
+    {
+      "package": "vite",
+      "version": "8.3.5",
+      "declaredLicense": "MIT",
+      "scope": "direct dependency; distribution and transitive notices still require review"
+    }
+  ]
+}
