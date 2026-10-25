@@ -133,16 +133,17 @@ test('client cannot self-assign administrator privileges or enumerate administra
   await assertFails(setDoc(doc(unverified, 'accessEvents/adult-a_1700000000'), accessEvent()));
 });
 
-test('only the provisioned administrator can read or change a valid monthly ARS price', async () => {
+test('only the provisioned administrator can read or change a valid monthly USD or legacy ARS price', async () => {
   const admin = accessAuth('administrator'), ref = doc(admin, 'billingConfig/monthly');
-  const price = { amountCents: 1500050, currency: 'ARS', period: 'month', updatedBy: 'administrator', updatedAt: serverTimestamp() };
+  const price = { amountCents: 2000, currency: 'USD', period: 'month', updatedBy: 'administrator', updatedAt: serverTimestamp() };
   await assertSucceeds(setDoc(ref, price));
   await assertSucceeds(getDoc(ref));
+  await assertSucceeds(setDoc(ref, { ...price, amountCents: 1500050, currency: 'ARS' }));
   for (const client of [accessAuth(), db(null), accessAuth('administrator', false)]) {
     await assertFails(getDoc(doc(client, 'billingConfig/monthly')));
     await assertFails(setDoc(doc(client, 'billingConfig/monthly'), price));
   }
-  for (const invalid of [{ amountCents: -1 }, { amountCents: 1.5 }, { amountCents: 1000000000 }, { currency: 'USD' }, { period: 'year' }, { updatedBy: 'other' }, { updatedAt: Timestamp.fromMillis(1) }, { paymentToken: 'forbidden' }]) {
+  for (const invalid of [{ amountCents: -1 }, { amountCents: 1.5 }, { amountCents: 1000000000 }, { currency: 'EUR' }, { period: 'year' }, { updatedBy: 'other' }, { updatedAt: Timestamp.fromMillis(1) }, { paymentToken: 'forbidden' }]) {
     await assertFails(setDoc(ref, { ...price, ...invalid }));
   }
   await assertFails(getDocs(query(collection(admin, 'billingConfig'), limit(10))));

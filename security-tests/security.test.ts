@@ -1,3 +1,4 @@
+import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { request, type Server } from 'node:http';
@@ -139,5 +140,18 @@ test('concurrency limit refuses a third provider request and recovers after comp
     releases.forEach(release => release());
     const responses = await Promise.all(pending);
     assert.deepEqual(responses.map(response => response.status), [200, 200]);
+  });
+});
+
+test('malformed trailing bytes after gzip are rejected and the server keeps responding', async () => {
+  let calls = 0;
+  await withServer(false, async () => { calls++; return example; }, async url => {
+    const body = Buffer.concat([gzipSync(JSON.stringify(valid)), Buffer.from('invalid trailing gzip bytes')]);
+    const response = await fetch(`${url}/api/social-stories/draft`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' }, body });
+    assert.equal(response.status, 400);
+    assert.doesNotMatch(await response.text(), /stack|zlib|Error:/);
+    assert.equal(calls, 0);
+    assert.equal((await post(url)).status, 200);
+    assert.equal(calls, 1);
   });
 });

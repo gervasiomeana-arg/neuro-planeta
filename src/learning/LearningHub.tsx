@@ -1,5 +1,5 @@
 import { GameText, GameArtworkCredit } from './GameText';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createLearningQuestion, LEARNING_GAMES, type Game, type GameId, type LearningLevel, type LearningProgress, type Question } from './curriculum';
 import { useSessionTracker, type SessionMeasurement } from './useSessionTracker';
 
@@ -8,11 +8,13 @@ type ExitRef = { current: (() => void) | null };
 type Props = { progress: LearningProgress; onLegacy: (id: 'numbers' | 'matching') => void; onComplete: (result: LearningResult) => void; audioEnabled: boolean; volume: number; exitRef: ExitRef };
 const AREAS = ['Todas', 'Números', 'Atención', 'Memoria', 'Lenguaje', 'Vida diaria'];
 const LEVELS = ['Explorar', 'Practicar', 'Desafío'];
+const scrollActivityToTop = () => document.getElementById('np-activity-content')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 
 export default function LearningHub({ progress, onLegacy, onComplete, audioEnabled, volume, exitRef }: Props) {
   const [area, setArea] = useState('Todas'), [level, setLevel] = useState<LearningLevel>(1);
   const [selected, setSelected] = useState<Game | null>(null), [session, setSession] = useState(0);
   const [showGuide, setShowGuide] = useState(false);
+  useLayoutEffect(scrollActivityToTop, [selected]);
   if (selected) return <LearningSession key={`${selected.id}-${level}-${session}`} game={selected} level={level} audioEnabled={audioEnabled} volume={volume} exitRef={exitRef} onExit={() => setSelected(null)} onAgain={() => setSession(n => n + 1)} onComplete={onComplete} />;
   return <section className="np-learning" aria-label="Biblioteca de 25 juegos">
     <header className="np-learning-hero"><span aria-hidden="true"><GameText text="🌱" /></span><div><p className="np-learning-eyebrow">Aprender, descubrir y volver a intentar</p><h3>25 juegos para explorar</h3><p>Elegí una actividad. Sin reloj, sin perder vidas y con ayuda cuando la necesites.</p></div></header>
@@ -62,6 +64,7 @@ function LearningSession({ game, level, onExit, onAgain, onComplete, audioEnable
   const speech = useRef<SpeechSynthesisUtterance | null>(null);
   const [speechMessage, setSpeechMessage] = useState('');
   const tracker = useSessionTracker();
+  useLayoutEffect(scrollActivityToTop, [round, phase === 'done']);
   useEffect(() => { tracker.start(); return () => tracker.discard(); }, []);
   function record(status: 'completed' | 'paused') {
     if (reported.current) return;

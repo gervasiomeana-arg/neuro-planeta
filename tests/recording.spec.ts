@@ -85,7 +85,7 @@ test('recording stops automatically at thirty seconds', async ({ page }) => {
 test('changing pictogram cancels the recording rather than attaching it to another choice', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: /Grabar Voz Familiar/ }).click();
-  await page.locator('#adult-panel-dialog').getByRole('button', { name: /Tengo Sed/ }).click();
+  await page.locator('#adult-panel-dialog').getByRole('button', { name: /^Tengo Sed/ }).click();
   await expect.poll(() => page.evaluate(() => (window as any).voiceQA.stops)).toBeGreaterThan(0);
   expect(await saved(page)).toEqual({});
 });

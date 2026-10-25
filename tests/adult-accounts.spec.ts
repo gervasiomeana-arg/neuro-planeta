@@ -202,13 +202,13 @@ test('verified adult explicitly links only a minimal profile and retries without
   await admin.getByRole('tab', { name: 'Suscripción mensual', exact: true }).click();
   const pricing = admin.getByRole('region', { name: 'Suscripción mensual', exact: true });
   await pricing.getByRole('button', { name: 'Consultar valor vigente', exact: true }).click();
-  await expect(pricing.getByLabel('Importe mensual en pesos', { exact: true })).toBeEnabled();
-  await pricing.getByLabel('Importe mensual en pesos', { exact: true }).fill('15000,50');
-  await pricing.getByRole('button', { name: 'Guardar valor mensual', exact: true }).click();
+  await expect(pricing.getByLabel('Importe mensual en dólares (USD)', { exact: true })).toHaveValue('20.00');
+  await expect(pricing.getByLabel('Importe mensual en dólares (USD)', { exact: true })).toHaveAttribute('readonly', '');
+  await pricing.getByRole('button', { name: 'Guardar USD 20 mensuales', exact: true }).click();
   await expect(pricing.getByRole('status')).toContainText('Valor mensual guardado');
   const monthly = writes.find(write => write.name.endsWith('/billingConfig/monthly'));
-  expect(Number(monthly.fields.amountCents.integerValue)).toBe(1500050);
-  expect(monthly.fields.currency.stringValue).toBe('ARS');
+  expect(Number(monthly.fields.amountCents.integerValue)).toBe(2000);
+  expect(monthly.fields.currency.stringValue).toBe('USD');
   await admin.getByRole('button', { name: 'Volver a la app', exact: true }).click();
 
   // Delay a new transaction response until after logout: it must not commit,

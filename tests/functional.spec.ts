@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 const profileName = 'Control ficticio';
 const modules = [
-  ['Emociones', 'Emociones y Regulación'], ['Atención', 'Atención Cósmica'],
+  ['Emociones', 'Emociones y Regulación'], ['Aprender y jugar', 'Aprender y jugar'],
   ['Zona Calma', 'Zona Calma'], ['Sensorial', 'Regulación Sensorial'],
   ['Comunicar', 'Tablero de Comunicación (SACS)'], ['Social', 'Historias Sociales y Situaciones'],
   ['Rutinas', 'Mis Rutinas y Estructura'],
@@ -64,7 +64,7 @@ test('los siete módulos abren, vuelven al inicio y no arrojan errores de ejecuc
 });
 
 test('números: error recuperable, cinco aciertos y reinicio', async ({ page }) => {
-  await enter(page, 'Atención');
+  await enter(page, 'Aprender y jugar');
   await page.getByRole('button', { name: /Buscar números/ }).click();
   for (let round = 0; round < 5; round++) {
     const target = (await page.locator('main .text-4xl').first().innerText()).trim();
@@ -82,7 +82,7 @@ test('números: error recuperable, cinco aciertos y reinicio', async ({ page }) 
 });
 
 test('parejas: cuatro rondas, error recuperable y final', async ({ page }) => {
-  await enter(page, 'Atención');
+  await enter(page, 'Aprender y jugar');
   await page.getByRole('button', { name: /Parejas de imágenes/ }).click();
   await page.getByRole('button', { name: 'Elegir gato', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Probá');
@@ -221,7 +221,7 @@ test('caritas y diario permiten guardar una nota ficticia', async ({ page }) => 
 
 test('panel adulto: siete secciones, historia revisada, guardado y cinco pasos para el niño', async ({ page }) => {
   const dialog = await adults(page);
-  for (const name of ['Perfiles', 'Rutinas', 'Premios Reales', 'Pictogramas', 'Audio Sensorial', 'Resumen', 'Historias']) {
+  for (const name of ['Perfiles', 'Rutinas', 'Premios Reales', 'Pictogramas', 'Audio Sensorial', 'Informe de uso', 'Historias']) {
     await dialog.getByRole('button', { name: new RegExp(name) }).first().click();
     await expect(dialog).toBeVisible();
   }
@@ -246,7 +246,8 @@ test('resumen registra intensidad sin atribuir una causa que no se eligió', asy
   await page.getByRole('button', { name: /Nvl 2 Bastante/ }).click();
   await page.getByRole('button', { name: /Registrar en mi Diario Emocional/ }).click();
   const dialog = await adults(page);
-  await dialog.getByRole('button', { name: /Resumen/ }).click();
+  await dialog.getByRole('button', { name: /Informe de uso/ }).click();
+  await dialog.getByText('Ver otros registros familiares del dispositivo', { exact: true }).click();
   await expect(dialog.getByText(/nadie señaló una situación previa/)).toBeVisible();
   await expect(dialog.getByText('Nivel 2 (Medio)', { exact: true })).toBeVisible();
 });

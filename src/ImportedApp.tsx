@@ -16,6 +16,7 @@ import BackupPanel from './data/BackupPanel';
 import { useProfileStore } from './data/useProfileStore';
 import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource, pictogramImage } from './security/imports';
 import { 
+  Home,
   Heart, 
   Brain, 
   Wind, 
@@ -939,6 +940,7 @@ export default function ImportedApp() {
   };
   const [attentionGameState, setAttentionGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
   const [attentionActivity, setAttentionActivity] = useState<'numbers' | 'matching' | null>(null);
+  useEffect(() => { activityContentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' }); }, [attentionGameState, attentionActivity]);
   const [matchingRound, setMatchingRound] = useState(0);
   const [matchingHint, setMatchingHint] = useState(false);
   const matchingChoiceLockedRef = useRef(false);
@@ -5844,7 +5846,7 @@ export default function ImportedApp() {
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02] border border-transparent'
             }`}
           >
-            <span className="text-lg">🏠</span>
+            <Home className="w-5 h-5" aria-hidden="true" />
             <span className="text-[10px] tracking-wide font-extrabold uppercase">Inicio</span>
           </button>
 
@@ -5856,7 +5858,7 @@ export default function ImportedApp() {
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02] border border-transparent'
             }`}
           >
-            <span className="text-lg">🏆</span>
+            <Trophy className="w-5 h-5" aria-hidden="true" />
             <span className="text-[10px] tracking-wide font-extrabold uppercase">Logros</span>
           </button>
           <button

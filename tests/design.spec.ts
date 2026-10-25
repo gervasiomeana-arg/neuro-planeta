@@ -67,7 +67,7 @@ test('navegación de escritorio usa las actividades reales y conserva el perfil'
   await page.screenshot({path:testInfo.outputPath('redisenio-escritorio.png'),fullPage:true});
 });
 
-const modules = [['Emociones','Emociones y Regulación'],['Atención','Atención Cósmica'],['Zona Calma','Zona Calma'],['Sensorial','Regulación Sensorial'],['Comunicar','Tablero de Comunicación (SACS)'],['Social','Historias Sociales y Situaciones'],['Rutinas','Mis Rutinas y Estructura']] as const;
+const modules = [['Emociones','Emociones y Regulación'],['Aprender y jugar','Aprender y jugar'],['Zona Calma','Zona Calma'],['Sensorial','Regulación Sensorial'],['Comunicar','Tablero de Comunicación (SACS)'],['Social','Historias Sociales y Situaciones'],['Rutinas','Mis Rutinas y Estructura']] as const;
 
 for (const width of [360,1280]) {
   test(`actividades legibles y sin desbordes a ${width}px`, async ({page},info) => {
@@ -110,7 +110,7 @@ for(const width of [360,1280]) {
     expect(challenge).not.toBeNull();
     await dialog.getByRole('spinbutton').fill(String(Number(challenge![1])*Number(challenge![2])));
     await dialog.getByRole('button',{name:'Abrir configuración',exact:true}).click();
-    const sections=[['pacientes','Perfiles'],['rutinas','Rutinas'],['recompensas','Premios Reales'],['historias','Historias'],['pictogramas','Pictogramas'],['sonido','Audio Sensorial'],['reportes','Resumen']];
+    const sections=[['pacientes','Perfiles'],['rutinas','Rutinas'],['recompensas','Premios Reales'],['historias','Historias'],['pictogramas','Pictogramas'],['sonido','Audio Sensorial'],['reportes','Informe de uso']];
     const accessibility:Record<string,unknown>={};
     for(const [id,label] of sections){
       if(width<900)await dialog.getByLabel('Sección del panel',{exact:true}).selectOption(id);
