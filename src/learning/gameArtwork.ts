@@ -1,5 +1,6 @@
 // OpenMoji, unchanged artwork. See public/pictograms/openmoji/README.md.
-export const GAME_ARTWORK: Record<string, { code: string; label: string }> = {
+export const GAME_ARTWORK: Record<string, { code: string; label: string; collection?: 'neuroplaneta' }> = {
+  "[[toalla]]": { "code": "towel", "label": "toalla", "collection": "neuroplaneta" },
   "☀️": {
     "code": "2600",
     "label": "sol"

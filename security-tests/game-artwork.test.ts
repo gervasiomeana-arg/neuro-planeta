@@ -24,8 +24,8 @@ test('all 345 new-game questions and original matching images have bundled artwo
   for (const text of texts) for (const [symbol] of text.matchAll(emoji)) {
     assert.ok(GAME_ARTWORK[symbol], `Missing artwork: ${symbol}`);
   }
-  for (const { code, label } of Object.values(GAME_ARTWORK)) {
-    const svg = readFileSync(new URL(`../public/pictograms/openmoji/${code}.svg`, import.meta.url), 'utf8');
+  for (const { code, label, collection } of Object.values(GAME_ARTWORK)) {
+    const svg = readFileSync(new URL(`../public/pictograms/${collection || 'openmoji'}/${code}.svg`, import.meta.url), 'utf8');
     assert.ok(label);
     assert.match(svg, /<svg[\s>]/);
     assert.match(svg, /viewBox="0 0 72 72"/);
@@ -41,4 +41,14 @@ test('game text renders repeated local images and preserves numbers, ordering an
   assert.match(html, /1 → 2/);
   assert.ok(html.includes('\nB:'));
   assert.doesNotMatch(html, /🍎|🪮/u);
+});
+
+test('drying hands shows a towel rather than the laundry basket', () => {
+  const q = createLearningQuestion('hygiene', 1, 2);
+  assert.equal(q.answer, 'toalla');
+  assert.equal(q.visual, '[[toalla]]');
+  const html = renderToStaticMarkup(createElement(GameText, { text: q.visual! }));
+  assert.match(html, /aria-label="toalla"/);
+  assert.match(html, /pictograms\/neuroplaneta\/towel.svg/);
+  assert.doesNotMatch(html, /1F9FA|\[\[toalla\]\]/);
 });

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" fill="none">
+  <title>Toalla colgada</title>
+  <path d="M10 16h52" stroke="#45413c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M24 16h28v39a4 4 0 0 1-4 4H24V16Z" fill="#92d3d2" stroke="#45413c" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M22 13h19a4 4 0 0 1 4 4v44H18V17a4 4 0 0 1 4-4Z" fill="#b9e5e4" stroke="#45413c" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M19 51h25v5H19z" fill="#4f9fa6"/>
+  <path d="M24 24v20m7-20v20m7-20v20" stroke="#80c4c7" stroke-width="2" stroke-linecap="round"/>
+  <path d="M19 61h25" stroke="#45413c" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

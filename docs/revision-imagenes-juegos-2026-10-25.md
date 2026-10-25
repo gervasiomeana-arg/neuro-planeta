@@ -18,3 +18,13 @@ Validación local:
 - Comprobación visual en navegador y app publicada: pendiente. La descarga del navegador de Playwright devolvió un archivo vacío/inválido en este entorno. No se presenta como prueba visual superada.
 
 Se guarda el código con [skip ci] para evitar repetir ejecuciones automáticas y despliegues mientras se sincroniza desde AI Studio. No se modifican workflows ni la configuración de publicación.
+
+## Corrección tras prueba del usuario
+
+La captura de «Me cuido cada día», desafío 3 de nivel 1, mostraba una canasta de ropa para «secar las manos», aunque la respuesta era «toalla». La imagen estaba disponible, pero la correspondencia semántica era incorrecta. Se sustituyó solamente esa referencia por una ilustración vectorial original de una toalla colgada, incluida localmente. La canasta sigue disponible para sus usos propios. Se verificó visualmente el SVG renderizado y se añadió una prueba de esta correspondencia.
+
+El informe HTML adjunto contiene 7 sesiones completas, 34 desafíos, 35 intentos y 125,3 segundos activos (2,1 minutos redondeados). Las columnas son coherentes. No incluye análisis clínicos, evaluaciones, diagnósticos ni tratamientos. No se modificó el archivo histórico adjunto ni los datos originales.
+
+La captura muestra las 16:11 y el informe horas de las 04 h. No se puede concluir la causa solo con estos archivos. Se fijó explícitamente el formato de 24 horas en las fechas de las filas y de generación, sin modificar las fechas almacenadas ni desplazar horas por suposición. Si la diferencia persiste en una nueva exportación, deberá comprobarse el reloj del dispositivo y las marcas originales.
+
+Compilación y TypeScript correctos. 50 pruebas aprobadas. La nueva corrección requiere sincronización/publicación en AI Studio; no se dispara despliegue automático ([skip ci]).

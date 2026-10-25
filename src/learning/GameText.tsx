@@ -9,7 +9,7 @@ function GameSymbol({ symbol }: { symbol: string }) {
   const [failed, setFailed] = useState(false);
   const artwork = GAME_ARTWORK[symbol];
   return <span className="np-game-symbol" role="img" aria-label={artwork.label} data-failed={failed || undefined}>
-    {failed ? artwork.label : <img src={`${(import.meta.env?.BASE_URL || '/')}pictograms/openmoji/${artwork.code}.svg`} alt="" draggable={false} onError={() => setFailed(true)} />}
+    {failed ? artwork.label : <img src={`${(import.meta.env?.BASE_URL || '/')}pictograms/${artwork.collection || 'openmoji'}/${artwork.code}.svg`} alt="" draggable={false} onError={() => setFailed(true)} />}
   </span>;
 }
 
@@ -21,5 +21,5 @@ export function GameText({ text }: { text: string }) {
 }
 
 export function GameArtworkCredit() {
-  return <p className="np-learning-small">Ilustraciones de <a href="https://openmoji.org/" target="_blank" rel="noopener noreferrer">OpenMoji</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>. <a href={`${(import.meta.env?.BASE_URL || '/')}pictograms/openmoji/README.md`} target="_blank" rel="noopener noreferrer">Créditos y origen</a></p>;
+  return <p className="np-learning-small">Ilustraciones de <a href="https://openmoji.org/" target="_blank" rel="noopener noreferrer">OpenMoji</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>. <a href={`${(import.meta.env?.BASE_URL || '/')}pictograms/openmoji/README.md`} target="_blank" rel="noopener noreferrer">Créditos y origen</a>. Toalla: ilustración de NeuroPlaneta.</p>;
 }
