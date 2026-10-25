@@ -23,11 +23,11 @@ Revisión de código y fuentes primarias: 25 de octubre de 2026. Rama sin prueba
 - Recordatorio sobre permiso para imágenes y voces de terceros.
 - Aviso Lucide/Feather e inventario de licencias directas registrados.
 
-**No se desactivó ARASAAC ni se borró contenido existente.** Esta rama no habilita su uso comercial. La decisión de sustitución/autorización debe resolverse antes de vender o redistribuir la versión que lo incluya. Una imagen incorporada en base64 puede perder su procedencia: no puede declararse libre por su formato ni borrarse automáticamente sin revisión del titular.
+**Actualización posterior:** la integración de búsqueda ARASAAC se sustituye por 24 símbolos locales OpenMoji; ver `catalogo-openmoji.md`. No se borró contenido existente ni se autoriza el uso comercial de imágenes ARASAAC conservadas en respaldos antiguos. La decisión de sustitución/autorización debe resolverse antes de vender o redistribuir la versión que lo incluya. Una imagen incorporada en base64 puede perder su procedencia: no puede declararse libre por su formato ni borrarse automáticamente sin revisión del titular.
 
 ## Siguiente modificación propuesta
 
-Preparar un catálogo propio o con permiso comercial documentado que cubra los pictogramas usados; reemplazar la búsqueda externa en la edición comercial y ofrecer una sustitución voluntaria de imágenes antiguas, con respaldo y revisión. Conservar originales y acceso a recuperación. No presentar un icono de interfaz como equivalente validado a un sistema de comunicación aumentativa.
+El catálogo local de OpenMoji y la sustitución de la búsqueda ya están implementados en esta rama, pendientes de pruebas. Revisar la comprensión de las imágenes y cualquier contenido histórico antes de distribuirlo. Conservar originales y acceso a recuperación. No presentar un icono de interfaz como equivalente validado a un sistema de comunicación aumentativa.
 
 No se ejecutaron tests, compilación, lint ni comprobaciones de navegador en esta entrega. No se abre PR ni se fusiona a main para evitar CI y despliegues automáticos hasta el bloque de pruebas diferido. El plan de venta sigue abierto.
 

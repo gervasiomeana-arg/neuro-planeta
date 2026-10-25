@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
+import { BUILTIN_PICTOGRAMS, defaultSymbol } from './pictograms/catalog';
 import { useAdultPrivacyGuard } from './security/useAdultPrivacyGuard';
 import { useVoiceRecording } from './audio/useVoiceRecording';
 import ActivityHeader from './ActivityHeader';
@@ -8,7 +9,7 @@ import WorkspaceNavigation from './WorkspaceNavigation';
 import PlanetIllustration from './PlanetIllustration';
 import BackupPanel from './data/BackupPanel';
 import { useProfileStore } from './data/useProfileStore';
-import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource } from './security/imports';
+import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource, pictogramImage } from './security/imports';
 import { 
   Heart, 
   Brain, 
@@ -604,7 +605,7 @@ export default function ImportedApp() {
   const [parentsEditingTaskId, setParentsEditingTaskId] = useState<string | null>(null);
   const [newMicroStepText, setNewMicroStepText] = useState<string>('');
   
-  // Settings & Parents Mode with Sensory Sound Engine & ARASAAC Integration
+  // Settings & Parents Mode with Sensory Sound Engine & local symbol catalogue
   const [sensoryAudioMode, setSensoryAudioMode] = useState<'soft' | 'silent' | 'masking'>(() => {
     try {
       const saved = localStorage.getItem('np_sensory_audio_mode');
@@ -634,11 +635,7 @@ export default function ImportedApp() {
   const maskingAudioCtxRef = useRef<any>(null);
   const maskingGainRef = useRef<GainNode | null>(null);
 
-  // ARASAAC Integration States
-  const [arasaacQuery, setArasaacQuery] = useState<string>('');
-  const [arasaacResults, setArasaacResults] = useState<any[]>([]);
-  const [arasaacLoading, setArasaacLoading] = useState<boolean>(false);
-  const [arasaacFeedback, setArasaacFeedback] = useState<string>('');
+  const [catalogQuery, setCatalogQuery] = useState('');
 
   const audioModeRef = useRef(sensoryAudioMode);
   audioModeRef.current = sensoryAudioMode;
@@ -1332,38 +1329,10 @@ export default function ImportedApp() {
     }
   };
 
-  const searchARASAAC = async (query: string) => {
-    if (!query.trim()) return;
-    setArasaacLoading(true);
-    setArasaacFeedback('');
-    try {
-      const res = await fetch(`https://api.arasaac.org/api/pictograms/es/search/${encodeURIComponent(query)}`);
-      if (!res.ok) {
-        throw new Error('No se encontraron resultados o hubo un problema de red.');
-      }
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setArasaacResults(data.slice(0, 10)); // Get top 10 results
-        if (data.length === 0) {
-          setArasaacFeedback('No se encontraron pictogramas en ARASAAC.');
-        }
-      } else {
-        setArasaacResults([]);
-        setArasaacFeedback('Formato de respuesta desconocido de ARASAAC.');
-      }
-    } catch (err: any) {
-      setArasaacResults([]);
-      setArasaacFeedback('Error al consultar ARASAAC: ' + (err.message || err));
-    } finally {
-      setArasaacLoading(false);
-    }
-  };
-
   const handleExportAsTeRICS_OBF = () => {
     try {
-      // Build a full Open Board Format (OBF) compliant representation of the client's current pictograms
+      // Build the supported OBF subset; catalogue references are NeuroPlaneta extensions.
       const obfButtons = ALL_DEFAULT_PICTOGRAMS.map((pic) => {
-        const customImg = safeImageSource(customPictogramImages[pic.id]);
         const colorHex = pic.color.includes('green') ? '#22c55e' :
                          pic.color.includes('orange') ? '#f97316' :
                          pic.color.includes('pink') ? '#ec4899' : '#eab308';
@@ -1372,7 +1341,8 @@ export default function ImportedApp() {
           label: pic.word,
           border_color: colorHex,
           bg_color: `${colorHex}22`,
-          image_url: customImg,
+          image_url: typeof customPictogramImages[pic.id] === 'string' && customPictogramImages[pic.id].startsWith('data:image/') ? safeImageSource(customPictogramImages[pic.id]) : undefined,
+          neuroplaneta_symbol: customPictogramImages[pic.id]?.startsWith('np-symbol:') ? customPictogramImages[pic.id] : defaultSymbol(pic.id),
           vocalize_text: pic.word,
           fitzgerald_key: pic.fitzgerald,
           emoji: pic.emoji
@@ -1389,6 +1359,7 @@ export default function ImportedApp() {
           columns: Math.ceil(obfButtons.length / 4)
         },
         buttons: obfButtons,
+        symbol_attribution: { creator: "OpenMoji", source: "https://openmoji.org/", license: "CC BY-SA 4.0", license_url: "https://creativecommons.org/licenses/by-sa/4.0/", changes: "Unmodified artwork; Spanish labels in NeuroPlaneta" },
         customVoicesCount: Object.keys(customPictogramVoices).length
       };
 
@@ -3120,8 +3091,8 @@ export default function ImportedApp() {
                     }}
                     className="flex items-center gap-1.5 bg-[#111827] border border-sky-500/30 text-white rounded-xl px-2.5 py-1.5 text-xs font-black shadow-md animate-scale-up hover:border-red-500 transition-all"
                   >
-                    {safeImageSource(customPictogramImages[item.id]) ? (
-                      <img src={safeImageSource(customPictogramImages[item.id])} alt={item.word} className="w-5 h-5 rounded object-cover border border-slate-800" />
+                    {pictogramImage(customPictogramImages[item.id], item.id) ? (
+                      <img src={pictogramImage(customPictogramImages[item.id], item.id)} alt={item.word} className="w-5 h-5 rounded object-contain bg-white border border-slate-800" />
                     ) : (
                       <span className="text-lg">{item.emoji}</span>
                     )}
@@ -3254,7 +3225,7 @@ export default function ImportedApp() {
                 }
 
                 return filteredPics.map((pic) => {
-                  const customImg = safeImageSource(customPictogramImages[pic.id]);
+                  const customImg = pictogramImage(customPictogramImages[pic.id], pic.id);
                   const customVoice = customPictogramVoices[pic.id];
                   return (
                     <button
@@ -3282,7 +3253,7 @@ export default function ImportedApp() {
                       className={`border-2 p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 text-center min-h-[105px] ${pic.color}`}
                     >
                       {customImg ? (
-                        <img src={customImg} alt={pic.word} className="w-12 h-12 rounded-xl object-cover border border-slate-700/50 shadow-sm" />
+                        <img src={customImg} alt={pic.word} className="w-16 h-16 rounded-2xl object-contain bg-white p-2 border border-slate-200 shadow-sm" />
                       ) : (
                         <span className="text-3xl filter drop-shadow-sm">{pic.emoji}</span>
                       )}
@@ -5223,7 +5194,7 @@ export default function ImportedApp() {
                                 const matchCategory = parentsPicCategoryFilter === 'all' || p.category === parentsPicCategoryFilter;
                                 return matchSearch && matchCategory;
                               }).map(p => {
-                                const hasImage = customPictogramImages[p.id];
+                                const hasImage = pictogramImage(customPictogramImages[p.id], p.id);
                                 const hasVoice = customPictogramVoices[p.id];
                                 return (
                                   <button
@@ -5241,7 +5212,7 @@ export default function ImportedApp() {
                                   >
                                     <div className="text-base flex items-center justify-center min-h-[22px]">
                                       {hasImage ? (
-                                        <img src={hasImage} alt={p.word} className="w-5 h-5 rounded object-cover" />
+                                        <img src={hasImage} alt={p.word} className="w-5 h-5 rounded object-contain bg-white" />
                                       ) : (
                                         <span>{p.emoji}</span>
                                       )}
@@ -5269,8 +5240,8 @@ export default function ImportedApp() {
                                     
                                     <div className="flex items-center justify-center py-2">
                                       <div className="w-16 h-16 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden relative shadow-inner">
-                                        {safeImageSource(customPictogramImages[selectedPicToCustomize]) ? (
-                                          <img src={safeImageSource(customPictogramImages[selectedPicToCustomize])} alt="custom-upload" className="w-full h-full object-cover" />
+                                        {pictogramImage(customPictogramImages[selectedPicToCustomize], selectedPicToCustomize) ? (
+                                          <img src={pictogramImage(customPictogramImages[selectedPicToCustomize], selectedPicToCustomize)} alt="custom-upload" className="w-full h-full object-contain bg-white p-1" />
                                         ) : (
                                           <span className="text-3xl">{activePicObj.emoji}</span>
                                         )}
@@ -5278,7 +5249,7 @@ export default function ImportedApp() {
                                     </div>
 
                                     <div className="text-[8px] text-slate-400 space-y-0.5">
-                                      <div>Imagen: {customPictogramImages[selectedPicToCustomize] ? '✅ Personalizada' : '❌ Predeterminada'}</div>
+                                      <div>Imagen: {safeImageSource(customPictogramImages[selectedPicToCustomize]) && customPictogramImages[selectedPicToCustomize]?.startsWith('data:') ? 'Foto propia' : 'Catálogo visual'}</div>
                                       <div>Voz familiar: {customPictogramVoices[selectedPicToCustomize] ? '✅ Grabada' : '❌ Sintética'}</div>
                                     </div>
                                   </div>
@@ -5364,7 +5335,7 @@ export default function ImportedApp() {
                           </div>
                         </div>
 
-                        {/* AsTeRICS Grid (OBF) & ARASAAC AAC Integration Panel */}
+                        {/* OBF & local symbol catalogue */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                           {/* AsTeRICS Grid Board Connection */}
                           <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-900 space-y-2 text-left">
@@ -5406,79 +5377,27 @@ export default function ImportedApp() {
                             </div>
                           </div>
 
-                          {/* ARASAAC Pictogram Finder */}
-                          <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-900 space-y-2 text-left flex flex-col justify-between">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1.5 border-b border-slate-900 pb-1.5">
-                                <span className="text-sm">🔍</span>
-                                <div>
-                                  <h4 className="font-extrabold text-white text-[11px] leading-none uppercase tracking-wider">Pictogramas de ARASAAC</h4>
-                                  <p className="text-[8.5px] text-slate-500 mt-0.5">Recurso externo de comunicación visual</p>
-                                </div>
-                              </div>
-
-                              <p className="text-[9.5px] text-slate-400 leading-tight">
-                                Buscá pictogramas en ARASAAC y elegí uno para tu tablero. Requiere internet. NeuroPlaneta no es una aplicación oficial de ARASAAC.
-                              </p>
-                              <p className="text-[9.5px] text-slate-400 leading-tight">
-                                Pictogramas de Sergio Palao para <a className="text-blue-300 underline" href="https://arasaac.org" target="_blank" rel="noopener noreferrer">ARASAAC</a>, propiedad del Gobierno de Aragón, bajo licencia CC BY-NC-SA. Esta licencia no autoriza el uso comercial. Revisá las <a className="text-blue-300 underline" href="https://arasaac.org/terms-of-use" target="_blank" rel="noopener noreferrer">condiciones de uso</a> antes de distribuir tableros o materiales.
-                              </p>
-
-                              <div className="flex gap-1.5 pt-1.5">
-                                <input
-                                  type="text"
-                                  placeholder="ej: Manzana, cepillar, baño..."
-                                  value={arasaacQuery}
-                                  onChange={(e) => setArasaacQuery(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      searchARASAAC(arasaacQuery);
-                                    }
-                                  }}
-                                  className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 text-[10px] focus:outline-none focus:border-slate-700 font-bold"
-                                />
-                                <button
-                                  onClick={() => searchARASAAC(arasaacQuery)}
-                                  disabled={arasaacLoading}
-                                  className="bg-pink-600 hover:bg-pink-500 disabled:opacity-45 text-white font-black text-[9px] py-1 px-3 rounded-lg"
-                                >
-                                  {arasaacLoading ? 'Buscando...' : 'Buscar'}
-                                </button>
-                              </div>
+                          {/* Curated, local artwork; no external image/search requests. */}
+                          <section aria-label="Catálogo de pictogramas" className="np-symbol-catalog">
+                            <div className="np-symbol-catalog-heading"><span aria-hidden="true">🎨</span><div><h4>Tu biblioteca visual</h4><p>24 símbolos · imágenes nítidas · sin búsquedas externas</p></div></div>
+                            <p>Elegí una imagen para «{ALL_DEFAULT_PICTOGRAMS.find(p => p.id === selectedPicToCustomize)?.word}». El texto y la voz de la tarjeta se conservan.</p>
+                            <label className="np-symbol-search">Buscar en el catálogo<input type="search" value={catalogQuery} onChange={event => setCatalogQuery(event.target.value)} placeholder="Agua, música, abrazo…" /></label>
+                            <div className="np-symbol-options">
+                              {BUILTIN_PICTOGRAMS.filter(symbol => {
+                                const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                                return normalize(symbol.label + ' ' + (PICTOGRAM_SEARCH_TERMS[symbol.id] || '')).includes(normalize(catalogQuery.trim()));
+                              }).map(symbol => {
+                                const token = 'np-symbol:' + symbol.code;
+                                const selected = customPictogramImages[selectedPicToCustomize] === token || (!safeImageSource(customPictogramImages[selectedPicToCustomize]) && defaultSymbol(selectedPicToCustomize) === token);
+                                return <button key={symbol.id} type="button" aria-label={'Usar imagen: ' + symbol.label} aria-pressed={selected} className="np-symbol-option" onClick={() => setCustomPictogramImages(previous => ({ ...previous, [selectedPicToCustomize]: token }))}>
+                                  <img src={safeImageSource(token)} alt="" width="64" height="64" loading="lazy" /><span>{symbol.label}</span>{selected && <span className="np-symbol-selected" aria-hidden="true">✓</span>}
+                                </button>;
+                              })}
                             </div>
-
-                            {arasaacFeedback && (
-                              <p className="text-[9px] text-amber-400 font-extrabold leading-none">{arasaacFeedback}</p>
-                            )}
-
-                            {arasaacResults.length > 0 && (
-                              <div className="space-y-1.5 mt-1">
-                                <span className="text-[8px] uppercase font-bold text-slate-500 tracking-wider">Resultados (Toca para asignar a {ALL_DEFAULT_PICTOGRAMS.find(p => p.id === selectedPicToCustomize)?.word}):</span>
-                                <div className="grid grid-cols-5 gap-1 bg-[#090D16] p-1.5 rounded-xl border border-slate-900/80 max-h-[85px] overflow-y-auto">
-                                  {arasaacResults.map((res: any) => {
-                                    const imgUrl = `https://api.arasaac.org/api/pictograms/${res.idPictogram}`;
-                                    return (
-                                      <button
-                                        key={res.idPictogram}
-                                        onClick={() => {
-                                          setCustomPictogramImages(prev => ({
-                                            ...prev,
-                                            [selectedPicToCustomize]: imgUrl
-                                          }));
-                                          playSuccessSound();
-                                        }}
-                                        className="bg-slate-950 p-1 border border-slate-850 hover:border-pink-500 rounded-lg flex items-center justify-center transition-all group relative"
-                                        title="Asignar este pictograma"
-                                      >
-                                        <img src={imgUrl} alt="arasaac-result" className="w-8 h-8 object-contain rounded" />
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                            {catalogQuery.trim() && !BUILTIN_PICTOGRAMS.some(symbol => (symbol.label + ' ' + (PICTOGRAM_SEARCH_TERMS[symbol.id] || '')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(catalogQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())) && <p role="status">No encontramos esa imagen. Probá otra palabra o usá una foto propia.</p>}
+                            <p className="np-symbol-credit">Ilustraciones de <a href="https://openmoji.org/" target="_blank" rel="noopener noreferrer">OpenMoji</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>. Gráficos sin modificar. <a href={import.meta.env.BASE_URL + 'pictograms/openmoji/README.md'} target="_blank" rel="noopener noreferrer">Créditos y origen</a></p>
+                            <p className="np-symbol-credit">Las imágenes anteriores se conservan en los respaldos. Las direcciones externas se reemplazan visualmente por este catálogo; las fotos locales permanecen.</p>
+                          </section>
                         </div>
 
                       </div>

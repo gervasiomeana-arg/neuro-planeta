@@ -43,3 +43,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+OpenMoji graphics
+=================
+All emojis designed by OpenMoji — https://openmoji.org/ — the open-source emoji and icon project. License: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
+24 unmodified SVGs. Source revision aeb8bb3a59e2de39c754ac79180c8131c906acea. Full license and provenance in pictograms/openmoji/LICENSE.txt and README.md. No endorsement implied.

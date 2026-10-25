@@ -38,7 +38,7 @@ Antes de cada publicación: revisar cambios de AI Studio/GitHub, probar candidat
 
 ## Próximas entregas concretas
 
-Actualización de contenido: ver `contenido-uso-comercial.md`. La revisión encontró la restricción comercial de ARASAAC; sigue pendiente sustituir los recursos o conseguir autorización aplicable. Las correcciones de texto, atribución e inventario se preparan en la rama `release/content-commercial-review`, sin pruebas ni publicación por instrucción del titular. No se considera cerrado P0-3 por añadir una advertencia.
+Actualización de contenido: ver `contenido-uso-comercial.md`. La revisión encontró la restricción comercial de ARASAAC; la rama sustituye su buscador por OpenMoji local. Quedan pendientes pruebas, revisión de comprensión y revisión de imágenes históricas de origen desconocido. Ver `catalogo-openmoji.md` y `comparacion-otsimo-2026-10-25.md`. Las correcciones de texto, atribución e inventario se preparan en la rama `release/content-commercial-review`, sin pruebas ni publicación por instrucción del titular. No se considera cerrado P0-3 por añadir una advertencia.
 
 | Prioridad | Trabajo y evidencia exigida | Estado al corte |
 | --- | --- | --- |
