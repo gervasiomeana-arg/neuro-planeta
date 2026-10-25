@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
 import type { LearningProgress } from './learning/curriculum';
 import type { LearningResult } from './learning/LearningHub';
+import { downloadTextReport } from './reports/downloadTextReport';
 import { useSessionTracker, type ActivitySession } from './learning/useSessionTracker';
 import { BUILTIN_PICTOGRAMS, defaultSymbol } from './pictograms/catalog';
 import { useAdultPrivacyGuard } from './security/useAdultPrivacyGuard';
@@ -5560,11 +5561,12 @@ export default function ImportedApp() {
                           <button
                             onClick={() => {
                               playSuccessSound();
-                              window.print();
+                              const summary = document.getElementById('printable-activity-summary');
+                              if (summary?.innerText.trim()) downloadTextReport('NeuroPlaneta — resumen familiar', summary.innerText);
                             }}
                             className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg flex items-center gap-1 shadow"
                           >
-                            <Printer className="w-3 h-3" /> Imprimir / Exportar PDF
+                            <Printer className="w-3 h-3" /> Descargar resumen (.html)
                           </button>
                         </div>
                         <p className="text-[10px] text-slate-400 leading-relaxed mb-2">
