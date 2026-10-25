@@ -42,7 +42,9 @@ test('Google account encrypted backup transfers full content into a fresh protec
   await expect(page.getByRole('status', { name: 'Guardado protegido', exact: true })).toHaveText('Guardado cifrado completo.');
   const committedSource = (await page.evaluate(key => localStorage.getItem(key), key))!;
   const [source] = await decryptBackup(committedSource, localPassword);
-  expect(source).toEqual(expect.objectContaining(profile));
+  // Opening a legacy-shaped fixture adds default routine periods/metadata.
+  // Require every supplied value, then compare the transfer snapshot exactly.
+  expect(source).toMatchObject(profile);
   const sourcePanel = page.getByRole('region', { name: 'Copias de seguridad', exact: true });
   await sourcePanel.getByLabel('Contraseña de la copia', { exact: true }).fill(copyPassword);
   await sourcePanel.getByLabel('Repetir contraseña para descargar').fill(copyPassword);
