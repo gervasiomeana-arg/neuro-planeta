@@ -1,6 +1,6 @@
 {
   "name": "Remix: NeuroPlaneta",
-  "description": "Una aplicación terapéutica y lúdica para niños con autismo (TEA) o TDAH, con tableros de comunicación visual (SACS), historias de empatía social, rutinas diarias interactivas, herramientas de autorregulación y control para padres/terapeutas.",
+  "description": "25 juegos y actividades de atención, calma, rutinas, historias sociales y comunicación visual para niños y familias, con un espacio de acompañamiento adulto. Es una app de acompañamiento, entretenimiento y práctica; no realiza análisis clínicos, evaluaciones, diagnósticos ni tratamientos.",
   "requestFramePermissions": [
     "camera",
     "microphone"

@@ -1,3 +1,4 @@
+import { builtinSymbolCode, defaultSymbol } from '../pictograms/catalog';
 export const MAX_BOARD_BYTES = 2_000_000;
 const MAX_IMAGE_CHARS = 350_000;
 
@@ -5,12 +6,14 @@ const MAX_IMAGE_CHARS = 350_000;
 export function safeImageSource(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.length > MAX_IMAGE_CHARS) return undefined;
   if (/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) return value;
-  try {
-    const url = new URL(value);
-    if (url.origin === 'https://api.arasaac.org' && !url.username && !url.password &&
-      /^\/api\/pictograms\/\d+$/.test(url.pathname) && !url.search && !url.hash) return url.href;
-  } catch { /* Invalid and relative URLs are not imported. */ }
+  const code = builtinSymbolCode(value);
+  if (code) return `${import.meta.env?.BASE_URL || '/'}pictograms/openmoji/${code}.svg`;
   return undefined;
+}
+
+// Old remote artwork is retained in storage/backups but never fetched/rendered.
+export function pictogramImage(value: unknown, id: string): string | undefined {
+  return safeImageSource(value) || safeImageSource(defaultSymbol(id));
 }
 
 export function parseBoardImages(text: string, knownIds: readonly string[]): Record<string, string> {
@@ -24,10 +27,10 @@ export function parseBoardImages(text: string, knownIds: readonly string[]): Rec
   const images: Record<string, string> = Object.create(null);
   for (const button of parsed.buttons) {
     if (!button || typeof button !== 'object' || typeof button.id !== 'string' || !allowed.has(button.id)) continue;
-    if (button.image_url == null || button.image_url === '') continue;
-    const image = safeImageSource(button.image_url);
-    if (!image) throw new Error('El tablero contiene imágenes no admitidas. Usá PNG, JPEG, WEBP, GIF locales o pictogramas de ARASAAC.');
-    images[button.id] = image;
+    const source = button.image_url || button.neuroplaneta_symbol;
+    if (source == null || source === '') continue;
+    if (!safeImageSource(source)) throw new Error('El tablero contiene imágenes externas no admitidas. Usá imágenes locales o símbolos del catálogo NeuroPlaneta.');
+    images[button.id] = source;
   }
   return images;
 }
