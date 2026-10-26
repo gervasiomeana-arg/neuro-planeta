@@ -8,6 +8,8 @@ La app tiene 25 juegos, registro descriptivo de uso, descarga del informe, perfi
 
 Se corrigieron dibujos locales, la correspondencia toalla/canasta, el formato de 24 horas y el desplazamiento al entrar en juegos. El titular informó que actualizó AI Studio. Después se reprodujeron y corrigieron fallas adicionales de carga de Juegos, altura al girar el celular y salida de los juegos originales. Esta nueva corrección pasó 11 pruebas de navegador y requiere otra sincronización/publicación y confirmación en el equipo físico; ver la auditoría funcional.
 
+El incidente móvil sigue abierto hasta confirmarlo en el teléfono: el titular indicó que falla después de elegir un juego en Chrome para Android y la publicación ya incluía la corrección anterior. El seguimiento agrega pruebas con cuenta ficticia y perfiles realmente cifrados, corrige un error del temporizador de sesión y refuerza el foco/desplazamiento al abrir cada juego. Requiere publicar esta nueva revisión y repetir la selección en el equipo; no borrar datos del navegador.
+
 ## Orden de cierre
 
 | Orden | Trabajo | Condición verificable |

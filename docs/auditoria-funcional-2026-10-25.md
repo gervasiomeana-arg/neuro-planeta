@@ -53,6 +53,24 @@ Resultado final: **11 pruebas de navegador aprobadas**, más TypeScript, compila
 
 Todas las pruebas usan perfiles ficticios locales. No se modificaron datos reales, Firebase, permisos, precios, créditos de ilustraciones ni el contenido del informe. El informe sigue describiendo actividades registradas, sin análisis clínicos, evaluaciones, diagnósticos ni tratamientos. Las correcciones requieren sincronizar/publicar AI Studio; esta batería no sustituye la confirmación en el celular/tablet físico ni prueba Safari/iOS real.
 
+## Seguimiento: seleccionar un juego en Chrome para Android
+
+El titular aclaró que la biblioteca aparece y la pantalla queda en blanco después de elegir un juego, únicamente en Juegos, usando Chrome en Android. Antes de editar se confirmó que GitHub `main` estaba en `02439bf316e62b39b2e82be54bd4228146e40ffe` y que la publicación ya servía `index-Cupq0L20.js`, el resultado de esa corrección. No se atribuyó el incidente a una actualización pendiente.
+
+Las pruebas anteriores de juegos deshabilitaban la puerta de Google y usaban perfiles locales sin cifrar. Se agregó una batería separada con sesión Google ficticia, respuestas de red interceptadas y cifrado real de perfiles ficticios. No inicia sesión ni escribe en cuentas reales.
+
+Hallazgos y cambios:
+
+- En el recorrido autenticado se detectaron excepciones `TypeError: Illegal invocation` al tocar controles. La cancelación del temporizador de inactividad estaba asignada como `cancel: clearTimeout` y se invocaba con el objeto de entorno como receptor. Se reemplazó por `cancel: timer => clearTimeout(timer)`. Este error ocurrió aun cuando los juegos eran visibles en el navegador de prueba: es una falla real corregida, pero no demuestra por sí solo la causa de la pantalla blanca del teléfono.
+- El paso de una tarjeta al juego ahora enfoca el título de la nueva pantalla, restablece directamente `scrollTop` y `scrollLeft` y repite el ajuste en el siguiente cuadro de dibujo, cancelándolo al salir. No depende del desplazamiento animado ni conserva el foco en una tarjeta que desaparece. El mismo restablecimiento directo se usa antes de pintar los juegos originales.
+- Se comprobó mediante inyección local que, si `Element.scrollTo` no efectúa el desplazamiento, la versión anterior deja el botón de pausa fuera del viewport. La nueva transición mantiene título, pausa y consigna visibles aun con ese método desactivado. Esta inyección es una prueba de resistencia; no confirma que ese método falle en el teléfono real.
+
+Validación final: ocho pruebas de navegador aprobadas y siete pruebas de inactividad, además de TypeScript, compilación y revisión del diff. Se recorren los 25 juegos con perfil cifrado en 360 × 640, 412 × 915 y 768 × 1024, con interacción táctil y agente de usuario de Android; cada tamaño se repite con y sin `scrollTo`. Se completa Contar objetos, se pausa el resto, se descifra el resultado y se comprueba la conservación del perfil y su nota, 25 sesiones y el avance completado. No quedan errores de JavaScript en esos recorridos. También se vuelven a verificar el informe descriptivo descargado y el texto de respaldo de una imagen ausente.
+
+Límite explícito: no se reprodujo una pantalla totalmente blanca en el equipo físico del titular ni se inspeccionó su Chrome remoto. Los resultados son del Chromium de prueba con emulación, no de un Android físico. No se declara cerrado el incidente hasta publicar esta corrección y repetir la selección en el celular. Si persiste, hace falta el nombre del juego y una captura de la pantalla para identificar el estado exacto. No se borra ni reinicia el almacenamiento como solución.
+
+No se cambiaron datos reales, reglas Firebase, formato del cifrado, permisos, cobros ni créditos de ilustraciones. El informe continúa describiendo actividades registradas, sin análisis clínicos, evaluaciones, diagnósticos ni tratamientos.
+
 ## Estado de producción observado
 
 - https://neuroplaneta.ai.studio/ responde y la prueba pública de acceso obligatorio con Google pasó: un perfil ficticio local no se muestra antes de autenticar; el consentimiento habilita el botón y administración no revela el formulario protegido.

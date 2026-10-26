@@ -52,7 +52,7 @@ export function adultAuth() {
         adultInteraction: event => event.target instanceof Element
           && Boolean(event.target.closest('#adult-panel-dialog[data-authenticated="true"], #np-administration[data-adult-secure="true"]')),
         now: Date.now,
-        schedule: (callback, ms) => setTimeout(callback, ms), cancel: clearTimeout,
+        schedule: (callback, ms) => setTimeout(callback, ms), cancel: timer => clearTimeout(timer),
       });
     });
   }

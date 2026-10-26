@@ -2,22 +2,35 @@ import { GameText, GameArtworkCredit } from './GameText';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createLearningQuestion, LEARNING_GAMES, type Game, type GameId, type LearningLevel, type LearningProgress, type Question } from './curriculum';
 import { useSessionTracker, type SessionMeasurement } from './useSessionTracker';
+import { resetActivityViewport } from './activityViewport';
 
 export type LearningResult = { gameId: GameId; level: LearningLevel; independentCorrect: number; attempts: number; status: 'completed' | 'paused'; roundsCompleted: number; measurement: SessionMeasurement };
 type ExitRef = { current: (() => void) | null };
 type Props = { progress: LearningProgress; onLegacy: (id: 'numbers' | 'matching') => void; onComplete: (result: LearningResult) => void; audioEnabled: boolean; volume: number; exitRef: ExitRef };
 const AREAS = ['Todas', 'Números', 'Atención', 'Memoria', 'Lenguaje', 'Vida diaria'];
 const LEVELS = ['Explorar', 'Practicar', 'Desafío'];
-const scrollActivityToTop = () => document.getElementById('np-activity-content')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
+// A tapped library card disappears on selection. Move focus to the new screen
+// and reset again after layout so mobile scrolling cannot retain the old offset.
+function useGameScreen(screen: unknown) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    heading.current?.focus({ preventScroll: true });
+    resetActivityViewport();
+    const frame = window.requestAnimationFrame(resetActivityViewport);
+    return () => window.cancelAnimationFrame(frame);
+  }, [screen]);
+  return heading;
+}
 
 export default function LearningHub({ progress, onLegacy, onComplete, audioEnabled, volume, exitRef }: Props) {
   const [area, setArea] = useState('Todas'), [level, setLevel] = useState<LearningLevel>(1);
   const [selected, setSelected] = useState<Game | null>(null), [session, setSession] = useState(0);
   const [showGuide, setShowGuide] = useState(false);
-  useLayoutEffect(scrollActivityToTop, [selected]);
+  const heading = useGameScreen(selected);
   if (selected) return <LearningSession key={`${selected.id}-${level}-${session}`} game={selected} level={level} audioEnabled={audioEnabled} volume={volume} exitRef={exitRef} onExit={() => setSelected(null)} onAgain={() => setSession(n => n + 1)} onComplete={onComplete} />;
   return <section className="np-learning" aria-label="Biblioteca de 25 juegos">
-    <header className="np-learning-hero"><span aria-hidden="true"><GameText text="🌱" /></span><div><p className="np-learning-eyebrow">Aprender, descubrir y volver a intentar</p><h3>25 juegos para explorar</h3><p>Elegí una actividad. Sin reloj, sin perder vidas y con ayuda cuando la necesites.</p></div></header>
+    <header className="np-learning-hero"><span aria-hidden="true"><GameText text="🌱" /></span><div><p className="np-learning-eyebrow">Aprender, descubrir y volver a intentar</p><h3 ref={heading} tabIndex={-1}>25 juegos para explorar</h3><p>Elegí una actividad. Sin reloj, sin perder vidas y con ayuda cuando la necesites.</p></div></header>
     <div className="np-learning-levels" role="group" aria-label="Nivel de los juegos nuevos">{LEVELS.map((label, i) => <button type="button" key={label} aria-pressed={level === i + 1} onClick={() => setLevel((i + 1) as LearningLevel)}>{i + 1}. {label}</button>)}</div>
     <p className="np-learning-small">Podés cambiar de nivel libremente. Los dos juegos originales conservan su funcionamiento; los 23 nuevos ofrecen estos tres niveles.</p>
     <div className="np-learning-filters" role="group" aria-label="Área de aprendizaje">{AREAS.map(label => <button type="button" key={label} aria-pressed={area === label} onClick={() => setArea(label)}>{label}</button>)}</div>
@@ -64,7 +77,7 @@ function LearningSession({ game, level, onExit, onAgain, onComplete, audioEnable
   const speech = useRef<SpeechSynthesisUtterance | null>(null);
   const [speechMessage, setSpeechMessage] = useState('');
   const tracker = useSessionTracker();
-  useLayoutEffect(scrollActivityToTop, [round, phase === 'done']);
+  const heading = useGameScreen(`${round}-${phase === 'done'}`);
   useEffect(() => { tracker.start(); return () => tracker.discard(); }, []);
   function record(status: 'completed' | 'paused') {
     if (reported.current) return;
@@ -117,10 +130,10 @@ function LearningSession({ game, level, onExit, onAgain, onComplete, audioEnable
     roundAttempts.current = 0; helped.current = false; locked.current = false; setHint(false); setFeedback(''); setStep(0); setRevealed(true); setPhase('answer');
     if (speech.current) window.speechSynthesis?.cancel(); speech.current = null;
   }
-  if (phase === 'done') return <section className="np-learning np-learning-finish" aria-label="Sesión educativa completada"><span aria-hidden="true"><GameText text="🌟" /></span><h3>¡Completaste cinco desafíos!</h3><p>{game.title} · nivel {level}: {LEVELS[level - 1]}.</p><p>{independent.current} de 5 al primer intento sin abrir pistas. También aprender con ayuda está bien.</p><aside><h4>Para llevar a la vida diaria</h4><p>{game.practice}</p></aside><p className="np-learning-small">El registro se incorporó al perfil de esta sesión. Revisá el aviso de guardado cifrado antes de cerrar.</p><div className="np-learning-actions"><button type="button" className="np-learning-primary" onClick={onAgain}>Practicar otra vez</button><button type="button" className="np-learning-secondary" onClick={onExit}>Elegir otro juego</button></div></section>;
+  if (phase === 'done') return <section className="np-learning np-learning-finish" aria-label="Sesión educativa completada"><span aria-hidden="true"><GameText text="🌟" /></span><h3 ref={heading} tabIndex={-1}>¡Completaste cinco desafíos!</h3><p>{game.title} · nivel {level}: {LEVELS[level - 1]}.</p><p>{independent.current} de 5 al primer intento sin abrir pistas. También aprender con ayuda está bien.</p><aside><h4>Para llevar a la vida diaria</h4><p>{game.practice}</p></aside><p className="np-learning-small">El registro se incorporó al perfil de esta sesión. Revisá el aviso de guardado cifrado antes de cerrar.</p><div className="np-learning-actions"><button type="button" className="np-learning-primary" onClick={onAgain}>Practicar otra vez</button><button type="button" className="np-learning-secondary" onClick={onExit}>Elegir otro juego</button></div></section>;
   return <section className="np-learning" aria-label={`Juego: ${game.title}`}>
     <div className="np-learning-session-head"><button type="button" className="np-learning-secondary" onClick={() => { record('paused'); onExit(); }}>Pausar y volver</button><span>Desafío {round + 1} de 5 · Nivel {level}</span></div>
-    <h3>{<GameText text={game.icon} />} {game.title}</h3><p className="np-learning-objective">{game.objective}</p>
+    <h3 ref={heading} tabIndex={-1}>{<GameText text={game.icon} />} {game.title}</h3><p className="np-learning-objective">{game.objective}</p>
     <article className="np-learning-question"><h4>{<GameText text={q.prompt} />}</h4><button className="np-learning-link" type="button" disabled={!audioEnabled} onClick={read}>{audioEnabled ? <><GameText text="🔊" /> Leer consigna</> : 'Sonido desactivado'}</button>{speechMessage && <p role="status">{speechMessage}</p>}
       {q.visual && <div className="np-learning-stimulus">{<GameText text={q.visual} />}</div>}
       {q.grid && <div className="np-learning-position" role="img" aria-label={`Cuadrícula de tres filas y tres columnas. Estrella ${q.answer}.`}>{q.grid.map((item, i) => <span key={i}>{<GameText text={item} />}</span>)}</div>}

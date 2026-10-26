@@ -1,9 +1,10 @@
 import { GameText, GameArtworkCredit } from './learning/GameText';
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import ActivityCard from './ActivityCard';
 import type { LearningProgress } from './learning/curriculum';
 import type { LearningResult } from './learning/LearningHub';
 import LearningHub from './learning/LearningHub';
+import { resetActivityViewport } from './learning/activityViewport';
 import ActivityErrorBoundary from './ActivityErrorBoundary';
 import { downloadTextReport } from './reports/downloadTextReport';
 import { useSessionTracker, type ActivitySession } from './learning/useSessionTracker';
@@ -528,7 +529,7 @@ export default function ImportedApp() {
   // Game/Module States
   const [activeModule, setActiveModule] = useState<'emociones' | 'atencion' | 'zona_calma' | 'sensorial' | 'sos' | 'comunicar' | 'social' | 'rutinas' | null>(null);
   const activityContentRef = useRef<HTMLElement>(null);
-  useEffect(() => { activityContentRef.current?.scrollTo({top:0,left:0,behavior:'auto'}); }, [activeModule,currentTab]);
+  useEffect(resetActivityViewport, [activeModule,currentTab]);
   const [calmStep, setCalmStep] = useState(0);
   const [stars, setStars] = useState<number>(0);
   const [attentionHighScore, setAttentionHighScore] = useState<number>(0);
@@ -948,7 +949,7 @@ export default function ImportedApp() {
     setAttentionGameState('idle');
     setAttentionActivity(null);
   };
-  useEffect(() => { activityContentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' }); }, [attentionGameState, attentionActivity]);
+  useLayoutEffect(resetActivityViewport, [attentionGameState, attentionActivity]);
   const [matchingRound, setMatchingRound] = useState(0);
   const [matchingHint, setMatchingHint] = useState(false);
   const matchingChoiceLockedRef = useRef(false);
