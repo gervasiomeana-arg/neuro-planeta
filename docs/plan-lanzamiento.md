@@ -36,3 +36,7 @@ OpenMoji local conserva atribución, licencia y origen. Revisar por separado cua
 Antes de publicar: compilar, ejecutar pruebas pertinentes con datos ficticios, comprobar acceso/aislamiento, recuperación, informe y la versión pública exacta. Registrar incidencias, soporte y cambios sin guardar datos infantiles en logs. Revisar periódicamente dependencias, permisos, restauración y costos. Esto es un plan, no una automatización ya creada.
 
 El lanzamiento general sigue pendiente de publicación verificada, condiciones/privacidad, cobro/cancelación, equipos reales y piloto. Se puede demostrar la app y preparar interesados describiendo su estado actual de forma explícita.
+
+## Cobros y privacidad preparados en código
+
+PayPal, verificación del servidor, cancelación, control de acceso, consentimiento y controles de datos implementados. La activación comercial sigue pendiente: faltan domicilio/correo publicados, credenciales e IAM, aceptación sandbox real y configuración live. Ver [detalle y activación](cobros-y-privacidad.md). El modo predeterminado conserva el acceso actual sin cobrar.

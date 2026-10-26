@@ -3,6 +3,8 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { createApiApp, type StoryGenerator } from './server/app';
+import { commercialConfig } from './server/commercial/config';
+import { protectedAssets } from './server/commercial/assets';
 
 const production = process.env.NODE_ENV === 'production';
 const apiKey = process.env.GEMINI_API_KEY;
@@ -23,12 +25,15 @@ const generate: StoryGenerator | undefined = !production && apiKey && apiKey !==
   } : undefined;
 
 async function startServer() {
-  const app = createApiApp({ production, generate });
+  const config = commercialConfig();
+  if (!production && config.enforce) throw new Error('La exigencia de pago se habilita solo en el servidor de producción.');
+  const app = createApiApp({ production, generate, commercial: { config } });
   if (!production) {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    app.use(protectedAssets(config));
     // dist contains server code too; never expose the bundle or source maps.
     app.use((req, res, next) => {
       let decoded: string;

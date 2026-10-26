@@ -58,5 +58,19 @@ export function useProfileStore<T extends { id: string; name: string }>() {
       setProfiles(combined as unknown as T[]); setError('');
     }
   }
-  return { profiles, setProfiles, error, fatal: !!initial.error, recoveryRaw: initial.raw, restoreCopies, retry: () => setAttempt(value => value + 1) };
+  async function eraseProfile(id: string) {
+    if (blocked.current) throw new Error('El guardado está detenido. Conservá una copia antes de eliminar.');
+    if (!profiles.some(p => p.id === id)) throw new Error('El perfil ya no está en este espacio.');
+    const remaining = profiles.filter(p => p.id !== id);
+    validateProfiles(remaining);
+    if (vault && protection) await protection.exclusive(async () => {
+      await vault.save(remaining);
+      setProfiles(remaining); setError('');
+    });
+    else {
+      expected.current = persistProfiles(storage, remaining, expected.current);
+      setProfiles(remaining); setError('');
+    }
+  }
+  return { profiles, setProfiles, error, fatal: !!initial.error, recoveryRaw: initial.raw, restoreCopies, eraseProfile, retry: () => setAttempt(value => value + 1) };
 }

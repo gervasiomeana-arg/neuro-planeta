@@ -5,7 +5,10 @@ import { recordAdultAccess } from './accessHistory';
 import AdminWorkspace from './AdminWorkspace';
 import { AccountProfileBoundary } from '../data/ProfileStorageContext';
 import { FAMILY_PLAN } from './commercial';
+import { useCommercial } from '../commercial/CommercialContext';
+import LegalLinks from '../commercial/LegalLinks';
 export default function GoogleAccessShell({ children }: { children: ReactNode }) {
+  const { config } = useCommercial();
   const [required, setRequired] = useState<boolean | null>(null), [policyError, setPolicyError] = useState(false);
   const [user, setUser] = useState<User | null>(null), [googleVerified, setGoogleVerified] = useState(false), [ready, setReady] = useState(false);
   const [consent, setConsent] = useState(false), [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [administration, setAdministration] = useState(false);
@@ -58,7 +61,8 @@ export default function GoogleAccessShell({ children }: { children: ReactNode })
   const entry = <section aria-label="Ingreso con Google" className="np-theme max-w-lg mx-auto rounded-2xl border bg-[#fcf7ed] p-6 space-y-4 text-[#293b3a]">
     <h1 className="text-2xl font-bold">Bienvenido a NeuroPlaneta</h1>
     <p>Un adulto debe ingresar con Google para abrir la app. Google solicita sus credenciales en su propia ventana.</p>
-    <p><strong>{FAMILY_PLAN.name}: {FAMILY_PLAN.display}.</strong> El cobro de suscripciones todavía no está habilitado; ingresar no genera un cargo.</p>
+    <p><strong>{FAMILY_PLAN.name}: {FAMILY_PLAN.display}.</strong> {config.checkoutReady ? 'La contratación y la renovación se autorizan en PayPal; ingresar no genera un cargo.' : 'El cobro de suscripciones todavía no está habilitado; ingresar no genera un cargo.'}</p>
+    <LegalLinks />
     <p>Registramos correo adulto, método de acceso y fecha del servidor para administración. No se registran actividades ni datos del niño.</p>
     <label className="flex gap-2"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} disabled={busy} />Soy adulto y acepto ingresar con Google y registrar este acceso.</label>
     <button className="np-account-button np-account-primary" type="button" disabled={busy || !consent || !ready || required === null} onClick={login}>{busy ? 'Ingresando…' : 'Continuar con Google'}</button>

@@ -726,3 +726,24 @@
   .np-live-shell #neuroplaneta-workspace { height:100vh;height:100dvh;min-height:0;border-radius:0; }
   .np-workspace-sidebar > * { flex-shrink:0; }
 }
+
+/* Adult commercial and data controls remain readable on phones and tablets. */
+.np-commercial-panel { display:grid;gap:16px;padding:20px;border:1px solid #b9cdc3;border-radius:18px;background:#fcf7ed;color:#29433e;min-width:0;overflow-wrap:anywhere;text-align:left; }
+.np-commercial-panel h3,.np-commercial-panel h1 { font-size:20px;font-weight:750;line-height:1.4; }
+.np-commercial-panel h4,.np-commercial-panel legend { font-weight:750; }
+.np-commercial-panel p,.np-commercial-panel label { font-size:14px;line-height:1.7; }
+.np-commercial-panel label { display:block; }
+.np-commercial-panel input:not([type="checkbox"]),.np-commercial-panel select { display:block;width:100%;max-width:100%;min-height:44px;padding:10px;border:1px solid #b9cdc3;border-radius:10px;background:#fffdf8; }
+.np-commercial-panel input[type="checkbox"] { width:20px;min-width:20px;height:20px;vertical-align:middle;margin-right:9px; }
+.np-commercial-consents,.np-local-deletion { display:grid;gap:14px;min-width:0; }
+.np-local-deletion { border:1px solid #c7b6a7;border-radius:12px;padding:16px; }
+.np-legal-links { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.np-legal-links a { text-decoration:underline;font-size:14px; }
+.np-legal-overlay { position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;background:#203a2baa; }
+.np-legal-dialog { width:100%;max-width:850px;max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;background:#fcf7ed;color:#29433e;border-radius:18px;padding:24px;display:grid;gap:20px;line-height:1.75;overflow-wrap:anywhere; }
+.np-legal-dialog h2 { font-size:24px;font-weight:750; }
+.np-legal-dialog h3 { font-size:18px;font-weight:750; }
+.np-legal-dialog a { text-decoration:underline; }
+.np-commercial-access { min-height:100dvh;padding:20px;background:#e8ede3; }
+.np-commercial-access>section { max-width:900px;margin:auto; }
+@media(max-width:600px) { .np-legal-overlay { padding:8px; }.np-legal-dialog { padding:18px;max-height:96dvh; }.np-commercial-panel { padding:16px; } }

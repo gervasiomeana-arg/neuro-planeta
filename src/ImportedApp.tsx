@@ -16,6 +16,8 @@ import { AdultDialog, AdultPanelNavigation } from './AdultPanel';
 import WorkspaceNavigation from './WorkspaceNavigation';
 import PlanetIllustration from './PlanetIllustration';
 import BackupPanel from './data/BackupPanel';
+import BillingPanel from './commercial/BillingPanel';
+import PrivacyControls from './commercial/PrivacyControls';
 import { useProfileStore } from './data/useProfileStore';
 import { MAX_BOARD_BYTES, parseBoardImages, prepareLocalImage, safeImageSource, pictogramImage } from './security/imports';
 import { 
@@ -5196,6 +5198,15 @@ export default function ImportedApp() {
                           <Suspense fallback={<p>Cargando acceso…</p>}><AdultAccountPanel profile={{ id: activePatient.id, name: activePatient.name, selectedAge: activePatient.selectedAge }} localProfile={activePatient} /></Suspense>
                         </details>
                         <BackupPanel profiles={patients} onRestore={profileStore.restoreCopies} />
+                        <BillingPanel />
+                        <PrivacyControls profiles={patients} onErase={async id => {
+                          await profileStore.eraseProfile(id);
+                          if (id === activePatientId) {
+                            setActivePatientId(''); setLoadedPatientId(null);
+                            localStorage.removeItem('np_active_patient_id');
+                            setShowParentsMode(false); setParentsAuthenticated(false); setOnboardingCompleted(false);
+                          }
+                        }} />
                       </div>
                     )}
 

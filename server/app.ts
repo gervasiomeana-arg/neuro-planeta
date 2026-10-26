@@ -1,8 +1,10 @@
 import express, { type Request, type ErrorRequestHandler } from 'express';
 import { serverPolicy } from '../security/policy';
+import { commercialConfig, publicConfig, type CommercialConfig } from './commercial/config';
+import { commercialRouter, type CommercialDependencies } from './commercial/router';
 
 export type StoryGenerator = (situation: string, signal: AbortSignal) => Promise<unknown>;
-type Options = { production: boolean; generate?: StoryGenerator; now?: () => number };
+type Options = { production: boolean; generate?: StoryGenerator; now?: () => number; commercial?: { config: CommercialConfig; deps?: CommercialDependencies } };
 
 function localRequest(req: Request) {
   if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress || '')) return false;
@@ -27,7 +29,7 @@ function safeStory(value: unknown) {
   return { title: story.title.trim(), pages: story.pages.map(p => ({ text: p.text.trim(), emoji: p.emoji })) };
 }
 
-export function createApiApp({ production, generate, now = Date.now }: Options) {
+export function createApiApp({ production, generate, now = Date.now, commercial }: Options) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', false);
@@ -42,6 +44,9 @@ export function createApiApp({ production, generate, now = Date.now }: Options) 
     next();
   });
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+  const config = commercial?.config || commercialConfig();
+  app.get('/commercial-config.json', (_req, res) => res.set('Cache-Control', 'no-store').json(publicConfig(config)));
+  app.use('/api', commercialRouter(config, commercial?.deps));
   app.all(['/api/migrate', '/api/migrate/*', '/api/sync', '/api/sync/*'], (_req, res) => {
     res.status(410).json({ error: 'Esta función no está disponible.' });
   });

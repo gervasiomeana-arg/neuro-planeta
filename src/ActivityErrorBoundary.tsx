@@ -4,12 +4,14 @@ import { Component, type ReactNode } from 'react';
 export default class ActivityErrorBoundary extends Component<{
   children: ReactNode;
   onBack?: () => void;
+  fallback?: ReactNode;
 }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
 
   render() {
     if (!this.state.failed) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
     return <section className="np-activity-recovery" role="alert" aria-label="Actividad no disponible">
       <h3>No pudimos abrir esta actividad</h3>
       <p>Podés volver a intentar o regresar al inicio. No borres los datos del navegador para resolverlo.</p>
