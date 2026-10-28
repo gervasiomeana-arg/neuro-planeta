@@ -2,7 +2,7 @@
 
 ## Estado y límites
 
-Revisión del código guardado en main, a partir de f0f675f0c11b759368887e161879d907e8de9d33. No se modificaron permisos de producción, cuentas, perfiles ni solicitudes reales. No se ejecutaron borrados, cobros ni depuraciones. La consola requirió inicio de sesión Google y la revisión automática impidió continuar; por tanto **no se certifican IAM, secretos, región de almacenamiento ni la versión de reglas efectivamente publicada en esta revisión**. La publicación USD fue comprobada en la etapa anterior; no se asume que permanezca sin cambios por esa sola evidencia histórica.
+Revisión del código guardado en main, a partir de f0f675f0c11b759368887e161879d907e8de9d33. No se modificaron permisos de producción, cuentas, perfiles ni solicitudes reales. No se ejecutaron borrados, cobros ni depuraciones. La inspección inicial quedó bloqueada por el inicio de sesión Google. Tras autorización expresa del titular se accedió a Firebase en modo de lectura y se comprobaron las reglas publicadas, el proveedor Google, el dominio actual autorizado y la región de Firestore. **No se certifican aún los permisos IAM de la identidad del servidor, secretos ni región del despliegue**: el enlace oficial de Google Cloud mostró “Site Unavailable”, también después de una recarga. No se intentaron vías alternativas con credenciales.
 
 El backend usa Firebase Admin con Application Default Credentials, que **no se somete a las reglas de clientes de Firestore**. La seguridad exige ambas capas: IAM de la identidad de servicio y autorización de cada API. Abrir reglas de clientes no arregla una falta de permisos IAM del servidor.
 
@@ -57,3 +57,17 @@ Quedan por confirmar en el servicio real: región y proveedores efectivos, mecan
 ## Validación del candidato
 
 TypeScript y compilación de producción aprobados. 70 pruebas de seguridad/datos aprobadas. 22 escenarios de navegador aprobados: consentimiento/revocación, borrado selectivo, solicitudes, mensajes, respaldo cifrado transferible, aislamiento entre cuentas y entrada a los 25 juegos en tres tamaños. Tras ampliar la prueba administrativa se repitieron los tres escenarios afectados: diagnóstico de lectura y respuesta, privacidad con cobros apagados y rectificación con seguimiento; los tres pasaron. La preservación de referencias históricas y el bloqueo de cierre sin supresión se probaron con almacenamiento ficticio. No se ejecutaron estas pruebas contra datos reales ni se afirma haber validado IAM mediante mocks.
+
+
+## Comprobación posterior en la consola real
+
+- Reglas activas: publicación del 25 de octubre a las 17:02. Se revisaron todas sus secciones mediante navegación de lectura del editor. Se mantienen límites por familia, restricciones de administración, precio ARS/USD y denegación final de colecciones no autorizadas. No se publicó otra versión.
+- Google está habilitado y el dominio actual de NeuroPlaneta está autorizado. Existe también el proveedor histórico de correo/contraseña; no se cambió.
+- La base predeterminada de Firestore indica región `southamerica-east1`, edición Standard y modo nativo. La documentación oficial identifica esa región como São Paulo. Se añadió esta precisión a la política de privacidad sin atribuir esa ubicación al resto de servicios Google o PayPal.
+- Firebase muestra las copias programadas de la base como desactivadas. Esto es distinto del respaldo cifrado que cada adulto descarga para sus perfiles locales. No se activaron servicios facturables ni se generó una copia de datos reales durante la revisión.
+- La cuenta del titular tiene rol Owner en Firebase. Este rol no demuestra cuál es la identidad que usa el servidor publicado ni sus permisos efectivos. Hay cuentas de servicio registradas, pero Google Cloud no pudo cargar sus permisos avanzados en este navegador. No se generan claves privadas para suplir esa limitación.
+- Se observó un correo de soporte ya configurado en los ajustes públicos del proyecto Firebase. Se informa al titular por el canal privado, sin copiar el valor en este informe ni cambiarlo durante la revisión. Ocultar el correo en la app no elimina la configuración de soporte del proveedor Google.
+
+Pendiente para cerrar el punto 3: identificar la cuenta de servicio de la revisión publicada y contrastar sus permisos en Google Cloud con las operaciones requeridas; después comprobar el diagnóstico y la recepción de un mensaje/solicitud en la versión publicada. El acceso del titular a Firebase no reemplaza esa prueba de la identidad del servidor.
+
+Fuente de ubicación: https://firebase.google.com/docs/firestore/locations?hl=en

@@ -45,4 +45,4 @@ El informe permanece descriptivo de actividades registradas, sin análisis clín
 
 ## Revisión posterior
 
-Se separó consentimiento de privacidad de preparación comercial, se agregaron detalles y seguimiento de solicitudes, respuestas administrativas, preservación de solicitudes cerradas y diagnóstico privado de lectura. El historial y las pruebas se describen en `revision-servidor-privacidad-2026-10-27.md`. No se verificaron IAM ni región de producción por el bloqueo de inicio de sesión Google; no se deben presentar como aprobados.
+Se separó consentimiento de privacidad de preparación comercial, se agregaron detalles y seguimiento de solicitudes, respuestas administrativas, preservación de solicitudes cerradas y diagnóstico privado de lectura. El historial y las pruebas se describen en `revision-servidor-privacidad-2026-10-27.md`. Tras autorizar el inicio de sesión se verificaron reglas, acceso Google, dominio y región de Firestore en la consola real. IAM del servidor continúa sin verificar porque Google Cloud no cargó en este navegador; tampoco se verificó la región del despliegue. Ver la comprobación posterior del informe de revisión.
