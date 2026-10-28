@@ -4,13 +4,14 @@ import { doc, getDoc, getFirestore } from 'firebase/firestore/lite';
 import { adultAuth, adultSessionEpoch, adultSessionIsCurrent } from './firebase';
 import AdminAccessPanel from './AdminAccessPanel';
 import SubscriptionPanel from './SubscriptionPanel';
+import MessagesPanel from '../support/MessagesPanel';
 import PrivacyAdminPanel from '../commercial/PrivacyAdminPanel';
 // Secondary interface check only. This public digest is not authorization.
 const phraseDigest = 'cfe1b5996f42316f9f8fa9d550f2b2b1c3379955898e8f4a0b1452a49da31801';
 export default function AdminWorkspace({ user }: { user: User | null }) {
   const [phrase, setPhrase] = useState(''), [allowed, setAllowed] = useState(false);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
-  const [tab, setTab] = useState<'history' | 'price' | 'privacy'>('history');
+  const [tab, setTab] = useState<'history' | 'price' | 'privacy' | 'messages'>('history');
   const version = useRef(0), mounted = useRef(false), running = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -50,9 +51,9 @@ export default function AdminWorkspace({ user }: { user: User | null }) {
     {message && <p role="status">{message}</p>}
   </form>;
   return <div className="space-y-4">
-    <div role="tablist" aria-label="Administración"><button className="np-account-button np-admin-history" role="tab" aria-selected={tab === 'history'} onClick={() => setTab('history')}>Historial de ingresos</button><button className="np-account-button np-admin-price" role="tab" aria-selected={tab === 'price'} onClick={() => setTab('price')}>Suscripción mensual</button></div>
+    <div role="tablist" aria-label="Administración"><button className="np-account-button np-admin-history" role="tab" aria-selected={tab === 'history'} onClick={() => setTab('history')}>Historial de ingresos</button><button className="np-account-button np-admin-price" role="tab" aria-selected={tab === 'price'} onClick={() => setTab('price')}>Suscripción mensual</button><button className="np-account-button" role="tab" aria-selected={tab === 'messages'} onClick={() => setTab('messages')}>Mensajes</button></div>
     <button className="np-account-button" type="button" onClick={() => setTab('privacy')}>Privacidad y devoluciones</button>
-    {tab === 'history' ? <AdminAccessPanel user={user} /> : tab === 'price' ? <SubscriptionPanel user={user} /> : <PrivacyAdminPanel />}
+    {tab === 'history' ? <AdminAccessPanel user={user} /> : tab === 'price' ? <SubscriptionPanel user={user} /> : tab === 'messages' ? <MessagesPanel admin /> : <PrivacyAdminPanel />}
     <button className="np-account-button np-admin-lock" type="button" onClick={() => { version.current++; setAllowed(false); setPhrase(''); }}>Bloquear administración</button>
   </div>;
 }

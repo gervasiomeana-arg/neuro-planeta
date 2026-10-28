@@ -20,5 +20,5 @@ export function commercialConfig(env: NodeJS.ProcessEnv = process.env): Commerci
 }
 export function publicConfig(c: CommercialConfig): PublicCommercialConfig {
   const { version, mode, enforce, checkoutReady, legalReady, responsible, country, address, supportEmail } = c;
-  return { version, mode, enforce, checkoutReady, legalReady, responsible, country, address, supportEmail };
+  return { version, mode, enforce, checkoutReady, legalReady, responsible, country, address: '', supportEmail: '' };
 }

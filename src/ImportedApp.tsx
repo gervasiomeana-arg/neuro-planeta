@@ -16,6 +16,7 @@ import { AdultDialog, AdultPanelNavigation } from './AdultPanel';
 import WorkspaceNavigation from './WorkspaceNavigation';
 import PlanetIllustration from './PlanetIllustration';
 import BackupPanel from './data/BackupPanel';
+import MessagesPanel from './support/MessagesPanel';
 import BillingPanel from './commercial/BillingPanel';
 import PrivacyControls from './commercial/PrivacyControls';
 import { useProfileStore } from './data/useProfileStore';
@@ -502,7 +503,7 @@ export default function ImportedApp() {
   const [onboardingStep, setOnboardingStep] = useState<number>(1);
 
   // Clinician dashboard tab selection
-  const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'recompensas' | 'pictogramas' | 'sonido' | 'reportes' | 'historias'>('pacientes');
+  const [parentsActiveTab, setParentsActiveTab] = useState<'pacientes' | 'rutinas' | 'recompensas' | 'pictogramas' | 'sonido' | 'reportes' | 'historias' | 'mensajes'>('pacientes');
   const adultPanelScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { adultPanelScrollRef.current?.scrollTo({top:0,left:0}); }, [parentsActiveTab]);
 
@@ -5577,6 +5578,7 @@ export default function ImportedApp() {
                     )}
 
                     {/* TAB 3: MEDICAL & CLINICAL PROGRESS REPORTS */}
+                    {parentsActiveTab === 'mensajes' && <MessagesPanel />}
                     {parentsActiveTab === 'reportes' && (
                       <div className="space-y-3">
                         <Suspense fallback={<p role="status">Preparando el informe…</p>}><ParentActivityReport key={activePatientId || 'none'} profileName={activePatient.name} sessions={activePatient.activitySessions || []} /></Suspense>

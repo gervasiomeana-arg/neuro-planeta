@@ -31,14 +31,15 @@ export class FirestorePrivacyRepository implements PrivacyRepository {
     return id;
   }
   async export(account: Account) {
-    const [family, profiles, access, billing, receipts, requests] = await Promise.all([
+    const [family, profiles, access, billing, receipts, requests, messages] = await Promise.all([
       this.db.doc(`families/${account.uid}`).get(), this.db.collection(`families/${account.uid}/profiles`).get(),
       this.db.collection('accessEvents').where('ownerUid', '==', account.uid).get(),
       this.db.collection('commercialAccounts').where('uid', '==', account.uid).get(),
       this.db.collection('commercialReceipts').where('uid', '==', account.uid).get(),
       this.db.collection('dataRightsRequests').where('uid', '==', account.uid).get(),
+      this.db.collection('supportMessages').where('uid', '==', account.uid).get(),
     ]);
-    return { account: { uid: account.uid, email: account.email }, family: family.data() || null, profiles: profiles.docs.map(d => ({ id: d.id, ...d.data() })), accessEvents: access.docs.map(d => d.data()), subscriptions: billing.docs.map(d => { const { checkoutKey, approvalUrl, ...data } = d.data(); return data; }), receipts: receipts.docs.map(d => d.data()), requests: requests.docs.map(d => ({ id: d.id, ...d.data() })), exportedAt: new Date().toISOString() };
+    return { account: { uid: account.uid, email: account.email }, family: family.data() || null, profiles: profiles.docs.map(d => ({ id: d.id, ...d.data() })), accessEvents: access.docs.map(d => d.data()), subscriptions: billing.docs.map(d => { const { checkoutKey, approvalUrl, ...data } = d.data(); return data; }), receipts: receipts.docs.map(d => d.data()), requests: requests.docs.map(d => ({ id: d.id, ...d.data() })), messages: messages.docs.map(d => ({ id: d.id, ...d.data() })), exportedAt: new Date().toISOString() };
   }
   async list() { return (await this.db.collection('dataRightsRequests').where('status', '==', 'open').limit(50).get()).docs.map(d => ({ id: d.id, ...d.data() })); }
   async close(id: string) { await this.db.doc(`dataRightsRequests/${id}`).update({ status: 'closed', closedAt: Timestamp.now(), expiresAt: Timestamp.fromMillis(Date.now() + 90 * 86400000) }); }
@@ -67,6 +68,10 @@ export class FirestorePrivacyRepository implements PrivacyRepository {
     for (const doc of events.docs) await doc.ref.delete();
     if (request.kind === 'suppression') {
       try { await adminServices().auth.deleteUser(uid); } catch (e) { if ((e as {code?: string}).code !== 'auth/user-not-found') throw e; }
+    }
+    if (request.kind === 'suppression') {
+      const messages = await this.db.collection('supportMessages').where('uid', '==', uid).get();
+      for (const message of messages.docs) await message.ref.delete();
     }
     // Keep the minimal billing evidence required for accounting and any dispute.
     await this.close(id);

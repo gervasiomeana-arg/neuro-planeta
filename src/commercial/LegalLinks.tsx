@@ -13,7 +13,7 @@ export default function LegalLinks() {
   return <div className="np-legal-links">
     <button type="button" className="np-learning-link" onClick={e => { opener.current = e.currentTarget; setKind('privacy'); }}>Privacidad y datos</button>
     <button type="button" className="np-learning-link" onClick={e => { opener.current = e.currentTarget; setKind('terms'); }}>Condiciones de suscripción</button>
-    {config.supportEmail && <a href={`mailto:${config.supportEmail}`}>Contactar a soporte</a>}
+    <span>Contacto: Mensajes en el espacio de adultos.</span>
     {kind && createPortal(<div className="np-legal-overlay"><div ref={box} className="np-legal-dialog" role="dialog" aria-modal="true" aria-labelledby="np-legal-title" onKeyDown={e => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setKind(null); }
       if (e.key === 'Tab') {

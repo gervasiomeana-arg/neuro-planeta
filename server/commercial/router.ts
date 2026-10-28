@@ -6,10 +6,12 @@ import { PayPalClient } from './paypal';
 import { BillingService } from './service';
 import { FirestoreBillingRepository, verifiedAccount, type Account } from './store';
 import { FirestorePrivacyRepository, RIGHTS, type PrivacyRepository } from './privacy';
+import { FirestoreMessageRepository, type MessageRepository } from './messages';
 import { setAssetAccess } from './assets';
-export type CommercialDependencies = { service?: BillingService; verify?: (token: string) => Promise<Account>; privacy?: PrivacyRepository; now?: () => number };
+export type CommercialDependencies = { messages?: MessageRepository; service?: BillingService; verify?: (token: string) => Promise<Account>; privacy?: PrivacyRepository; now?: () => number };
 export function commercialRouter(config: CommercialConfig, deps: CommercialDependencies = {}) {
   const router = express.Router(), service = deps.service || new BillingService(config, new PayPalClient(config), new FirestoreBillingRepository(config.mode));
+  const messages = deps.messages || new FirestoreMessageRepository();
   const privacy = deps.privacy || new FirestorePrivacyRepository(), verify = deps.verify || verifiedAccount, now = deps.now || Date.now;
   router.get('/commercial/config', (_req, res) => res.json(publicConfig(config)));
   router.post('/commercial/paypal/webhook', express.json({ limit: '64kb', strict: true }), async (req, res) => {
@@ -20,20 +22,48 @@ export function commercialRouter(config: CommercialConfig, deps: CommercialDepen
       res.sendStatus(200);
     } catch { res.sendStatus(503); } // PayPal retries. Do not acknowledge unfinished work.
   });
+  router.use('/support', express.json({ limit: '8kb', strict: true }));
   router.use(['/commercial', '/privacy'], express.json({ limit: '2kb', strict: true }));
-  router.use(['/commercial', '/privacy'], async (req, res, next) => {
-    if (req.method !== 'GET' && (req.get('origin') !== config.origin || !config.origin || req.get('sec-fetch-site') === 'cross-site')) return res.status(403).json({ error: 'Origen no permitido.' });
+  router.use(['/commercial', '/privacy', '/support'], async (req, res, next) => {
+    const expectedOrigin = config.origin || (req.baseUrl.endsWith('/support') ? 'https://neuroplaneta.ai.studio' : '');
+    if (req.method !== 'GET' && (req.get('origin') !== expectedOrigin || !expectedOrigin || req.get('sec-fetch-site') === 'cross-site')) return res.status(403).json({ error: 'Origen no permitido.' });
     const match = /^Bearer ([A-Za-z0-9._-]{20,10000})$/.exec(req.get('authorization') || '');
     if (!match) return res.status(401).json({ error: 'Volvé a ingresar con Google.' });
     try { res.locals.account = await verify(match[1]); }
     catch { return res.status(401).json({ error: 'No se pudo verificar tu sesión. Volvé a ingresar con Google.' }); }
     try {
       if (!await privacy.consume(res.locals.account.uid, req.method === 'GET' ? 'read' : 'write')) return res.status(429).json({ error: 'Esperá un minuto antes de volver a intentar.' });
-      if (req.method !== 'GET' && now() - res.locals.account.authTime > 10 * 60000) return res.status(401).json({ error: 'Para esta operación, cerrá la sesión Google y volvé a ingresar.' });
+      if (req.method !== 'GET' && !req.baseUrl.endsWith('/support') && now() - res.locals.account.authTime > 10 * 60000) return res.status(401).json({ error: 'Para esta operación, cerrá la sesión Google y volvé a ingresar.' });
       next();
     } catch { res.status(503).json({ error: 'El servicio de cuenta no está disponible. Tus perfiles no se modificaron.' }); }
   });
   function body(req: Request, allowed: string[]) { return req.body && typeof req.body === 'object' && !Array.isArray(req.body) && Object.keys(req.body).every(k => allowed.includes(k)); }
+  router.post('/support/messages', async (req, res) => {
+    if (!body(req, ['id', 'subject', 'message']) || typeof req.body.id !== 'string' || !/^[a-f0-9-]{36}$/.test(req.body.id) || typeof req.body.subject !== 'string' || typeof req.body.message !== 'string') return res.sendStatus(400);
+    const subject = req.body.subject.trim(), message = req.body.message.trim();
+    if (!subject || subject.length > 120 || !message || message.length > 1500) return res.sendStatus(400);
+    try { res.status(201).json({ id: await messages.send(res.locals.account, req.body.id, subject, message) }); }
+    catch { res.status(503).json({ error: 'No se pudo confirmar el envío. Conservá el texto y volvé a intentar.' }); }
+  });
+  router.get('/support/messages', async (req, res) => {
+    const cursor = req.query.cursor;
+    if (cursor !== undefined && (typeof cursor !== 'string' || !/^[a-f0-9]{64}$/.test(cursor))) return res.sendStatus(400);
+    try { res.json(await messages.list({ ...res.locals.account, admin: false }, cursor as string | undefined)); }
+    catch { res.status(503).json({ error: 'No se pudieron consultar los mensajes.' }); }
+  });
+  router.get('/support/admin/messages', async (req, res) => {
+    if (!res.locals.account.admin) return res.sendStatus(403);
+    const cursor = req.query.cursor;
+    if (cursor !== undefined && (typeof cursor !== 'string' || !/^[a-f0-9]{64}$/.test(cursor))) return res.sendStatus(400);
+    try { res.json(await messages.list(res.locals.account, cursor as string | undefined)); }
+    catch { res.status(503).json({ error: 'No se pudo cargar la bandeja.' }); }
+  });
+  router.post('/support/admin/messages/:id/read', async (req, res) => {
+    if (!res.locals.account.admin) return res.sendStatus(403);
+    if (!body(req, []) || !/^[a-f0-9]{64}$/.test(req.params.id)) return res.sendStatus(400);
+    try { await messages.markRead(req.params.id); res.json({ done: true }); }
+    catch { res.status(503).json({ error: 'No se pudo marcar el mensaje como leído.' }); }
+  });
   router.get('/commercial/status', async (_req, res) => {
     try { const data = await service.status(res.locals.account); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.paidThrough); res.json(data); } catch { res.status(503).json({ error: 'No se pudo verificar la suscripción. No vuelvas a pagar sin consultar su estado.' }); }
   });

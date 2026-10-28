@@ -140,3 +140,51 @@ test('un fallo al entregar el módulo muestra recuperación y copia, sin pantall
   await expect(page.getByRole('region', { name: 'Copias de seguridad', exact: true })).toBeVisible();
   expect(await saved(page)).toEqual(originals);
 });
+
+for (const width of [390, 768, 1280]) test(`mensajes de adultos confirma envío, conserva texto si falla y no altera perfiles: ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await seed(page); const dialog = await adults(page), before = await saved(page);
+  if (await dialog.getByRole('combobox', { name: 'Sección del panel', exact: true }).isVisible()) await dialog.getByRole('combobox', { name: 'Sección del panel', exact: true }).selectOption('mensajes');
+  else await dialog.getByRole('button', { name: /Mensajes Contactar a NeuroPlaneta/ }).click();
+  const panel = dialog.getByRole('region', { name: 'Mensajes a NeuroPlaneta', exact: true });
+  await expect(panel).toBeVisible();
+  expect(await panel.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+  const send = panel.getByRole('button', { name: 'Enviar mensaje', exact: true });
+  await expect(send).toBeDisabled();
+  await panel.getByLabel('Asunto', { exact: true }).fill('Consulta ficticia');
+  await panel.getByLabel('Mensaje', { exact: true }).fill('Necesito ayuda para usar la app.');
+  let fail = true; const bodies: any[] = [];
+  await page.route('**/api/support/**', r => {
+    if (r.request().method() === 'POST') { bodies.push(r.request().postDataJSON()); return r.fulfill({ status: fail ? 503 : 201, json: fail ? { error: 'No se confirmó el envío.' } : { id: 'referencia-ficticia' } }); }
+    return r.fulfill({ json: { messages: [{ id: 'referencia-ficticia', subject: 'Consulta ficticia', message: 'Necesito ayuda para usar la app.', email: 'adult@example.invalid', createdAt: Date.now(), read: false }], next: null } });
+  });
+  await send.click(); await expect(panel.getByRole('status')).toContainText('No se confirmó');
+  await expect(panel.getByLabel('Mensaje', { exact: true })).toHaveValue('Necesito ayuda para usar la app.');
+  fail = false; await send.click(); await expect(panel.getByRole('status')).toContainText('Mensaje recibido');
+  expect(bodies[0]).toEqual(bodies[1]); expect(Object.keys(bodies[0]).sort()).toEqual(['id', 'message', 'subject']);
+  await expect(panel.getByLabel('Mensaje', { exact: true })).toHaveValue('');
+  await panel.getByRole('button', { name: 'Consultar mis mensajes', exact: true }).click();
+  await expect(panel).toContainText('Pendiente de lectura');
+  expect(await saved(page)).toEqual(before);
+});
+
+test('administración presenta Mensajes junto a Suscripción mensual y permite marcar leído', async ({ page }) => {
+  await seed(page);
+  const roleName = `projects/neuroplaneta-bdaf9/databases/(default)/documents/admins/${uid}`;
+  await page.route('https://firestore.googleapis.com/**', r => r.fulfill({ json: [{ found: { name: roleName, fields: { active: { booleanValue: true } }, createTime: '2026-01-01T00:00:00Z', updateTime: '2026-01-01T00:00:00Z' }, readTime: '2026-01-01T00:00:00Z' }] }));
+  await page.getByRole('button', { name: 'Administración', exact: true }).first().click();
+  const admin = page.getByRole('dialog', { name: 'Administración', exact: true });
+  await admin.getByLabel('Clave de administración', { exact: true }).fill('CAR123');
+  await admin.getByRole('button', { name: 'Ingresar a administración', exact: true }).click();
+  await admin.getByRole('tab', { name: 'Mensajes', exact: true }).click();
+  let read = false;
+  await page.route('**/api/support/admin/**', r => {
+    if (r.request().method() === 'POST') { read = true; return r.fulfill({ json: { done: true } }); }
+    return r.fulfill({ json: { messages: [{ id: 'a'.repeat(64), email: 'cliente@example.invalid', subject: 'Consulta de prueba', message: '<script>texto sin ejecutar</script>', createdAt: Date.now(), read }], next: null } });
+  });
+  const panel = admin.getByRole('region', { name: 'Bandeja de mensajes', exact: true });
+  await panel.getByRole('button', { name: 'Actualizar bandeja', exact: true }).click();
+  await expect(panel).toContainText('cliente@example.invalid'); await expect(panel).toContainText('<script>texto sin ejecutar</script>');
+  await panel.getByRole('button', { name: 'Marcar como leído', exact: true }).click();
+  await expect(panel.getByRole('button', { name: 'Marcar como leído', exact: true })).toHaveCount(0); expect(read).toBe(true);
+});

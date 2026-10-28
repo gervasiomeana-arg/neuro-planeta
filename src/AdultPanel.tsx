@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode, type KeyboardEvent } from 'react';
-import { Users, ClipboardList, Gift, BookOpen, Images, Volume2, ChartNoAxesCombined, type LucideIcon } from 'lucide-react';
+import { Users, ClipboardList, Gift, BookOpen, Images, Volume2, ChartNoAxesCombined, Mail, type LucideIcon } from 'lucide-react';
 
-export type AdultSection = 'pacientes'|'rutinas'|'recompensas'|'historias'|'pictogramas'|'sonido'|'reportes';
+export type AdultSection = 'pacientes'|'rutinas'|'recompensas'|'historias'|'pictogramas'|'sonido'|'reportes'|'mensajes';
 const sections: {id:AdultSection;label:string;description:string;icon:LucideIcon}[]=[
  {id:'pacientes',label:'Perfiles',description:'Personas y copias',icon:Users},
  {id:'rutinas',label:'Rutinas',description:'Pasos para el día',icon:ClipboardList},
@@ -10,6 +10,7 @@ const sections: {id:AdultSection;label:string;description:string;icon:LucideIcon
  {id:'pictogramas',label:'Pictogramas',description:'Imágenes y voces',icon:Images},
  {id:'sonido',label:'Audio Sensorial',description:'Volumen y preferencias',icon:Volume2},
  {id:'reportes',label:'Informe de uso',description:'Compartir con un profesional',icon:ChartNoAxesCombined},
+ {id:'mensajes',label:'Mensajes',description:'Contactar a NeuroPlaneta',icon:Mail},
 ];
 export function AdultPanelNavigation({value,onChange}:{value:AdultSection;onChange:(section:AdultSection)=>void}){
  return <div className="np-adult-navigation">
