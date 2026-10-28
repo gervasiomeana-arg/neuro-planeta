@@ -8,6 +8,7 @@ import { FirestoreBillingRepository, verifiedAccount, type Account } from './sto
 import { FirestorePrivacyRepository, RIGHTS, type PrivacyRepository } from './privacy';
 import { FirestoreMessageRepository, type MessageRepository } from './messages';
 import { serverDiagnostics, type DiagnosticResult } from './diagnostics';
+import { verificationResponse } from './verification';
 import { setAssetAccess } from './assets';
 export type CommercialDependencies = { diagnose?: (account: Account) => Promise<DiagnosticResult>; messages?: MessageRepository; service?: BillingService; verify?: (token: string) => Promise<Account>; privacy?: PrivacyRepository; now?: () => number };
 export function commercialRouter(config: CommercialConfig, deps: CommercialDependencies = {}) {
@@ -31,7 +32,7 @@ export function commercialRouter(config: CommercialConfig, deps: CommercialDepen
     const match = /^Bearer ([A-Za-z0-9._-]{20,10000})$/.exec(req.get('authorization') || '');
     if (!match) return res.status(401).json({ error: 'Volvé a ingresar con Google.' });
     try { res.locals.account = await verify(match[1]); }
-    catch { return res.status(401).json({ error: 'No se pudo verificar tu sesión. Volvé a ingresar con Google.' }); }
+    catch (error) { const failure = verificationResponse(error); return res.status(failure.status).json(failure.body); }
     try {
       if (!await privacy.consume(res.locals.account.uid, req.method === 'GET' ? 'read' : 'write')) return res.status(429).json({ error: 'Esperá un minuto antes de volver a intentar.' });
       if (req.method !== 'GET' && !req.baseUrl.endsWith('/support') && now() - res.locals.account.authTime > 10 * 60000) return res.status(401).json({ error: 'Para esta operación, cerrá la sesión Google y volvé a ingresar.' });

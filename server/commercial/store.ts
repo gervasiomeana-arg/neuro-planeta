@@ -1,6 +1,7 @@
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { AccountVerificationError, verificationFailure } from './verification';
 import type { Json } from './paypal';
 export function adminServices() {
   const app = getApps().find(a => a.name === 'neuroplaneta-server') || initializeApp({ credential: applicationDefault(), projectId: 'neuroplaneta-bdaf9' }, 'neuroplaneta-server');
@@ -8,9 +9,13 @@ export function adminServices() {
 }
 export type Account = { uid: string; email: string; authTime: number; admin: boolean };
 export async function verifiedAccount(token: string): Promise<Account> {
-  const { auth, db } = adminServices(), claims = await auth.verifyIdToken(token, true);
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(claims.uid) || claims.email_verified !== true || claims.firebase?.sign_in_provider !== 'google.com') throw new Error('Cuenta no válida.');
-  const role = await db.doc(`admins/${claims.uid}`).get();
+  let services: ReturnType<typeof adminServices>, claims;
+  try { services = adminServices(); claims = await services.auth.verifyIdToken(token, true); }
+  catch (error) { throw verificationFailure(error, 'auth'); }
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(claims.uid) || claims.email_verified !== true || claims.firebase?.sign_in_provider !== 'google.com') throw new AccountVerificationError('SESSION_INVALID');
+  let role;
+  try { role = await services.db.doc(`admins/${claims.uid}`).get(); }
+  catch (error) { throw verificationFailure(error, 'database'); }
   return { uid: claims.uid, email: claims.email || '', authTime: claims.auth_time * 1000, admin: role.data()?.active === true };
 }
 export interface BillingRepository {

@@ -27,7 +27,7 @@ test('support HTTP enforces verified accounts, ownership, administrator rights, 
   const privacy: PrivacyRepository = { consume: async () => !limited, async request() { return ''; }, async export() { return {}; }, async list() { return []; }, async close() {}, async suppress() {}, async maintain() { return 0; } };
   const config = commercialConfig({ COMMERCIAL_APP_URL: 'https://neuro.example.invalid' });
   const app = createApiApp({ production: false, commercial: { config, deps: { messages, privacy, async verify(token) {
-    if (token.startsWith('revoked')) throw Error('revoked');
+    if (token.startsWith('revoked')) throw Object.assign(Error('revoked'), { code: 'auth/id-token-revoked' });
     const uid = token.startsWith('other') ? 'two' : 'one';
     return { uid, email: `${uid}@example.invalid`, admin: token.startsWith('admin'), authTime: 0 };
   } } } });

@@ -71,3 +71,9 @@ TypeScript y compilación de producción aprobados. 70 pruebas de seguridad/dato
 Pendiente para cerrar el punto 3: identificar la cuenta de servicio de la revisión publicada y contrastar sus permisos en Google Cloud con las operaciones requeridas; después comprobar el diagnóstico y la recepción de un mensaje/solicitud en la versión publicada. El acceso del titular a Firebase no reemplaza esa prueba de la identidad del servidor.
 
 Fuente de ubicación: https://firebase.google.com/docs/firestore/locations?hl=en
+
+## Verificación del backend publicado
+
+Se confirmó públicamente la configuración 2026-10-27.3 y el código correspondiente en AI Studio. Se completaron el acceso Google y el acceso al panel administrador mediante formulario seguro, sin abrir ni crear perfiles. La primera comprobación privada del servidor devolvió un error de verificación de sesión. Esto no prueba por sí solo que el token sea incorrecto: el middleware convertía cualquier excepción de Firebase Admin en un 401 de sesión.
+
+Se corrigió esa clasificación: los tokens vencidos/revocados/inválidos siguen rechazados con 401; las fallas de credenciales del servidor, permisos de Firebase Auth, permisos de consulta de roles en Firestore y disponibilidad se rechazan con 503 y categorías fijas. No se devuelve el mensaje original del proveedor, tokens, credenciales ni identidades privadas. Se conserva la comprobación de revocación y no se abre ninguna operación si falla la verificación. La validación de la corrección incluye TypeScript, build y 72 pruebas de seguridad/datos. La causa efectiva y los permisos IAM deben comprobarse después de publicar este cambio; no se sustituyen con una inferencia a partir del 401 anterior.
