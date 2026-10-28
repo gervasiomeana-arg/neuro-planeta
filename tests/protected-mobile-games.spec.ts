@@ -1,3 +1,4 @@
+import { POLICY_VERSION } from '../commercial/policy';
 import { test, expect, type Page } from '@playwright/test';
 import { encryptBackup, decryptBackup } from '../src/data/backups';
 import { accountProfileKey } from '../src/data/accountProfileStorage';
@@ -7,6 +8,8 @@ const uid = 'mobile-protected-fictional', apiKey = 'AIzaSyAjnF0-SAQIpmPTgidYY11f
 const password = 'Solo datos ficticios prueba 2026';
 const profile = { id: 'mobile-protected', name: 'Celular ficticio', avatar: '🦊', selectedAge: '6-8', stars: 10, unlockedAchievements: [], completedRoutineTasks: [], emotionJournal: [{ date: '2026-10-25', emotion: 'Nota', note: 'Conservar esta nota ficticia' }], customPictogramImages: {}, customPictogramVoices: {} };
 async function openProtected(page: Page) {
+  // Consent is covered separately; this fixture exercises encryption/game recovery.
+  await page.addInitScript(({ uid, version }) => localStorage.setItem(`np_privacy_consent:${uid}:${version}`, JSON.stringify({ version, acceptedAt: new Date().toISOString() })), { uid, version: POLICY_VERSION });
   const email = `${uid}@example.invalid`, now = Math.floor(Date.now() / 1000);
   const token = `eyJhbGciOiJub25lIn0.${Buffer.from(JSON.stringify({ sub: uid, user_id: uid, email, email_verified: true, auth_time: now, iat: now, exp: now + 3600, firebase: { sign_in_provider: 'google.com' } })).toString('base64url')}.simulated`;
   const user = { uid, email, emailVerified: true, isAnonymous: false, providerData: [{ providerId: 'google.com', uid, email }], stsTokenManager: { accessToken: token, refreshToken: 'fictional-only', expirationTime: Date.now() + 3600000 }, createdAt: String(Date.now()), lastLoginAt: String(Date.now()), apiKey, appName: 'neuroplaneta-adults' };

@@ -747,5 +747,5 @@
 .np-commercial-access { min-height:100dvh;padding:20px;background:#e8ede3; }
 .np-commercial-access>section { max-width:900px;margin:auto; }
 @media(max-width:600px) { .np-legal-overlay { padding:8px; }.np-legal-dialog { padding:18px;max-height:96dvh; }.np-commercial-panel { padding:16px; } }
-.np-messages textarea { display:block;width:100%;max-width:100%;min-height:140px;resize:vertical;padding:12px;border:1px solid #b9cdc3;border-radius:10px;background:#fffdf8;color:#29433e;font-size:16px; }
+.np-commercial-panel textarea { display:block;width:100%;max-width:100%;min-height:140px;resize:vertical;padding:12px;border:1px solid #b9cdc3;border-radius:10px;background:#fffdf8;color:#29433e;font-size:16px; }
 .np-message { display:grid;gap:8px;border-top:1px solid #b9cdc3;padding-top:16px;min-width:0;overflow-wrap:anywhere; }

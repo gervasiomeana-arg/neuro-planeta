@@ -19,7 +19,7 @@ El valor predeterminado es PAYPAL_MODE=off y BILLING_ENFORCE=false. Los accesos 
 
 Para activar se necesita completar:
 
-1. Domicilio comercial/legal que el titular quiera publicar y correo de soporte confirmado, en LEGAL_ADDRESS y SUPPORT_EMAIL. Los textos se muestran como incompletos y contratar permanece deshabilitado mientras falten.
+1. Revisión comercial de la identificación y contacto del proveedor. Por instrucción del titular no se publican su domicilio ni correo particulares; el contacto de producto es Mensajes. LEGAL_ADDRESS y SUPPORT_EMAIL no se exponen aunque existan en el servidor, ni bastan por sí solos para certificar información comercial suficiente. La contratación sigue deshabilitada. Ver docs/revision-servidor-privacidad-2026-10-27.md.
 2. Cuenta PayPal Business habilitada y credenciales sandbox en secretos del servidor: PAYPAL_CLIENT_ID y PAYPAL_CLIENT_SECRET. No poner claves en GitHub, navegador ni chat.
 3. Identidad de servicio del servidor con acceso a Firestore y Firebase Authentication de neuroplaneta-bdaf9. Se usa Application Default Credentials; no se incorpora JSON privado al repositorio. Runtime Node >=22.12.
 4. Ejecutar `node --import tsx scripts/setup-paypal.ts` en el entorno confiable del titular, con PAYPAL_MODE=sandbox, COMMERCIAL_APP_URL y PAYPAL_SETUP_REQUEST_ID (UUID estable por intento). Crea producto, plan mensual y webhook, sin cobrar. Guardar los IDs devueltos en PAYPAL_PRODUCT_ID, PAYPAL_PLAN_ID y PAYPAL_WEBHOOK_ID. Ver .env.example.
@@ -42,3 +42,7 @@ El informe permanece descriptivo de actividades registradas, sin análisis clín
 - https://www.argentina.gob.ar/normativa/nacional/norma-64790/actualizacion
 - https://www.argentina.gob.ar/aaip/datospersonales/derechos
 - https://www.rpba.gob.ar/files/Normas/Leyes/CCCN0320-0331.pdf
+
+## Revisión posterior
+
+Se separó consentimiento de privacidad de preparación comercial, se agregaron detalles y seguimiento de solicitudes, respuestas administrativas, preservación de solicitudes cerradas y diagnóstico privado de lectura. El historial y las pruebas se describen en `revision-servidor-privacidad-2026-10-27.md`. No se verificaron IAM ni región de producción por el bloqueo de inicio de sesión Google; no se deben presentar como aprobados.

@@ -187,4 +187,65 @@ test('administración presenta Mensajes junto a Suscripción mensual y permite m
   await expect(panel).toContainText('cliente@example.invalid'); await expect(panel).toContainText('<script>texto sin ejecutar</script>');
   await panel.getByRole('button', { name: 'Marcar como leído', exact: true }).click();
   await expect(panel.getByRole('button', { name: 'Marcar como leído', exact: true })).toHaveCount(0); expect(read).toBe(true);
+  let completed: any;
+  await page.route('**/api/privacy/admin/**', r => {
+    const path = new URL(r.request().url()).pathname;
+    if (path.endsWith('/diagnostics')) return r.fulfill({ json:{ checkedAt:new Date().toISOString(), checks:[{ name:'Firebase Authentication', ok:true },{ name:'Firestore', ok:false }], writesTested:false, deletionsTested:false, billingEnabled:false } });
+    if (r.request().method() === 'POST') { completed = r.request().postDataJSON(); return r.fulfill({ json:{ done:true } }); }
+    return r.fulfill({ json:{ requests:[{ id:'a'.repeat(64), email:'adult@example.invalid', kind:'access', status:'open', createdAt:Date.now(), details:'Copia de mis datos.' }] } });
+  });
+  await admin.getByRole('button', { name:'Privacidad y devoluciones', exact:true }).click();
+  const privacy = admin.getByRole('region', { name:'Solicitudes de privacidad y devoluciones', exact:true });
+  await privacy.getByRole('button', { name:'Comprobar conexión del servidor', exact:true }).click();
+  await expect(privacy).toContainText('No verificado · Firestore'); await expect(privacy).toContainText('Escrituras y borrados: sin ejecutar.');
+  await privacy.getByRole('button', { name:'Consultar solicitudes pendientes', exact:true }).click();
+  await privacy.getByRole('button', { name:'Gestionar esta solicitud', exact:true }).click();
+  await privacy.getByLabel('Confirmación de la gestión', { exact:true }).fill('GESTION COMPLETADA');
+  const close = privacy.getByRole('button', { name:'Marcar gestión completada', exact:true });
+  await expect(close).toBeDisabled();
+  await privacy.getByRole('textbox', { name:'Respuesta para el solicitante', exact:true }).fill('Se entregó la copia solicitada.');
+  await close.click(); await expect(privacy.getByRole('status')).toContainText('Gestión confirmada');
+  expect(completed.resolution).toBe('Se entregó la copia solicitada.');
+});
+
+test('privacidad exige aceptación aun con cobros apagados y permite volver después de revocar', async ({ page }) => {
+  await seed(page);
+  await page.route('**/commercial-config.json', r => r.fulfill({ json: { ...DEFAULT_CONFIG, mode: 'off', enforce: false, legalReady: false, checkoutReady: false } }));
+  await page.evaluate(({ uid, version }) => localStorage.removeItem(`np_privacy_consent:${uid}:${version}`), { uid, version: POLICY_VERSION });
+  await page.reload();
+  const locked = page.getByRole('region', { name: 'Desbloquear perfiles protegidos', exact: true });
+  await locked.getByLabel('Contraseña de protección', { exact: true }).fill(password); await locked.getByRole('button', { name:'Desbloquear perfiles', exact:true }).click();
+  await expect(page.getByRole('button', { name:/Primer perfil ficticio/ })).toHaveCount(0);
+  await page.getByRole('checkbox', { name:/Soy adulto responsable o estoy autorizado/ }).check();
+  await page.getByRole('button', { name:'Aceptar y continuar', exact:true }).click();
+  await adults(page);
+  const privacy = page.getByRole('region', { name:'Privacidad y control de datos', exact:true });
+  const before = await saved(page);
+  await privacy.getByRole('button', { name:'Revocar permiso de registro en este navegador', exact:true }).click();
+  await expect(page.getByRole('heading', { name:'Tu cuenta y tus datos', exact:true })).toBeVisible();
+  await expect(page.getByRole('region', { name:'Mensajes a NeuroPlaneta', exact:true })).toBeVisible();
+  await page.getByRole('checkbox', { name:/Soy adulto responsable o estoy autorizado/ }).check();
+  await page.getByRole('button', { name:'Aceptar y continuar', exact:true }).click();
+  await expect(page.getByRole('button', { name:/Primer perfil ficticio/ })).toBeVisible();
+  expect(await saved(page)).toEqual(before);
+});
+
+test('rectificación requiere detalle y el adulto consulta una respuesta sin acceso a cuentas ajenas', async ({ page }) => {
+  await seed(page); await adults(page);
+  let submitted: any;
+  await page.route('**/api/privacy/**', r => {
+    if (r.request().method() === 'POST') { submitted = r.request().postDataJSON(); return r.fulfill({ status:202, json:{ id:'solicitud-ficticia', status:'open' } }); }
+    return r.fulfill({ json:{ requests:[{ id:'solicitud-ficticia', kind:'rectification', status:'closed', details:'Corregir mi cuenta adulta.', resolution:'Se informó cómo actualizar el correo en Google.', createdAt:Date.now() }] } });
+  });
+  const privacy = page.getByRole('region', { name:'Privacidad y control de datos', exact:true });
+  await privacy.getByRole('combobox', { name:'Tipo de solicitud', exact:true }).selectOption('rectification');
+  await privacy.getByRole('checkbox', { name:/Comprendí el alcance/ }).check();
+  await expect(privacy.getByRole('button', { name:'Registrar solicitud', exact:true })).toBeDisabled();
+  await privacy.getByRole('textbox', { name:'Detalle de la solicitud', exact:true }).fill('Corregir mi cuenta adulta.');
+  await privacy.getByRole('button', { name:'Registrar solicitud', exact:true }).click();
+  await expect(privacy.getByRole('status')).toContainText('Está pendiente');
+  expect(submitted).toEqual({ kind:'rectification', version:POLICY_VERSION, understood:true, details:'Corregir mi cuenta adulta.' });
+  await privacy.getByRole('button', { name:'Consultar mis solicitudes', exact:true }).click();
+  await expect(privacy).toContainText('Respuesta: Se informó cómo actualizar el correo en Google.');
+  expect(JSON.stringify(submitted)).not.toMatch(/Primer perfil|uid|email/);
 });

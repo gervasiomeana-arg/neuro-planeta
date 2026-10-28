@@ -3,7 +3,7 @@ export type CommercialConfig = PublicCommercialConfig & { origin: string; client
 export function commercialConfig(env: NodeJS.ProcessEnv = process.env): CommercialConfig {
   const mode = env.PAYPAL_MODE || 'off';
   if (!['off', 'sandbox', 'live'].includes(mode)) throw new Error('PAYPAL_MODE no válido.');
-  let origin = '';
+  let origin = 'https://neuroplaneta.ai.studio';
   if (env.COMMERCIAL_APP_URL) {
     const u = new URL(env.COMMERCIAL_APP_URL);
     if (u.protocol !== 'https:' || u.username || u.password || u.pathname !== '/' || u.search || u.hash) throw new Error('COMMERCIAL_APP_URL requiere un origen HTTPS.');
@@ -19,6 +19,6 @@ export function commercialConfig(env: NodeJS.ProcessEnv = process.env): Commerci
   return { ...DEFAULT_CONFIG, mode: mode as CommercialConfig['mode'], origin, address, supportEmail, legalReady, checkoutReady, enforce, clientId, secret, planId, webhookId, assetSecret };
 }
 export function publicConfig(c: CommercialConfig): PublicCommercialConfig {
-  const { version, mode, enforce, checkoutReady, legalReady, responsible, country, address, supportEmail } = c;
+  const { version, mode, enforce, checkoutReady, legalReady, responsible, country } = c;
   return { version, mode, enforce, checkoutReady, legalReady, responsible, country, address: '', supportEmail: '' };
 }

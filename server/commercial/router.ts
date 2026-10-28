@@ -7,8 +7,9 @@ import { BillingService } from './service';
 import { FirestoreBillingRepository, verifiedAccount, type Account } from './store';
 import { FirestorePrivacyRepository, RIGHTS, type PrivacyRepository } from './privacy';
 import { FirestoreMessageRepository, type MessageRepository } from './messages';
+import { serverDiagnostics, type DiagnosticResult } from './diagnostics';
 import { setAssetAccess } from './assets';
-export type CommercialDependencies = { messages?: MessageRepository; service?: BillingService; verify?: (token: string) => Promise<Account>; privacy?: PrivacyRepository; now?: () => number };
+export type CommercialDependencies = { diagnose?: (account: Account) => Promise<DiagnosticResult>; messages?: MessageRepository; service?: BillingService; verify?: (token: string) => Promise<Account>; privacy?: PrivacyRepository; now?: () => number };
 export function commercialRouter(config: CommercialConfig, deps: CommercialDependencies = {}) {
   const router = express.Router(), service = deps.service || new BillingService(config, new PayPalClient(config), new FirestoreBillingRepository(config.mode));
   const messages = deps.messages || new FirestoreMessageRepository();
@@ -79,12 +80,21 @@ export function commercialRouter(config: CommercialConfig, deps: CommercialDepen
     if (!body(req, ['confirmation']) || req.body.confirmation !== 'CANCELAR RENOVACION') return res.sendStatus(400);
     try { const data = await service.cancel(res.locals.account); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.paidThrough); res.json(data); } catch { res.status(503).json({ error: 'No se confirmó la cancelación. Podés cancelarla en los pagos automáticos de PayPal o contactar a soporte.' }); }
   });
+  router.get('/privacy/admin/diagnostics', async (_req, res) => {
+    if (!res.locals.account.admin) return res.sendStatus(403);
+    try { res.json(await (deps.diagnose ? deps.diagnose(res.locals.account) : serverDiagnostics(res.locals.account, config))); }
+    catch { res.status(503).json({ error: 'No se pudo completar el diagnóstico de lectura. No se modificaron datos.' }); }
+  });
+  router.get('/privacy/requests', async (_req, res) => {
+    try { res.json({ requests: await privacy.list(res.locals.account) }); } catch { res.status(503).json({ error: 'No se pudieron consultar tus solicitudes.' }); }
+  });
   router.get('/privacy/export', async (_req, res) => {
     try { res.set('Content-Disposition', 'attachment; filename="neuroplaneta-datos-cuenta.json"').json(await privacy.export(res.locals.account)); } catch { res.status(503).json({ error: 'No se pudo preparar la copia de datos de la cuenta.' }); }
   });
   router.post('/privacy/requests', async (req, res) => {
-    if (!body(req, ['kind', 'version', 'understood']) || !RIGHTS.includes(req.body.kind) || req.body.version !== POLICY_VERSION || req.body.understood !== true) return res.sendStatus(400);
-    try { res.status(202).json({ id: await privacy.request(res.locals.account, req.body.kind, POLICY_VERSION), status: 'open' }); } catch { res.status(503).json({ error: 'La solicitud no pudo registrarse. Usá el contacto de soporte.' }); }
+    if (!body(req, ['kind', 'version', 'understood', 'details']) || !RIGHTS.includes(req.body.kind) || req.body.version !== POLICY_VERSION || req.body.understood !== true || (req.body.details !== undefined && (typeof req.body.details !== 'string' || req.body.details.length > 500))) return res.sendStatus(400);
+    if (req.body.kind === 'rectification' && !req.body.details?.trim()) return res.status(400).json({ error: 'Indicá qué dato de tu cuenta querés corregir, sin incluir información del niño.' });
+    try { res.status(202).json({ id: await privacy.request(res.locals.account, req.body.kind, POLICY_VERSION, req.body.details?.trim()), status: 'open' }); } catch { res.status(503).json({ error: 'La solicitud no pudo registrarse. Usá el contacto de soporte.' }); }
   });
   router.get('/privacy/admin/requests', async (_req, res) => {
     if (!res.locals.account.admin) return res.sendStatus(403);
@@ -97,10 +107,10 @@ export function commercialRouter(config: CommercialConfig, deps: CommercialDepen
   });
   router.post('/privacy/admin/requests/:id', async (req, res) => {
     if (!res.locals.account.admin) return res.sendStatus(403);
-    if (!/^[a-f0-9]{64}$/.test(req.params.id) || !body(req, ['action', 'confirmation'])) return res.sendStatus(400);
+    if (!/^[a-f0-9]{64}$/.test(req.params.id) || !body(req, ['action', 'confirmation', 'resolution'])) return res.sendStatus(400);
     try {
       if (req.body.action === 'suppress' && req.body.confirmation === 'ELIMINAR DATOS SOLICITADOS') await privacy.suppress(req.params.id);
-      else if (req.body.action === 'close' && req.body.confirmation === 'GESTION COMPLETADA') await privacy.close(req.params.id);
+      else if (req.body.action === 'close' && req.body.confirmation === 'GESTION COMPLETADA' && typeof req.body.resolution === 'string' && req.body.resolution.trim().length >= 10 && req.body.resolution.length <= 500) await privacy.close(req.params.id, req.body.resolution.trim());
       else return res.sendStatus(400);
       res.json({ done: true });
     } catch { res.status(409).json({ error: 'No se completó la gestión. Verificá la solicitud y cancelá cualquier suscripción antes de eliminar la cuenta.' }); }

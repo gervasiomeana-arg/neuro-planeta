@@ -2,17 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { POLICY_VERSION } from '../../commercial/policy';
 import { accountRequest } from './api';
 import LegalLinks from './LegalLinks';
-import { useCommercial } from './CommercialContext';
 import { adultAuth } from '../auth/firebase';
 type Profile = { id: string; name: string };
 export default function PrivacyControls({ profiles, onErase }: { profiles: Profile[]; onErase?: (id: string) => Promise<void> }) {
-  const { config } = useCommercial();
   const [selected, setSelected] = useState(''), [confirmation, setConfirmation] = useState(''), [ack, setAck] = useState(false);
   const [kind, setKind] = useState('access'), [understood, setUnderstood] = useState(false), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
+  const [details, setDetails] = useState(''), [requests, setRequests] = useState<any[] | null>(null);
   const mounted = useRef(false), running = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const profile = profiles.find(p => p.id === selected);
-  async function perform(action: 'erase' | 'export' | 'request') {
+  async function perform(action: 'erase' | 'export' | 'request' | 'list') {
     if (running.current) return;
     running.current = true; setBusy(true); setMessage('');
     try {
@@ -26,9 +25,12 @@ export default function PrivacyControls({ profiles, onErase }: { profiles: Profi
         const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
         const a = document.createElement('a'); a.href = url; a.download = 'neuroplaneta-datos-cuenta.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500);
         setMessage('Descarga de datos de la cuenta iniciada. Los perfiles locales se exportan desde Copias de seguridad.');
+      } else if (action === 'list') {
+        const result = await accountRequest('privacy/requests');
+        if (mounted.current) setRequests(result.requests);
       } else {
         if (!understood) throw new Error('Revisá el alcance de la solicitud.');
-        const result = await accountRequest('privacy/requests', { kind, version: POLICY_VERSION, understood: true });
+        const result = await accountRequest('privacy/requests', { kind, version: POLICY_VERSION, understood: true, ...(details.trim() ? { details: details.trim() } : {}) });
         if (mounted.current) setMessage(`Solicitud registrada: ${result.id}. Está pendiente de gestión; todavía no se eliminaron datos ni se emitió una devolución.`);
       }
     } catch (e) { if (mounted.current) setMessage(e instanceof Error ? e.message : 'No se pudo confirmar la operación.'); }
@@ -57,9 +59,15 @@ export default function PrivacyControls({ profiles, onErase }: { profiles: Profi
     <button type="button" className="np-account-button" disabled={busy} onClick={() => void perform('export')}>Descargar datos de mi cuenta</button>
     <label>Tipo de solicitud<select value={kind} disabled={busy} onChange={e => { setKind(e.target.value); setUnderstood(false); }}><option value="access">Acceso a mis datos</option><option value="rectification">Rectificación</option><option value="suppression">Cerrar cuenta y solicitar supresión</option><option value="revocation">Revocar consentimiento de datos del niño</option><option value="refund">Solicitar devolución o ejercer revocación de la compra</option></select></label>
     <p>{kind === 'suppression' ? 'Antes de cerrar la cuenta, cancelá la renovación y descargá tus copias. Al eliminar la cuenta Google de NeuroPlaneta podés perder la asociación con perfiles de este navegador; no se elimina tu cuenta Google general. Las copias descargadas y otros dispositivos no se borran a distancia. Los comprobantes sujetos a conservación legal se mantienen restringidos.' : kind === 'revocation' ? 'Podés dejar de registrar actividades y eliminar perfiles de este navegador. Esta solicitud pide al responsable retirar las fichas vinculadas del niño en servidores; no cancela por sí sola una renovación de PayPal.' : 'La solicitud se registra para gestión del responsable. No equivale a un borrado inmediato ni confirma una devolución.'}</p>
+    <label>Detalle de la solicitud (obligatorio para rectificación)<textarea aria-label="Detalle de la solicitud" rows={3} maxLength={500} disabled={busy} value={details} onChange={e => setDetails(e.target.value)} /></label>
+    <p>Indicá solo datos de la cuenta adulta que necesitás corregir o el motivo de la consulta. No incluyas información de salud ni datos del niño.</p>
     <label><input type="checkbox" checked={understood} disabled={busy} onChange={e => setUnderstood(e.target.checked)} />Comprendí el alcance de esta solicitud y quiero registrarla con mi cuenta adulta.</label>
-    <button type="button" className="np-account-button" disabled={busy || !understood} onClick={() => void perform('request')}>Registrar solicitud</button>
-    {config.supportEmail && <p>También podés escribir a <a href={`mailto:${config.supportEmail}`}>{config.supportEmail}</a>. No envíes contraseñas, fotos, voces ni informes del niño para pedir soporte.</p>}
+    <button type="button" className="np-account-button" disabled={busy || !understood || (kind === 'rectification' && !details.trim())} onClick={() => void perform('request')}>Registrar solicitud</button>
+    <p>Para consultas usá Mensajes. No envíes contraseñas, fotos, voces ni informes del niño.</p>
+    <button type="button" className="np-account-button" disabled={busy} onClick={() => void perform('list')}>Consultar mis solicitudes</button>
+    <p>Se muestran hasta 50 solicitudes; la exportación de cuenta incluye el historial conservado completo. Plazos de respuesta: acceso, diez días corridos; rectificación, actualización y supresión, cinco días hábiles. La solicitud queda pendiente hasta su gestión.</p>
+    {requests?.length === 0 && <p>No hay solicitudes registradas.</p>}
+    {requests?.map(r => <article key={r.id}><h4>{r.kind} · {r.status === 'closed' ? 'Cerrada' : 'Pendiente'}</h4><p>Referencia: {r.id}</p>{r.createdAt > 0 && <p>Recibida: {new Date(r.createdAt).toLocaleString('es-AR')}</p>}{r.details && <p className="whitespace-pre-wrap">{r.details}</p>}{r.resolution && <p className="whitespace-pre-wrap">Respuesta: {r.resolution}</p>}</article>)}
     {message && <p role="status">{message}</p>}
   </section>;
 }

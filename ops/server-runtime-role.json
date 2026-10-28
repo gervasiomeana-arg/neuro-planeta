@@ -1,0 +1,17 @@
+{
+  "title": "NeuroPlaneta server runtime",
+  "description": "Propuesta para la identidad del servidor, pendiente de revisión y prueba en el proyecto. No concede IAM ni permite administrar credenciales o proveedores.",
+  "stage": "GA",
+  "includedPermissions": [
+    "datastore.databases.get",
+    "datastore.databases.getMetadata",
+    "datastore.entities.allocateIds",
+    "datastore.entities.create",
+    "datastore.entities.get",
+    "datastore.entities.list",
+    "datastore.entities.update",
+    "datastore.entities.delete",
+    "firebaseauth.users.get",
+    "firebaseauth.users.delete"
+  ]
+}

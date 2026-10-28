@@ -1,3 +1,4 @@
+import { POLICY_VERSION } from '../commercial/policy';
 import { test, expect, type Page } from '@playwright/test';
 import { accountProfileKey } from '../src/data/accountProfileStorage';
 import { decryptBackup } from '../src/data/backups';
@@ -10,7 +11,7 @@ function fictionalUser(uid: string) {
   return { uid, email, emailVerified: true, isAnonymous: false, providerData: [{ providerId: 'google.com', uid, email }], stsTokenManager: { accessToken: token, refreshToken: 'fictional-only', expirationTime: Date.now() + 3600000 }, createdAt: String(Date.now()), lastLoginAt: String(Date.now()), apiKey, appName: 'neuroplaneta-adults' };
 }
 async function account(page: Page, uid: string) {
-  await page.evaluate(({ authKey, user }) => sessionStorage.setItem(authKey, JSON.stringify(user)), { authKey, user: fictionalUser(uid) });
+  await page.evaluate(({ authKey, user, version }) => { sessionStorage.setItem(authKey, JSON.stringify(user)); localStorage.setItem(`np_privacy_consent:${user.uid}:${version}`, JSON.stringify({ version, acceptedAt: new Date().toISOString() })); }, { authKey, user: fictionalUser(uid), version: POLICY_VERSION });
   await page.reload();
 }
 async function createSpace(page: Page, password: string) {
