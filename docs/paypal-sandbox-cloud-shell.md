@@ -72,3 +72,19 @@ Secuencia pendiente de aceptación real:
 Validación local: 77 pruebas de seguridad/datos aprobadas en total, incluidas tres nuevas pruebas de laboratorio con controles de origen/CSRF/consentimiento, estado privado/reinicio y recorrido por el motor real (aprobación sin pago no habilita; pago confirmado habilita; cancelación conserva período). TypeScript y compilación independiente aprobados. Vista a 390 y 768 píxeles sin desborde ni errores de navegador, con datos simulados. El recorrido real con comprador sigue pendiente.
 
 Referencia: [Vista previa privada de Cloud Shell](https://docs.cloud.google.com/shell/docs/using-web-preview).
+
+## Aceptación observada y preparación Live
+
+El 30 de octubre el titular aportó capturas del laboratorio contra PayPal Sandbox: alta aprobada con USD 20, estado ACTIVE, pago confirmado y acceso técnico habilitado; luego CANCELLED, renovación cancelada y conservación del mismo período hasta el 30/11/2026. Esto confirma el recorrido API manual del laboratorio, no webhooks ni acceso de familias en el producto. Las capturas no se agregan al repositorio porque contienen identificadores/tokens de aprobación.
+
+Después, el titular completó el cambio a cuenta Empresas y mostró acceso a Apps & Credentials Live, creación de `NeuroPlaneta Live`, casilla Subscriptions marcada y listado de Live Webhooks vacío. Secret Manager mostró creados `neuroplaneta-paypal-live-client-id` y `neuroplaneta-paypal-live-client-secret`, además de los dos recursos Sandbox. No se verificaron aún sus valores ni la elegibilidad completa de la cuenta.
+
+Se agregó la herramienta independiente `scripts/paypal_live_check.py`. Subir ese único archivo a Cloud Shell y ejecutar:
+
+```sh
+python3 ~/paypal_live_check.py
+```
+
+Lee exclusivamente los dos secretos Live nombrados del mismo proyecto fijado, obtiene un token OAuth en `https://api-m.paypal.com` y hace GET de una página de planes. Son las únicas dos rutas permitidas; no acepta opciones, cuerpos comerciales, redirecciones ni rutas de suscripción, productos, planes nuevos o webhooks. No modifica archivos, Firebase, IAM, Cloud Run ni la configuración pública. No imprime credenciales, tokens ni planes recibidos; los errores son fijos. El resultado correcto indica `credentialsVerified: true`, `subscriptionsApiReadVerified: true`, `billingActivated: false`, `subscriptionsCreated: 0`, `chargesCreated: 0`. No equivale a verificar facultades de cobro, identidad/compliance de la cuenta o recepción de pagos.
+
+Tres pruebas nuevas aisladas verifican secretos/host/rutas/métodos exactos y salida privada, bloqueo de escrituras/opciones/redirecciones y redacción de errores de Google/PayPal. Pasaron las once pruebas Python de ambas herramientas. La ejecución Live real continúa pendiente. Antes de activar cobros faltan plan/webhook Live, verificación de eventos firmados, prueba de Google/Firebase y acceso en el producto, requisitos comerciales y aceptación real controlada autorizada. No ejecutar la herramienta Sandbox con credenciales Live ni reemplazar su estado para hacer pruebas reales.
