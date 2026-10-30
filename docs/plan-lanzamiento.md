@@ -44,3 +44,6 @@ El lanzamiento general sigue pendiente de la aceptación final de la versión pu
 ## Cobros y privacidad preparados en código
 
 PayPal, verificación del servidor, cancelación, control de acceso, consentimiento y controles de datos implementados. La activación comercial sigue pendiente: configuración comercial formal, credenciales del proveedor, aceptación sandbox real y configuración live. Los permisos actuales permiten verificar usuarios y manejar documentos; no incluyen eliminar usuarios de Firebase Auth. No publicar domicilio ni correo personales del titular: el soporte funciona por Mensajes dentro de la app. Ver [detalle y activación](cobros-y-privacidad.md). El modo predeterminado conserva el acceso actual sin cobrar.
+
+
+Actualización PayPal, 30 de octubre: el titular confirmó credenciales y API Sandbox correctas desde Cloud Shell, creación/validación del plan USD 20 mensual con cero cobros y acceso a la cuenta compradora Personal Sandbox. Se preparó un laboratorio privado que reutiliza el motor de cobros sin Firebase y sin cambiar producción. El alta/aprobación/pago/cancelación real con ese comprador, webhooks firmados, renovación y habilitación dentro de la aplicación siguen pendientes. [Procedimiento y límites](paypal-sandbox-cloud-shell.md).

@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:families": "npx --yes firebase-tools@15.34.1 emulators:exec --only firestore --project demo-neuroplaneta-isolation \"node --test family-tests/*.test.mjs\""
+    "test:families": "npx --yes firebase-tools@15.34.1 emulators:exec --only firestore --project demo-neuroplaneta-isolation \"node --test family-tests/*.test.mjs\"",
+    "build:paypal-lab": "esbuild scripts/paypal-lab.ts --bundle --platform=node --format=esm --outfile=build/paypal-lab.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
