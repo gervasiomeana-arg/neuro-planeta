@@ -1,6 +1,20 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { decryptBackup } from '../src/data/backups';
+import { DEFAULT_CONFIG } from '../commercial/policy';
+// Legacy storage remains covered separately from the authenticated encrypted flow.
+// Override access only in this local fixture, never in the published application.
+async function isolated(page: Page) {
+  await page.route('**/access-policy.json', route => route.fulfill({ json: { requireGoogle: false } }));
+  await page.route('**/commercial-config.json', route => route.fulfill({ json: DEFAULT_CONFIG }));
+  await page.route('https://fonts.googleapis.com/**', route => route.abort());
+  await page.route('https://identitytoolkit.googleapis.com/**', route => route.abort());
+  await page.route('https://firestore.googleapis.com/**', route => route.abort());
+}
+test.beforeEach(async ({ page }) => {
+  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'Legacy fixtures only in an isolated local candidate.');
+  await isolated(page);
+});
 const password = 'Varias palabras de prueba 2026';
 const seed = { id: 'backup_test', name: 'Respaldo ficticio', avatar: '🦊', selectedAge: '6-8', stars: 19, unlockedAchievements: ['Prueba'], completedRoutineTasks: [], emotionJournal: [{ date: '2026-10-21', emotion: 'Verde', note: 'Nota ficticia' }], customPictogramImages: {}, customPictogramVoices: {}, attentionHighScore: 7 };
 async function start(page: Page) {
@@ -38,7 +52,7 @@ test('downloaded encrypted backup restores in a fresh browser after review and p
   expect(await decryptBackup(text, password)).toEqual(source);
   const context = await browser.newContext();
   try {
-    const fresh = await context.newPage(); await fresh.goto(page.url());
+    const fresh = await context.newPage(); await isolated(fresh); await fresh.goto(page.url());
     await fresh.getByText('Adultos: recuperar una copia anterior', { exact: true }).click();
     const restore = fresh.getByRole('region', { name: 'Copias de seguridad' });
     await restore.getByLabel('Archivo de copia cifrada').setInputFiles({ name: 'copia.npbackup', mimeType: 'application/octet-stream', buffer: Buffer.from(text) });

@@ -16,10 +16,20 @@ La segunda ejecuta el endpoint HTTP local: rechaza ausencia de sesión y tokens 
 
 Resultado: 74 pruebas de seguridad/datos aprobadas y TypeScript sin errores. Solo se agregan pruebas y esta constancia; no se modifica la aplicación ni se necesita republicarla por este cambio.
 
+## Confirmación posterior y recuperación local
+
+El titular confirmó que la descarga de datos de cuenta funciona en la app publicada. No se recibió ni inspeccionó el contenido de su archivo privado.
+
+Se ejecutaron 22 pruebas de cifrado, conservación, almacenamiento protegido y separación por cuenta: todas aprobadas. Se compiló la versión de producción y se ejecutaron seis recorridos de navegador local: descarga/restauración de copia con cuenta Google; descarga/restauración de almacenamiento histórico; conservación de datos dañados; falta de espacio; conflicto entre pestañas; y contraseñas de descarga que no coinciden. Todos aprobaron, junto con TypeScript.
+
+La prueba con cuenta Google conservó notas, imágenes, voces, historias, rutinas, premios, progreso y sesiones de juegos en un navegador nuevo con contraseña de protección distinta. Una contraseña de copia incorrecta no alteró el destino; revisar antes de restaurar tampoco escribió datos; la restauración agregó un perfil nuevo y permaneció tras recargar, conservando el origen.
+
+Los cinco recorridos históricos inicialmente se detenían en la pantalla de Google porque sus fixtures no declaraban el acceso local de prueba. Se actualizó únicamente `tests/backups.spec.ts`: política de acceso simulada para el candidato local, bloqueo de servicios externos y exclusión de ejecución con `PLAYWRIGHT_BASE_URL`. El recorrido separado con cuenta Google conserva su sesión ficticia y almacenamiento cifrado. No se alteró la política publicada ni código de producto. Las pruebas usaron Chromium 153 local y datos ficticios; no sustituyen la comprobación en dispositivos físicos.
+
 ## Pendientes que esta revisión no cierra
 
-- Descargar `neuroplaneta-datos-cuenta.json` desde la app publicada y comprobar que el archivo se abre correctamente. Todavía no hay confirmación del titular de esta descarga.
-- Comprobar copia cifrada de perfiles locales y su restauración en un entorno aislado. La exportación JSON de cuenta no reemplaza esa copia.
+- Comprobar que el archivo JSON real descargado se abre correctamente; su descarga ya fue confirmada por el titular.
+- Descargar y revisar una copia cifrada propia desde los dispositivos del titular. La restauración aislada con datos ficticios está aprobada; la exportación JSON de cuenta no reemplaza la copia cifrada de perfiles.
 - Confirmar el cierre de la solicitud de prueba y su respuesta en el espacio adulto.
 - Verificar eliminaciones únicamente con una cuenta desechable y autorización específica; el rol Authentication Viewer no habilita eliminar usuarios de Firebase Auth.
 - Completar las condiciones del lanzamiento comercial, los cobros y pruebas de proveedor, dispositivos físicos y piloto. Las pruebas aisladas no certifican esas condiciones.
