@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { DEFAULT_CONFIG } from '../commercial/policy';
 
 const profileName = 'Control ficticio';
 const modules = [
@@ -36,6 +37,12 @@ async function adults(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'Fictional legacy fixtures only in an isolated local candidate.');
+  await page.route('**/access-policy.json', route => route.fulfill({ json: { requireGoogle: false } }));
+  await page.route('**/commercial-config.json', route => route.fulfill({ json: DEFAULT_CONFIG }));
+  await page.route('https://fonts.googleapis.com/**', route => route.abort());
+  await page.route('https://identitytoolkit.googleapis.com/**', route => route.abort());
+  await page.route('https://firestore.googleapis.com/**', route => route.abort());
   await page.addInitScript(() => {
     if (localStorage.getItem('np_audit_seed')) return;
     const tasks = { Mañana: [], Tarde: [], Noche: [] } as Record<string, any[]>;

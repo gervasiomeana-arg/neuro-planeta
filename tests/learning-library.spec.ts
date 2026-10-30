@@ -65,6 +65,7 @@ for (const game of LEARNING_GAMES.filter(g => !['numbers', 'matching'].includes(
 test('completed game downloads a factual report with the saved measurements', async ({ page }) => {
   test.skip(published, 'Fictional fixtures only.');
   await start(page); await solve(page, LEARNING_GAMES.find(g => g.id === 'count')!, 1);
+  const savedBeforeReport = await profile(page), session = savedBeforeReport.activitySessions[0];
   await page.getByRole('button', { name: 'Abrir espacio de adultos', exact: true }).click();
   const dialog = page.locator('#adult-panel-dialog');
   const challenge = (await dialog.innerText()).match(/¿Cuánto es (\d+) x (\d+)/);
@@ -78,7 +79,11 @@ test('completed game downloads a factual report with the saved measurements', as
   const html = await readFile((await (await downloading).path())!, 'utf8');
   expect(html).toContain('Contar objetos'); expect(html).toContain('1 sesiones registradas: 1 completas');
   expect(html).toContain('No realiza análisis, evaluaciones, diagnósticos ni recomendaciones de tratamiento');
+  expect(html).toContain(`<td>${session.activeSeconds.toFixed(1)} s</td>`);
+  expect(html).toContain(`<td>${session.firstResponseSeconds.map((n: number) => n.toFixed(1)).join(' / ')}</td>`);
+  expect(html).toContain(`<td>${session.roundsCompleted}</td><td>${session.attempts}</td><td>${session.independentCorrect}</td>`);
   expect(html).not.toContain('Biblioteca ficticia');
+  expect(await profile(page)).toEqual(savedBeforeReport);
 });
 test('a missing image shows a readable label and pausing saves once', async ({ page }) => {
   test.skip(published, 'Fault injection only in isolated candidate.');
