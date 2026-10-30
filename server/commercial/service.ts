@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { POLICY_VERSION } from '../../commercial/policy';
+import { POLICY_VERSION, TRIAL_DURATION_MS } from '../../commercial/policy';
 import type { CommercialConfig } from './config';
 import { paidSnapshot, validatePlan, type Json, type PayPalClient } from './paypal';
 import type { Account, BillingRepository } from './store';
@@ -8,7 +8,21 @@ export class BillingService {
   private async plan() { validatePlan(await this.paypal.request(`/v1/billing/plans/${this.config.planId}`)); }
   view(record: Json | null, account?: Account) {
     const allowed = !!record && record.environment === this.config.mode && !record.reviewRequired && ['ACTIVE', 'CANCELLED', 'SUSPENDED', 'EXPIRED'].includes(record.status) && record.paidThrough > this.now();
-    return { mode: this.config.mode, enforced: this.config.enforce, hasAccess: !this.config.enforce || !!account?.admin || allowed, paid: allowed, status: record?.status || 'NONE', paidThrough: record?.paidThrough || 0, renewalCancelled: record?.status === 'CANCELLED', reviewRequired: record?.reviewRequired === true, hasSubscription: !!record?.subscriptionId, approvalUrl: record?.status === 'APPROVAL_PENDING' ? record?.approvalUrl || '' : '', checkedAt: record?.checkedAt || 0 };
+    const now = this.now(), started = record?.trialStartedAt, ends = record?.trialEndsAt;
+    const trialUsed = Number.isSafeInteger(started) && Number.isSafeInteger(ends) && ends - started === TRIAL_DURATION_MS;
+    const trialEligible = this.config.checkoutReady && !!account && !account.admin && !trialUsed && !record?.subscriptionId && !record?.checkoutKey && !record?.reviewRequired && !record?.paymentId && !record?.paidThrough;
+    const trialActive = !!account && !account.admin && this.config.mode !== 'off' && record?.environment === this.config.mode && !record?.reviewRequired && trialUsed && started <= now && ends > now;
+    return { mode: this.config.mode, enforced: this.config.enforce, hasAccess: !this.config.enforce || !!account?.admin || allowed || trialActive, paid: allowed, trialActive, trialUsed, trialEligible, trialEndsAt: trialUsed ? ends : 0, accessUntil: Math.max(allowed ? record!.paidThrough : 0, trialActive ? ends : 0), status: record?.status || 'NONE', paidThrough: record?.paidThrough || 0, renewalCancelled: record?.status === 'CANCELLED', reviewRequired: record?.reviewRequired === true, hasSubscription: !!record?.subscriptionId, approvalUrl: record?.status === 'APPROVAL_PENDING' ? record?.approvalUrl || '' : '', checkedAt: record?.checkedAt || 0 };
+  }
+  async startTrial(account: Account, consent: Json) {
+    if (!this.config.checkoutReady || account.admin || consent.termsVersion !== POLICY_VERSION || consent.privacyVersion !== POLICY_VERSION || consent.adultResponsible !== true) throw new Error('Revisá las condiciones antes de iniciar la prueba.');
+    const now = this.now();
+    const record = await this.repo.change(account.uid, old => {
+      // Never reset an existing trial, including after expiry, failed payments or cancellation.
+      if (old?.trialStartedAt !== undefined || old?.trialEndsAt !== undefined || old?.subscriptionId || old?.checkoutKey || old?.reviewRequired || old?.paymentId || old?.paidThrough) return old!;
+      return { ...old, environment: this.config.mode, status: old?.status || 'NONE', paidThrough: 0, trialStartedAt: now, trialEndsAt: now + TRIAL_DURATION_MS, trialTermsVersion: POLICY_VERSION, trialPrivacyVersion: POLICY_VERSION };
+    });
+    return this.view(record, account);
   }
   async status(account: Account, force = false) {
     let record = await this.repo.get(account.uid);
@@ -23,7 +37,7 @@ export class BillingService {
       if (old && (old.subscriptionId || old.checkoutKey)) {
         if (!['CANCELLED', 'EXPIRED'].includes(old.status) || old.paidThrough > now) return old;
       }
-      return { checkoutKey: randomUUID(), createdAt: now, status: 'CREATING', checkedAt: 0, paidThrough: 0, termsVersion: POLICY_VERSION, privacyVersion: POLICY_VERSION, consentedAt: now };
+      return { ...(old?.trialStartedAt !== undefined ? { trialStartedAt: old.trialStartedAt, trialEndsAt: old.trialEndsAt, trialTermsVersion: old.trialTermsVersion, trialPrivacyVersion: old.trialPrivacyVersion } : {}), checkoutKey: randomUUID(), createdAt: now, status: 'CREATING', checkedAt: 0, paidThrough: 0, termsVersion: POLICY_VERSION, privacyVersion: POLICY_VERSION, consentedAt: now };
     });
     if (record.subscriptionId) {
       const refreshed = await this.refresh(account.uid);

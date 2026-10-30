@@ -67,11 +67,16 @@ export function commercialRouter(config: CommercialConfig, deps: CommercialDepen
     catch { res.status(503).json({ error: 'No se pudo marcar el mensaje como leído.' }); }
   });
   router.get('/commercial/status', async (_req, res) => {
-    try { const data = await service.status(res.locals.account); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.paidThrough); res.json(data); } catch { res.status(503).json({ error: 'No se pudo verificar la suscripción. No vuelvas a pagar sin consultar su estado.' }); }
+    try { const data = await service.status(res.locals.account); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.accessUntil); res.json(data); } catch { res.status(503).json({ error: 'No se pudo verificar la suscripción. No vuelvas a pagar sin consultar su estado.' }); }
   });
   router.post('/commercial/refresh', async (req, res) => {
     if (!body(req, [])) return res.sendStatus(400);
-    try { const data = await service.status(res.locals.account, true); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.paidThrough); res.json(data); } catch { res.status(503).json({ error: 'El pago todavía no pudo confirmarse. Consultá PayPal antes de intentar otra compra.' }); }
+    try { const data = await service.status(res.locals.account, true); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.accessUntil); res.json(data); } catch { res.status(503).json({ error: 'El pago todavía no pudo confirmarse. Consultá PayPal antes de intentar otra compra.' }); }
+  });
+  router.post('/commercial/trial', async (req, res) => {
+    if (!body(req, ['termsVersion', 'privacyVersion', 'adultResponsible'])) return res.sendStatus(400);
+    try { const data = await service.startTrial(res.locals.account, req.body); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.accessUntil); res.json(data); }
+    catch { res.status(409).json({ error: 'No se pudo iniciar la prueba gratuita. Revisá las condiciones y volvé a consultar tu acceso.' }); }
   });
   router.post('/commercial/checkout', async (req, res) => {
     if (!body(req, ['termsVersion', 'privacyVersion', 'adultResponsible', 'recurringPayment'])) return res.sendStatus(400);
@@ -79,7 +84,7 @@ export function commercialRouter(config: CommercialConfig, deps: CommercialDepen
   });
   router.post('/commercial/cancel', async (req, res) => {
     if (!body(req, ['confirmation']) || req.body.confirmation !== 'CANCELAR RENOVACION') return res.sendStatus(400);
-    try { const data = await service.cancel(res.locals.account); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.paidThrough); res.json(data); } catch { res.status(503).json({ error: 'No se confirmó la cancelación. Podés cancelarla en los pagos automáticos de PayPal o contactar a soporte.' }); }
+    try { const data = await service.cancel(res.locals.account); setAssetAccess(res, config, res.locals.account.uid, data.hasAccess, data.accessUntil); res.json(data); } catch { res.status(503).json({ error: 'No se confirmó la cancelación. Podés cancelarla en los pagos automáticos de PayPal o contactar a soporte.' }); }
   });
   router.get('/privacy/admin/diagnostics', async (_req, res) => {
     if (!res.locals.account.admin) return res.sendStatus(403);

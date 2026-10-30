@@ -17,6 +17,7 @@ export default function CommercialGate({ children }: { children: ReactNode }) {
   const [accepted, setAccepted] = useState(() => { try { return !!localStorage.getItem(consentKey); } catch { return false; } });
   const [revoked, setRevoked] = useState(() => { try { return localStorage.getItem(revokedKey) === 'true'; } catch { return true; } });
   const [consent, setConsent] = useState(false), [consentError, setConsentError] = useState('');
+  const [trialEndsAt, setTrialEndsAt] = useState(0);
   const [access, setAccess] = useState(false), [message, setMessage] = useState(''), [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const changed = () => { setRevoked(true); setAccepted(false); setConsent(false); setConsentError(''); };
@@ -32,8 +33,8 @@ export default function CommercialGate({ children }: { children: ReactNode }) {
         const data = await accountRequest('commercial/status');
         if (!alive) return;
         if (data.mode !== config.mode || data.enforced !== true) throw new Error('La configuración comercial cambió. Recargá la página.');
-        setAccess(data.hasAccess === true); setMessage(data.hasAccess ? '' : 'El acceso de pago necesita un período vigente confirmado. Tus perfiles se conservan.');
-        const wait = data.paidThrough > Date.now() ? Math.min(300000, data.paidThrough - Date.now()) : 300000;
+        setAccess(data.hasAccess === true); setTrialEndsAt(data.trialActive && !data.paid ? data.trialEndsAt : 0); setMessage(data.hasAccess ? '' : data.trialUsed ? 'Tu prueba gratuita de 2 días finalizó. Contratá el Plan Familia para continuar. Tus perfiles se conservan.' : 'Podés iniciar tu prueba gratuita de 2 días o contratar el Plan Familia.');
+        const wait = data.accessUntil > Date.now() ? Math.min(300000, data.accessUntil - Date.now()) : 300000;
         timer = setTimeout(() => { if (alive) void check(); }, Math.max(1000, wait));
       } catch (e) { if (alive) { setAccess(false); setMessage(e instanceof Error ? e.message : 'No se pudo verificar el acceso.'); } }
     };
@@ -42,7 +43,7 @@ export default function CommercialGate({ children }: { children: ReactNode }) {
   }, [loaded, config.enforce, config.mode, attempt]);
   const needsConsent = revoked || (loaded && storage.isolated && !accepted);
   const waiting = !loaded || !!error || needsConsent || (config.enforce && !access);
-  if (!waiting) return <>{children}</>;
+  if (!waiting) return <>{trialEndsAt > 0 && <aside className="np-commercial-panel" role="status">Prueba gratuita hasta {new Date(trialEndsAt).toLocaleString('es-AR', { hour12: false })}. Después, USD 20 por mes si elegís suscribirte. No hay cobro automático.</aside>}{children}</>;
   const profiles = protection?.session?.profiles || [];
   return <main className="np-theme np-commercial-access"><section className="np-commercial-panel"><h1>Tu cuenta y tus datos</h1>
     {!loaded && !error && <p role="status">Consultando las condiciones de acceso…</p>}

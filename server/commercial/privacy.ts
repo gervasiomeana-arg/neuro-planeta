@@ -89,7 +89,7 @@ export class FirestorePrivacyRepository implements PrivacyRepository {
     const uid = request.uid;
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(uid) || (await this.db.doc(`admins/${uid}`).get()).data()?.active === true) throw new Error('Requiere revisión del responsable.');
     const subscriptions = await this.db.collection('commercialAccounts').where('uid', '==', uid).get();
-    if (request.kind === 'suppression' && subscriptions.docs.some(d => !['CANCELLED', 'EXPIRED'].includes(d.data().status))) throw new Error('Confirmá primero la cancelación de todas las suscripciones, incluso altas pendientes.');
+    if (request.kind === 'suppression' && subscriptions.docs.some(d => (d.data().subscriptionId || d.data().checkoutKey) && !['CANCELLED', 'EXPIRED'].includes(d.data().status))) throw new Error('Confirmá primero la cancelación de todas las suscripciones, incluso altas pendientes.');
     await this.db.recursiveDelete(this.db.doc(`families/${uid}`));
     const events = await this.db.collection('accessEvents').where('ownerUid', '==', uid).get();
     for (const doc of events.docs) await doc.ref.delete();

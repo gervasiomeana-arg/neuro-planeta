@@ -6,7 +6,7 @@ import { BillingService } from '../server/commercial/service';
 import { paidSnapshot, validatePlan, type Json } from '../server/commercial/paypal';
 import type { Account, BillingRepository } from '../server/commercial/store';
 import type { PrivacyRepository } from '../server/commercial/privacy';
-import { POLICY_VERSION } from '../commercial/policy';
+import { POLICY_VERSION, TRIAL_DURATION_MS } from '../commercial/policy';
 const NOW = Date.parse('2026-10-25T20:00:00Z');
 const owner: Account = { uid: 'adult-one', email: 'one@example.invalid', authTime: NOW, admin: false };
 const consent = { termsVersion: POLICY_VERSION, privacyVersion: POLICY_VERSION, adultResponsible: true, recurringPayment: true };
@@ -46,6 +46,45 @@ function fixture() {
 }
 function payment(time = NOW - 1000, status = 'COMPLETED', value = '20.00', currency = 'USD', id = 'PAY-ONE') { return { id, status, time: new Date(time).toISOString(), amount_with_breakdown: { gross_amount: { value, currency_code: currency } } }; }
 
+test('trial starts only with explicit consent, lasts exactly 48 hours and survives repeated/concurrent requests', async () => {
+  const f = fixture();
+  assert.equal((await f.service.status(owner)).hasAccess, true); // enforcement is off in this sandbox fixture
+  assert.equal((await f.service.status(owner)).trialUsed, false);
+  assert.equal(f.repo.records.size, 0); // GET never starts the trial
+  await assert.rejects(f.service.startTrial(owner, { ...consent, adultResponsible: false }));
+  const [a, b] = await Promise.all([f.service.startTrial(owner, consent), f.service.startTrial(owner, consent)]);
+  assert.equal(a.trialEndsAt, NOW + TRIAL_DURATION_MS); assert.equal(b.trialEndsAt, a.trialEndsAt);
+  assert.equal(a.trialActive, true); assert.equal(a.paid, false); assert.equal(a.hasSubscription, false);
+  assert.equal(f.created(), 0); assert.equal(f.repo.receipts.size, 0);
+  f.setClock(NOW + TRIAL_DURATION_MS - 1); assert.equal((await f.service.status(owner)).trialActive, true);
+  f.setClock(NOW + TRIAL_DURATION_MS); assert.equal((await f.service.status(owner)).trialActive, false);
+  const retry = await f.service.startTrial(owner, consent);
+  assert.equal(retry.trialEndsAt, a.trialEndsAt); assert.equal(retry.trialActive, false); assert.equal(retry.trialEligible, false);
+  const other = await f.service.status({ ...owner, uid: 'other-account' }); assert.equal(other.trialUsed, false);
+});
+test('enforced trial grants access only within server timestamps, caps assets and never overrides refunds', async () => {
+  const f = fixture(), activeConfig = { ...config, enforce: true };
+  const enforced = new BillingService(activeConfig, { request: async () => { throw Error('PayPal must not be called'); }, verify: async () => false }, f.repo, () => NOW);
+  assert.equal((await enforced.status(owner)).hasAccess, false);
+  const trial = await enforced.startTrial(owner, consent);
+  assert.equal(trial.hasAccess, true); assert.equal(trial.accessUntil, NOW + TRIAL_DURATION_MS);
+  const record = await f.repo.get(owner.uid);
+  assert.equal(enforced.view({ ...record, trialStartedAt: NOW + 1, trialEndsAt: NOW + 1 + TRIAL_DURATION_MS }, owner).hasAccess, false);
+  assert.equal(enforced.view({ ...record, trialEndsAt: NOW + TRIAL_DURATION_MS + 1 }, owner).hasAccess, false);
+  assert.equal(enforced.view({ ...record, environment: 'live' }, owner).hasAccess, false);
+  assert.equal(enforced.view({ ...record, reviewRequired: true }, owner).hasAccess, false);
+  const expired = new BillingService(activeConfig, { request: async () => ({}), verify: async () => false }, f.repo, () => NOW + TRIAL_DURATION_MS);
+  assert.equal((await expired.status(owner)).hasAccess, false);
+});
+test('checkout and replacement subscriptions retain trial history; paying accounts cannot start a new trial', async () => {
+  const f = fixture(); await f.service.startTrial(owner, consent); await f.service.checkout(owner, consent);
+  assert.equal((await f.repo.get(owner.uid))!.trialStartedAt, NOW);
+  await f.repo.change(owner.uid, old => ({ ...old, status: 'EXPIRED', subscriptionId: '', checkoutKey: '', paidThrough: 0 }));
+  await f.service.checkout(owner, consent);
+  assert.equal((await f.repo.get(owner.uid))!.trialEndsAt, NOW + TRIAL_DURATION_MS);
+  const paid = fixture(); await paid.service.checkout(owner, consent);
+  assert.equal((await paid.service.startTrial(owner, consent)).trialUsed, false);
+});
 test('commercial defaults preserve pilot and keep credentials out of public config', () => {
   assert.equal(commercialConfig({}).enforce, false); assert.equal(commercialConfig({}).checkoutReady, false);
   assert.ok(!JSON.stringify(publicConfig(config)).includes('fictional-secret'));
@@ -124,6 +163,13 @@ test('real HTTP routes enforce account, origin, recent authentication, payload a
     assert.equal((await request('commercial/checkout', consent, undefined, 'https://evil.invalid')).status, 403);
     assert.equal((await request('commercial/checkout', consent, 'old-token-fictional-0000')).status, 401);
     assert.equal((await request('commercial/checkout', { ...consent, amount: 1, childNote: 'must-not-store' })).status, 400);
+    assert.equal(f.created(), 0);
+    const trialConsent = { termsVersion: POLICY_VERSION, privacyVersion: POLICY_VERSION, adultResponsible: true };
+    assert.equal((await request('commercial/trial', trialConsent, undefined, 'https://evil.invalid')).status, 403);
+    assert.equal((await request('commercial/trial', trialConsent, 'old-token-fictional-0000')).status, 401);
+    assert.equal((await request('commercial/trial', { ...trialConsent, trialEndsAt: NOW + 999999999 })).status, 400);
+    const trialResponse = await request('commercial/trial', trialConsent);
+    assert.equal(trialResponse.status, 200); assert.equal((await trialResponse.json()).trialActive, true);
     assert.equal(f.created(), 0);
     const r = await request('privacy/requests', { kind: 'suppression', version: POLICY_VERSION, understood: true }); assert.equal(r.status, 202); assert.equal(requests[0].uid, owner.uid); assert.equal(suppressed, 0);
     assert.deepEqual(await (await request('privacy/export')).json(), { uid: owner.uid });

@@ -9,7 +9,7 @@ const key = accountProfileKey(uid);
 async function seed(page: Page, enforce = false, activeSubscription = false) {
   const cfg = { ...DEFAULT_CONFIG, mode: enforce ? 'live' : 'sandbox', enforce, legalReady: true, checkoutReady: true, address: 'Domicilio ficticio de prueba', supportEmail: 'soporte@example.invalid' };
   const requests: Array<{ path: string; body: any }> = [];
-  let status = { mode: cfg.mode, enforced: enforce, hasAccess: activeSubscription, paid: activeSubscription, status: activeSubscription ? 'ACTIVE' : 'NONE', paidThrough: activeSubscription ? Date.now() + 86400000 : 0, renewalCancelled: false, hasSubscription: activeSubscription, reviewRequired: false, checkedAt: Date.now() };
+  let status: any = { mode: cfg.mode, enforced: enforce, hasAccess: activeSubscription, paid: activeSubscription, status: activeSubscription ? 'ACTIVE' : 'NONE', paidThrough: activeSubscription ? Date.now() + 86400000 : 0, renewalCancelled: false, hasSubscription: activeSubscription, reviewRequired: false, trialEligible: !activeSubscription, trialUsed: false, trialActive: false, trialEndsAt: 0, checkedAt: Date.now() };
   await page.route('**/commercial-config.json', r => r.fulfill({ json: cfg }));
   await page.route('**/access-policy.json', r => r.fulfill({ json: { requireGoogle: true } }));
   await page.route('https://fonts.googleapis.com/**', r => r.abort());
@@ -22,6 +22,7 @@ async function seed(page: Page, enforce = false, activeSubscription = false) {
   await page.route('**/api/commercial/**', r => {
     const path = new URL(r.request().url()).pathname, body = r.request().postDataJSON(); requests.push({ path, body });
     if (path.endsWith('/checkout')) return r.fulfill({ json: { approvalUrl: 'https://www.sandbox.paypal.com/webapps/billing/subscriptions?ba_token=fictional' } });
+    if (path.endsWith('/trial') && status.trialEligible) status = { ...status, hasAccess: true, trialEligible: false, trialUsed: true, trialActive: true, trialEndsAt: Date.now() + 48 * 3600000, accessUntil: Date.now() + 48 * 3600000 };
     if (path.endsWith('/cancel')) status = { ...status, status: 'CANCELLED', renewalCancelled: true };
     return r.fulfill({ json: status });
   });
@@ -42,7 +43,7 @@ async function seed(page: Page, enforce = false, activeSubscription = false) {
   await expect(page.getByRole('button', { name: 'Aceptar y continuar', exact: true })).toBeDisabled();
   await page.getByRole('checkbox', { name: /Soy adulto responsable o estoy autorizado/ }).check();
   await page.getByRole('button', { name: 'Aceptar y continuar', exact: true }).click();
-  return { requests, cfg };
+  return { requests, cfg, expireTrial: () => { status = { ...status, hasAccess: false, trialActive: false, trialEndsAt: Date.now() - 1000, accessUntil: 0 }; } };
 }
 async function adults(page: Page) {
   await page.getByRole('button', { name: /Primer perfil ficticio/ }).click();
@@ -248,4 +249,30 @@ test('rectificación requiere detalle y el adulto consulta una respuesta sin acc
   await privacy.getByRole('button', { name:'Consultar mis solicitudes', exact:true }).click();
   await expect(privacy).toContainText('Respuesta: Se informó cómo actualizar el correo en Google.');
   expect(JSON.stringify(submitted)).not.toMatch(/Primer perfil|uid|email/);
+});
+
+for (const width of [390, 768]) test(`prueba gratuita sin PayPal, vencimiento y perfiles conservados: ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 844 });
+  const { requests, expireTrial } = await seed(page, true);
+  const panel = page.getByRole('region', { name: 'Mi suscripción', exact: true });
+  const trial = panel.getByRole('button', { name: 'Iniciar prueba gratuita · 2 días', exact: true });
+  await expect(trial).toBeVisible(); await expect(trial).toBeDisabled();
+  await panel.getByRole('checkbox', { name: /Soy adulto responsable,/ }).check();
+  await panel.getByRole('checkbox', { name: /Leí y acepto/ }).check();
+  await expect(panel.getByRole('checkbox', { name: /Autorizo USD 20/ })).not.toBeChecked();
+  const before = await page.evaluate(k => localStorage.getItem(k), key);
+  await trial.click();
+  await expect(page.getByText(/Prueba gratuita hasta/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Primer perfil ficticio/ })).toBeVisible();
+  expect(requests.find(r => r.path.endsWith('/trial'))?.body).toEqual({ termsVersion: POLICY_VERSION, privacyVersion: POLICY_VERSION, adultResponsible: true });
+  expect(requests.some(r => r.path.endsWith('/checkout'))).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  expireTrial(); await page.reload();
+  const locked = page.getByRole('region', { name: 'Desbloquear perfiles protegidos', exact: true });
+  await locked.getByLabel('Contraseña de protección', { exact: true }).fill(password);
+  await locked.getByRole('button', { name: 'Desbloquear perfiles', exact: true }).click();
+  await expect(page.getByText(/Tu prueba gratuita de 2 días finalizó/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar prueba gratuita · 2 días', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Continuar a PayPal/ })).toBeVisible();
+  expect(await page.evaluate(k => localStorage.getItem(k), key)).toBe(before);
 });
